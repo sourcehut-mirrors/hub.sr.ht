@@ -1,0 +1,46 @@
+<h2>
+  <a
+    href="{{url_for("users.user_summary_GET", username=owner.username)}}"
+  >{{owner.canonical_name}}</a>/{{project.name}}
+</h2>
+{% macro link(path, title, alternates, cls="") %}
+<a
+  class="nav-link {% if view == title or view in alternates %}active{% endif %} {{cls}}"
+  href="{{ path }}">{{ title }}</a>
+{% endmacro %}
+<ul class="nav nav-tabs">
+  <li class="nav-item">
+    {{link(url_for("projects.summary_GET",
+      owner=owner.canonical_name,
+      project_name=project.name), "summary")}}
+  </li>
+  {% if any(project.source_repos) %}
+  <li class="nav-item">
+    {{link(url_for("projects.sources_GET",
+      owner=owner.canonical_name,
+      project_name=project.name), "sources")}}
+  </li>
+  {% endif %}
+  {# TODO
+  <li class="nav-item">
+    <a
+      class="nav-link" href="#"
+    >website&nbsp;{{icon('external-link-alt')}}</a>
+  </li>
+  <li class="nav-item">
+    {{link("#", "documentation")}}
+  </li>
+  <li class="nav-item">
+    {{link("#", "mailing lists")}}
+  </li>
+  <li class="nav-item">
+    {{link("#", "tickets")}}
+  </li>
+  #}
+  {% if view == "summary" and current_user and current_user.id == owner.id %}
+  <li class="flex-grow-1"></li>
+  <li class="nav-item">
+    {{link("#", "add +", cls="btn-primary")}}
+  </li>
+  {% endif %}
+</ul>

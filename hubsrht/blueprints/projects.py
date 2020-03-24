@@ -4,6 +4,7 @@ from hubsrht.services import git
 from hubsrht.types import Project, RepoType, SourceRepo, Visibility
 from srht.config import get_origin
 from srht.database import db
+from srht.flask import paginate_query
 from srht.oauth import current_user, loginrequired
 from srht.validation import Validation
 
@@ -11,7 +12,7 @@ projects = Blueprint("projects", __name__)
 origin = get_origin("hub.sr.ht")
 
 @projects.route("/<owner>/<project_name>")
-def project_GET(owner, project_name):
+def summary_GET(owner, project_name):
     owner, project = get_project(owner, project_name, ProjectAccess.read)
 
     summary = None
@@ -55,13 +56,24 @@ def create_POST():
     db.session.add(project)
     db.session.commit()
 
-    return redirect(url_for("projects.project_GET",
+    return redirect(url_for("projects.summary_GET",
         owner=current_user.canonical_name,
         project_name=project.name))
 
+@projects.route("/<owner>/<project_name>/sources")
+@loginrequired
+def sources_GET(owner, project_name):
+    owner, project = get_project(owner, project_name, ProjectAccess.read)
+    sources = (SourceRepo.query
+            .filter(SourceRepo.project_id == project.id)
+            .order_by(SourceRepo.updated.desc()))
+    sources, pagination = paginate_query(sources)
+    return render_template("project-sources.html", view="sources",
+            owner=owner, project=project, sources=sources, **pagination)
+
 @projects.route("/<owner>/<project_name>/sources/new")
 @loginrequired
-def project_sources_new_GET(owner, project_name):
+def sources_new_GET(owner, project_name):
     # TODO: Redirect appropriately if this instance only has git or hg support
     owner, project = get_project(owner, project_name, ProjectAccess.write)
     return render_template("project-sources-new.html", view="new-resource",
@@ -69,20 +81,20 @@ def project_sources_new_GET(owner, project_name):
 
 @projects.route("/<owner>/<project_name>/sources/new", methods=["POST"])
 @loginrequired
-def project_sources_new_POST(owner, project_name):
+def sources_new_POST(owner, project_name):
     owner, project = get_project(owner, project_name, ProjectAccess.write)
     valid = Validation(request)
     if "git" in valid:
-        return redirect(url_for("projects.project_git_new_GET",
+        return redirect(url_for("projects.sources_git_new_GET",
             owner=owner.canonical_name, project_name=project.name))
     if "hg" in valid:
         # TODO: Hg repos
-        return redirect(url_for("projects.project_hg_new_GET",
+        return redirect(url_for("projects.sources_hg_new_GET",
             owner=owner.canonical_name, project_name=project.name))
 
 @projects.route("/<owner>/<project_name>/git/new")
 @loginrequired
-def project_git_new_GET(owner, project_name):
+def sources_git_new_GET(owner, project_name):
     owner, project = get_project(owner, project_name, ProjectAccess.write)
     # TODO: Pagination
     repos = git.get_repos(owner)
@@ -94,7 +106,7 @@ def project_git_new_GET(owner, project_name):
 
 @projects.route("/<owner>/<project_name>/git/new", methods=["POST"])
 @loginrequired
-def project_git_new_POST(owner, project_name):
+def sources_git_new_POST(owner, project_name):
     owner, project = get_project(owner, project_name, ProjectAccess.write)
     valid = Validation(request)
     if "create" in valid:
@@ -134,13 +146,13 @@ def project_git_new_POST(owner, project_name):
 
     db.session.commit()
 
-    return redirect(url_for("projects.project_GET",
+    return redirect(url_for("projects.summary_GET",
         owner=owner.canonical_name, project_name=project.name))
 
 @projects.route("/<owner>/<project_name>/sources/set-summary/<int:repo_id>",
         methods=["POST"])
 @loginrequired
-def project_set_summary_repo(owner, project_name, repo_id):
+def set_summary_repo(owner, project_name, repo_id):
     owner, project = get_project(owner, project_name, ProjectAccess.write)
     repo = (SourceRepo.query
         .filter(SourceRepo.id == repo_id)
@@ -149,5 +161,5 @@ def project_set_summary_repo(owner, project_name, repo_id):
         abort(404)
     project.summary_repo_id = repo.id
     db.session.commit()
-    return redirect(url_for("projects.project_GET",
+    return redirect(url_for("projects.summary_GET",
         owner=owner.canonical_name, project_name=project.name))

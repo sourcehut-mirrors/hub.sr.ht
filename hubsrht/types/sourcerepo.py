@@ -1,7 +1,11 @@
 import sqlalchemy as sa
 import sqlalchemy_utils as sau
 from enum import Enum
+from srht.config import get_origin
 from srht.database import Base
+
+_gitsrht = get_origin("git.sr.ht", external=True, default=None)
+_hgsrht = get_origin("git.sr.ht", external=True, default=None)
 
 class RepoType(Enum):
     git = "git"
@@ -29,3 +33,7 @@ class SourceRepo(Base):
     description = sa.Column(sa.Unicode(512), nullable=False)
     repo_type = sa.Column(sau.ChoiceType(RepoType, impl=sa.String()),
             nullable=False)
+
+    def url(self):
+        origin = _gitsrht if self.repo_type == RepoType.git else _hgsrht
+        return f"{origin}/{self.owner.canonical_name}/{self.name}"

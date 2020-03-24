@@ -2,46 +2,7 @@
 {% block body %}
 <div class="header-tabbed">
   <div class="container">
-    <h2>
-      <a
-        href="{{url_for("users.user_summary_GET", username=owner.username)}}"
-      >{{owner.canonical_name}}</a>/{{project.name}}
-    </h2>
-    {% macro link(path, title, alternates, cls="") %}
-    <a
-      class="nav-link {% if view == title or view in alternates %}active{% endif %} {{cls}}"
-      href="{{ path }}">{{ title }}</a>
-    {% endmacro %}
-    <ul class="nav nav-tabs">
-      <li class="nav-item">
-        {{link("#", "summary")}}
-      </li>
-      {% if any(project.source_repos) %}
-      <li class="nav-item">
-        {{link("#", "sources")}}
-      </li>
-      {% endif %}
-      {# TODO
-      <li class="nav-item">
-        <a
-          class="nav-link" href="#"
-        >website&nbsp;{{icon('external-link-alt')}}</a>
-      </li>
-      <li class="nav-item">
-        {{link("#", "documentation")}}
-      </li>
-      <li class="nav-item">
-        {{link("#", "mailing lists")}}
-      </li>
-      <li class="nav-item">
-        {{link("#", "tickets")}}
-      </li>
-      #}
-      <li class="flex-grow-1"></li>
-      <li class="nav-item">
-        {{link("#", "add +", cls="btn-primary")}}
-      </li>
-    </ul>
+    {% include 'project-nav.html' %}
   </div>
 </div>
 {% if project.description %}
@@ -74,7 +35,7 @@
             {% else %}
             {{icon('plus-square', cls='text-info')}}
             <a
-              href="{{url_for("projects.project_sources_new_GET",
+              href="{{url_for("projects.sources_new_GET",
                 owner=owner.canonical_name, project_name=project.name)}}"
             >Add source code repositories&nbsp;{{icon('arrow-right')}}</a>
             <br />
@@ -165,7 +126,7 @@
         <form
           class="event"
           method="POST"
-          action="{{url_for("projects.project_set_summary_repo",
+          action="{{url_for("projects.set_summary_repo",
             owner=project.owner.canonical_name,
             project_name=project.name,
             repo_id=repo.id)}}"

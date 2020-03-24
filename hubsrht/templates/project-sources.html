@@ -1,0 +1,46 @@
+{% extends "layout.html" %}
+{% block body %}
+<div class="header-tabbed">
+  <div class="container">
+    {% include 'project-nav.html' %}
+  </div>
+</div>
+{% if project.description %}
+<div class="header-extension">
+  <div class="container">
+    {{ project.description }}
+  </div>
+</div>
+{% endif %}
+<div class="container">
+  <div class="row">
+    <div class="col-md-10 event-list">
+      {% for repo in sources %}
+      <div class="event">
+        <h4>
+          <a href="{{repo.url()}}">~{{owner.username}}/{{repo.name}}</a>
+          <small class="pull-right">
+            {{ repo.repo_type.value }}
+          </small>
+        </h4>
+        {% if repo.description %}
+        <p>{{ repo.description }}</p>
+        {% endif %}
+      </div>
+      {% endfor %}
+      {{pagination()}}
+    </div>
+    {% if current_user and current_user.id == owner.id %}
+    <div class="col-md-2">
+      <a
+        href="{{url_for("projects.sources_new_GET",
+                owner=owner.canonical_name, project_name=project.name)}}"
+        class="btn btn-primary btn-block"
+      >
+        Add repository&nbsp;{{icon('caret-right')}}
+      </a>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}
