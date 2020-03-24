@@ -1,0 +1,98 @@
+{% extends "layout.html" %}
+{% block content %}
+<style>
+.form-group:last-child {
+  margin-bottom: 0;
+}
+
+.form-check .form-text {
+  margin-top: 0;
+  margin-bottom: 0.5rem;
+}
+</style>
+<form class="row" method="POST">
+  {{csrf_token()}}
+  <div class="col-md-12">
+    <h3>Create new project</h3>
+  </div>
+  <div class="col-md-6">
+    <div class="form-group">
+      <label for="name">Project name</label>
+      <input
+        type="text"
+        id="name"
+        name="name"
+        class="form-control {{valid.cls("name")}}"
+        placeholder="my-cool-project"
+        autofocus required
+        value="{{name or ""}}" />
+      {{valid.summary("name")}}
+    </div>
+    <div class="form-group">
+      <label for="description">Description</label>
+      <input
+        type="text"
+        id="description"
+        name="description"
+        class="form-control {{valid.cls("description")}}"
+        placeholder="Short description of your project, shown in lists"
+        required
+        {{description or ""}} />
+      {{valid.summary("description")}}
+    </div>
+    <div class="flex-grow-1 d-flex flex-row justify-content-end">
+      <button type="submit" class="btn btn-primary align-self-end">
+        Create project {{icon("caret-right")}}
+      </button>
+    </div>
+  </div>
+  <div class="col-md-6 d-flex flex-column">
+    <fieldset class="form-group">
+      <legend>Project Visibility</legend>
+      <div class="form-check">
+        <label class="form-check-label">
+          <input
+            class="form-check-input"
+            type="radio"
+            name="visibility"
+            value="public"
+            checked> Public
+          <small id="visibility-public-help" class="form-text text-muted">
+            Shown on your profile and listed in the public project index
+          </small>
+        </label>
+      </div>
+      <div class="form-check">
+        <label
+            class="form-check-label"
+            title="Visible to anyone with the link, but not shown on your profile"
+          >
+          <input
+            class="form-check-input"
+            type="radio"
+            name="visibility"
+            value="unlisted"> Unlisted
+          <small id="visibility-unlisted-help" class="form-text text-muted">
+            Visible to anyone who knows the URL, but not shown on your profile
+          </small>
+        </label>
+      </div>
+      <div class="form-check">
+        <label
+          class="form-check-label"
+          title="Only visible to you and your collaborators"
+        >
+          <input
+            class="form-check-input"
+            type="radio"
+            name="visibility"
+            value="private"> Private
+          <small id="visibility-unlisted-help" class="form-text text-muted">
+            Only visible to you and your collaborators
+          </small>
+        </label>
+      </div>
+    </fieldset>
+  </div>
+</form>
+{% endblock %}

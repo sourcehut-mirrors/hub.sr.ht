@@ -1,0 +1,72 @@
+{% extends "layout.html" %}
+{% block content %}
+<div class="row">
+  <div class="col-md-4">
+    <p>
+      Welcome back, {{current_user.canonical_name}}!
+      This is the {{cfg("sr.ht", "site-name")}} hub service, which organizes
+      and indexes projects and users on the platform.
+    </p>
+    <div style="margin-bottom: 1rem">
+      <a
+        href="#"
+        class="btn btn-primary btn-block"
+      >Create new project {{icon("caret-right")}}</a>
+      <a
+        href="#"
+        class="btn btn-default btn-block"
+      >View your profile {{icon("caret-right")}}</a>
+    </div>
+    <h3>Discover interesting projects</h3>
+    <div class="event-list">
+      <div class="event">
+        <h4><a href="#">SourceHut</a></h4>
+        <p>The hacker's software forge</p>
+      </div>
+      <div class="event">
+        <h4><a href="#">KnightOS</a></h4>
+        <p>A Unix-like operating system for TI...</p>
+      </div>
+      <div class="event">
+        <h4><a href="#">aerc</a></h4>
+        <p>The world's best email client</p>
+      </div>
+    </div>
+    <a href="#" class="btn btn-block btn-default">
+      Browse more projects
+      {{icon("caret-right")}}
+    </a>
+  </div>
+  <div class="col-md-8">
+    <hr class="d-md-none" />
+    <form>
+      <input
+        name="search"
+        type="text"
+        placeholder="Search your projects"
+        class="form-control{% if search_error %} is-invalid{% endif %}"
+        value="{{ search if search else "" }}" />
+      {% if search_error %}
+        <div class="invalid-feedback">{{ search_error }}</div>
+      {% endif %}
+    </form>
+    <div class="event-list">
+      {% for i in range(25 // 3) %}
+      <div class="event">
+        <h4><a href="#">SourceHut</a></h4>
+        <p>The hacker's software forge</p>
+      </div>
+      <div class="event">
+        <h4><a href="#">KnightOS</a></h4>
+        <p>A Unix-like operating system for TI...</p>
+      </div>
+      <div class="event">
+        <h4><a href="#">aerc</a></h4>
+        <p>The world's best email client</p>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+{% endblock %}
+

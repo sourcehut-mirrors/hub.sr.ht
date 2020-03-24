@@ -1,0 +1,94 @@
+@import "base";
+
+.btn-white {
+  @extend .btn;
+  background: $white;
+  padding: 0.25rem 0;
+  font-size: 0.9rem;
+  border-color: $gray-500;
+  color: $gray-900 !important;
+
+  &:hover {
+    background: $white;
+    color: $black !important;
+    text-decoration: none;
+    border-color: $black;
+  }
+}
+
+.service-list {
+  .col-md-4 {
+    margin-bottom: 1rem;
+  }
+}
+
+.project-events {
+  display: flex;
+  justify-content: space-between;
+  align-items: stretch;
+  flex-wrap: wrap;
+
+  .view-more {
+    flex-grow: 1;
+    text-align: right;
+  }
+
+  .event {
+    width: calc(50% - 1rem);
+    margin: 0;
+
+    pre {
+      background: transparent;
+      margin-bottom: 0;
+    }
+
+    p {
+      margin-bottom: 0;
+    }
+  }
+}
+
+.resource-list {
+  .btn, .btn-white {
+    padding: 0.25rem 0.75rem;
+  }
+
+  .col-md-4 {
+    margin-bottom: 1rem;
+  }
+}
+
+.checklist {
+  list-style: none;
+  padding-left: 0;
+
+  li:not(:last-child) {
+    margin-bottom: 0.5rem;
+  }
+
+  .icon {
+    max-width: 0.9rem;
+    min-width: 0.9rem;
+  }
+
+  small {
+    padding-left: 1.2rem;
+  }
+}
+
+.nav-tabs {
+  .nav-item .btn-primary {
+    color: white;
+
+    &:hover {
+      color: white !important;
+    }
+  }
+}
+
+.select-resource {
+  h3 {
+    border: none;
+    margin-bottom: 0;
+  }
+}

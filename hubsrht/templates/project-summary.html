@@ -1,0 +1,144 @@
+{% extends "layout.html" %}
+{% block body %}
+<div class="header-tabbed">
+  <div class="container">
+    <h2>
+      <a
+        href="{{url_for("users.user_summary_GET", username=owner.username)}}"
+      >{{owner.canonical_name}}</a>/{{project.name}}
+    </h2>
+    {% macro link(path, title, alternates, cls="") %}
+    <a
+      class="nav-link {% if view == title or view in alternates %}active{% endif %} {{cls}}"
+      href="{{ path }}">{{ title }}</a>
+    {% endmacro %}
+    <ul class="nav nav-tabs">
+      <li class="nav-item">
+        {{link("#", "summary")}}
+      </li>
+      {# TODO
+      <li class="nav-item">
+        <a
+          class="nav-link" href="#"
+        >website&nbsp;{{icon('external-link-alt')}}</a>
+      </li>
+      <li class="nav-item">
+        {{link("#", "source")}}
+      </li>
+      <li class="nav-item">
+        {{link("#", "documentation")}}
+      </li>
+      <li class="nav-item">
+        {{link("#", "mailing lists")}}
+      </li>
+      <li class="nav-item">
+        {{link("#", "tickets")}}
+      </li>
+      #}
+      <li class="flex-grow-1"></li>
+      <li class="nav-item">
+        {{link("#", "add +", cls="btn-primary")}}
+      </li>
+    </ul>
+  </div>
+</div>
+{% if project.description %}
+<div class="header-extension">
+  <div class="container">
+    {{ project.description }}
+  </div>
+</div>
+{% endif %}
+<div class="container">
+  {# TODO
+  <div class="row">
+    <div class="col-md-12">
+      <div class="event-list project-events">
+        <div class="event">
+          <a href="#">a7358194</a> <code>gen_temporary: fix (unlikely) buffer overflow</code>
+          <p><a href="#">Drew DeVault</a> pushed to <a href="#">~sircmpwn/scdoc</a> git</p>
+          <small class="text-muted">12 hours ago</small>
+        </div>
+        <div class="event">
+          <a href="#">#360</a> Support for Gmail tabs
+          <p>Comment from <a href="#">~j-james</a> on <a href="#">~sircmpwn/scdoc</a> todo</p>
+          <small class="text-muted">14 hours ago</small>
+        </div>
+        <div class="view-more">
+          <a
+            href="#"
+            class="btn btn-link"
+          >View project feed&nbsp;{{icon("caret-right")}}</a>
+        </div>
+      </div>
+    </div>
+  </div>
+  #}
+  <div class="row">
+    <div class="col-md-12 event-list">
+      <div class="event">
+        <h3>
+          New project checklist
+          <small style="font-size: 0.9rem;">
+            <a class="text-muted" href="#">&times; dismiss</a>
+          </small>
+        </h3>
+        <ul class="checklist">
+          {#
+          <li>
+            {{icon('check', cls='text-success')}}
+            Add source code repositories
+          </li>
+          #}
+          <li>
+            {{icon('plus-square', cls='text-info')}}
+            <a
+              href="{{url_for("projects.project_sources_new_GET",
+                owner=owner.canonical_name, project_name=project.name)}}"
+            >Add source code repositories&nbsp;{{icon('arrow-right')}}</a>
+            <br />
+            <small class="text-muted">
+              Git and Mercurial repositories help you share this project's
+              source code with your collaborators.
+            </small>
+          </li>
+          <li>
+            {{icon('plus-square', cls='text-info')}}
+            <a href="#">Add mailing lists&nbsp;{{icon('arrow-right')}}</a>
+            <br />
+            <small class="text-muted">
+              Mailing lists give users a means of asking questions about the
+              project or sending patches to contribute to the source code.
+            </small>
+          </li>
+          <li>
+            {{icon('plus-square', cls='text-info')}}
+            <a href="#">Add bug trackers&nbsp;{{icon('arrow-right')}}</a>
+            <br />
+            <small class="text-muted">
+              Bug trackers give you a place to organize your tasks and record
+              known defects.
+            </small>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </div>
+  {% if not current_user or current_user != owner %}
+  {# TODO #}
+  <div class="row">
+    <div class="col-md-12">
+      <div class="alert alert-info">
+        This is a new project. It doesn't have any resources associated with it
+        yet. Come back later?
+      </div>
+    </div>
+  </div>
+  {% endif %}
+  <div class="row">
+    <div class="col-md-10">
+      {# TODO: Project summary #}
+    </div>
+  </div>
+</div>
+{% endblock %}

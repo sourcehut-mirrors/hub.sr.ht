@@ -1,0 +1,74 @@
+{% extends "project-resource-new.html" %}
+{% block content %}
+<form method="POST">
+  {{csrf_token()}}
+  <div class="row">
+    <div class="col-lg-8">
+      <h3>Create a new {{vcs}} repository</h3>
+    </div>
+  </div>
+  <div class="row">
+    <div class="col-lg-6">
+      <div class="form-group">
+        <label for="{{ typename }}">Name</label>
+        <input
+          type="text"
+          name="repo_name"
+          id="name"
+          class="form-control {{ valid.cls("repo_name") }}"
+          value="{{ repo_name or project.name }}" />
+        {{ valid.summary("repo_name") }}
+        <div class="form-group">
+          <label for="repo_description">Description</label>
+          <input
+            type="text"
+            name="repo_description"
+            id="repo_description"
+            class="form-control {{valid.cls("repo_description")}}"
+            value="{{ repo_description or project.description }}" />
+          {{valid.summary("repo_description")}}
+        </div>
+      </div>
+      <button type="submit" class="btn btn-primary" name="new">
+        Create new {{vcs}} repository {{ icon("caret-right") }}
+      </button>
+    </div>
+  </div>
+  <div class="row">
+    <div class="col-lg-8">
+      <h3 style="margin-top: 1rem">
+        Or add an existing {{vcs}} repository
+      </h3>
+      {# TODO: Pagination #}
+      <div class="form-group">
+        {# TODO: How exactly should this work #}
+        <input
+          name="search"
+          type="text"
+          placeholder="Search your {{vcs}} repositories"
+          class="form-control"
+          value="{{ search if search else "" }}" />
+      </div>
+      <div class="event-list select-resource">
+        {% for repo in repos %}
+        <div class="event">
+          <h3>
+            <button
+              type="submit"
+              name="existing-{{ repo["name"] }}"
+              class="pull-right btn btn-primary btn-lg"
+            >Select repo&nbsp;{{ icon("caret-right") }}</button>
+            <a
+              href="{{get_origin("git.sr.ht",
+                external=True)}}/{{ repo["owner"]["canonical_name"] }}/{{repo["name"]}}"
+              target="_blank"
+              rel="noopener"
+            >{{ repo["name"] }}</a>
+          </h3>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+</form>
+{% endblock %}

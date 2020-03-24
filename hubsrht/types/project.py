@@ -1,0 +1,22 @@
+import sqlalchemy as sa
+import sqlalchemy_utils as sau
+from hubsrht.types import Visibility
+from srht.database import Base
+
+class Project(Base):
+    __tablename__ = "project"
+    id = sa.Column(sa.Integer, primary_key=True)
+    created = sa.Column(sa.DateTime, nullable=False)
+    updated = sa.Column(sa.DateTime, nullable=False)
+
+    owner_id = sa.Column(sa.Integer, sa.ForeignKey("user.id"))
+    owner = sa.orm.relationship("User", backref=sa.orm.backref("projects"))
+
+    name = sa.Column(sa.Unicode(128), nullable=False)
+    description = sa.Column(sa.Unicode(512), nullable=False)
+    visibility = sa.Column(sau.ChoiceType(Visibility, impl=sa.String()),
+            nullable=False, server_default="unlisted")
+
+    summary_repo_id = sa.Column(sa.Integer, sa.ForeignKey("source_repo.id"))
+    summary_repo = sa.orm.relationship("SourceRepo",
+            foreign_keys=[summary_repo_id])
