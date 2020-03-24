@@ -15,6 +15,15 @@ class GitService:
             raise Exception(r.json())
         return r.json()
 
+    def get_readme(self, user, repo_name):
+        # TODO: Cache?
+        # TODO: Use default branch
+        r = requests.get(f"{_gitsrht}/api/repos/{repo_name}/blob/master/README.md",
+                headers=get_authorization(user))
+        if r.status_code != 200:
+            raise Exception(r.text)
+        return r.text
+
     def ensure_user_webhooks(self, user, config):
         ensure_webhooks(user, f"{_gitsrht}/api/user/webhooks", config)
 

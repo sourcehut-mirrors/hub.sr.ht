@@ -10,6 +10,19 @@ from srht.validation import Validation
 projects = Blueprint("projects", __name__)
 origin = get_origin("hub.sr.ht")
 
+@projects.route("/<owner>/<project_name>")
+def project_GET(owner, project_name):
+    owner, project = get_project(owner, project_name, ProjectAccess.read)
+
+    summary = None
+    if project.summary_repo_id is not None:
+        repo = project.summary_repo
+        assert repo.repo_type != RepoType.hg # TODO
+        summary = git.get_readme(owner, repo.name)
+
+    return render_template("project-summary.html", view="summary",
+            owner=owner, project=project, summary=summary)
+
 @projects.route("/projects/create")
 @loginrequired
 def create_GET():
@@ -45,12 +58,6 @@ def create_POST():
     return redirect(url_for("projects.project_GET",
         owner=current_user.canonical_name,
         project_name=project.name))
-
-@projects.route("/<owner>/<project_name>")
-def project_GET(owner, project_name):
-    owner, project = get_project(owner, project_name, ProjectAccess.read)
-    return render_template("project-summary.html", view="summary",
-            owner=owner, project=project)
 
 @projects.route("/<owner>/<project_name>/sources/new")
 @loginrequired
@@ -127,5 +134,20 @@ def project_git_new_POST(owner, project_name):
 
     db.session.commit()
 
+    return redirect(url_for("projects.project_GET",
+        owner=owner.canonical_name, project_name=project.name))
+
+@projects.route("/<owner>/<project_name>/sources/set-summary/<int:repo_id>",
+        methods=["POST"])
+@loginrequired
+def project_set_summary_repo(owner, project_name, repo_id):
+    owner, project = get_project(owner, project_name, ProjectAccess.write)
+    repo = (SourceRepo.query
+        .filter(SourceRepo.id == repo_id)
+        .filter(SourceRepo.project_id == project.id)).one_or_none()
+    if not repo:
+        abort(404)
+    project.summary_repo_id = repo.id
+    db.session.commit()
     return redirect(url_for("projects.project_GET",
         owner=owner.canonical_name, project_name=project.name))

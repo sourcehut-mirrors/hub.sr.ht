@@ -16,14 +16,16 @@
       <li class="nav-item">
         {{link("#", "summary")}}
       </li>
+      {% if any(project.source_repos) %}
+      <li class="nav-item">
+        {{link("#", "sources")}}
+      </li>
+      {% endif %}
       {# TODO
       <li class="nav-item">
         <a
           class="nav-link" href="#"
         >website&nbsp;{{icon('external-link-alt')}}</a>
-      </li>
-      <li class="nav-item">
-        {{link("#", "source")}}
       </li>
       <li class="nav-item">
         {{link("#", "documentation")}}
@@ -50,47 +52,26 @@
 </div>
 {% endif %}
 <div class="container">
-  {# TODO
-  <div class="row">
-    <div class="col-md-12">
-      <div class="event-list project-events">
-        <div class="event">
-          <a href="#">a7358194</a> <code>gen_temporary: fix (unlikely) buffer overflow</code>
-          <p><a href="#">Drew DeVault</a> pushed to <a href="#">~sircmpwn/scdoc</a> git</p>
-          <small class="text-muted">12 hours ago</small>
-        </div>
-        <div class="event">
-          <a href="#">#360</a> Support for Gmail tabs
-          <p>Comment from <a href="#">~j-james</a> on <a href="#">~sircmpwn/scdoc</a> todo</p>
-          <small class="text-muted">14 hours ago</small>
-        </div>
-        <div class="view-more">
-          <a
-            href="#"
-            class="btn btn-link"
-          >View project feed&nbsp;{{icon("caret-right")}}</a>
-        </div>
-      </div>
-    </div>
-  </div>
-  #}
   <div class="row">
     <div class="col-md-12 event-list">
       <div class="event">
         <h3>
           New project checklist
-          <small style="font-size: 0.9rem;">
-            <a class="text-muted" href="#">&times; dismiss</a>
+          <small style="font-size: 0.9rem;" class="pull-right">
+            <a class="text-muted" href="#">dismiss</a>
           </small>
         </h3>
         <ul class="checklist">
-          {#
           <li>
+            {% if any(project.source_repos) %}
             {{icon('check', cls='text-success')}}
             Add source code repositories
-          </li>
-          #}
-          <li>
+            <br />
+            <small class="text-muted">
+              You can see the list of your source repositories by clicking
+              "sources" on the project navigation.
+            </small>
+            {% else %}
             {{icon('plus-square', cls='text-info')}}
             <a
               href="{{url_for("projects.project_sources_new_GET",
@@ -101,6 +82,7 @@
               Git and Mercurial repositories help you share this project's
               source code with your collaborators.
             </small>
+            {% endif %}
           </li>
           <li>
             {{icon('plus-square', cls='text-info')}}
@@ -124,6 +106,35 @@
       </div>
     </div>
   </div>
+  <div class="row">
+    <div class="col-md-12">
+      <div class="event-list project-events">
+        <div class="event">
+          <a href="#">~sircmpwn/scdoc</a>
+          <p>New git repository</p>
+          <small class="text-muted">1 hour ago</small>
+        </div>
+        {#
+        <div class="event">
+          <a href="#">a7358194</a> <code>gen_temporary: fix (unlikely) buffer overflow</code>
+          <p><a href="#">Drew DeVault</a> pushed to <a href="#">~sircmpwn/scdoc</a> git</p>
+          <small class="text-muted">12 hours ago</small>
+        </div>
+        <div class="event">
+          <a href="#">#360</a> Support for Gmail tabs
+          <p>Comment from <a href="#">~j-james</a> on <a href="#">~sircmpwn/scdoc</a> todo</p>
+          <small class="text-muted">14 hours ago</small>
+        </div>
+        #}
+        <div class="view-more">
+          <a
+            href="#"
+            class="btn btn-link"
+          >View project feed&nbsp;{{icon("caret-right")}}</a>
+        </div>
+      </div>
+    </div>
+  </div>
   {% if not current_user or current_user != owner %}
   {# TODO #}
   <div class="row">
@@ -136,9 +147,48 @@
   </div>
   {% endif %}
   <div class="row">
+    {% if project.summary_repo_id != None %}
     <div class="col-md-10">
-      {# TODO: Project summary #}
+      {{summary | extended_md}}
     </div>
+    {% elif current_user and current_user.id == project.owner_id %}
+    <div class="col-md-8 offset-md-2">
+      {% if any(project.source_repos) %}
+      <div class="alert alert-success">
+        You have added {{len(project.source_repos)}} source
+        repositor{{"ies" if len(project.source_repos) > 1 else "y"}}
+        to this project. Would you like to display the README.md file on this
+        page?
+      </div>
+      <div class="event-list select-resource">
+        {% for repo in project.source_repos %}
+        <form
+          class="event"
+          method="POST"
+          action="{{url_for("projects.project_set_summary_repo",
+            owner=project.owner.canonical_name,
+            project_name=project.name,
+            repo_id=repo.id)}}"
+        >
+          {{csrf_token()}}
+          <h3>
+            <button
+              type="submit"
+              class="pull-right btn btn-primary btn-lg"
+            >Use README.md&nbsp;{{ icon("caret-right") }}</button>
+            <a
+              href="{{get_origin("git.sr.ht",
+                external=True)}}/{{ repo.owner.canonical_name }}/{{repo.name}}"
+              target="_blank"
+              rel="noopener"
+            >{{ repo.name }}</a>
+          </h3>
+        </div>
+        {% endfor %}
+      </div>
+      {% endif %}
+    </div>
+    {% endif %}
   </div>
 </div>
 {% endblock %}
