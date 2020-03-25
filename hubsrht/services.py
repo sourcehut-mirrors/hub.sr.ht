@@ -3,6 +3,7 @@ from srht.api import ensure_webhooks, get_authorization, get_results
 from srht.config import get_origin
 
 _gitsrht = get_origin("git.sr.ht", external=True, default=None)
+_listsrht = get_origin("lists.sr.ht", external=True, default=None)
 
 class GitService:
     def get_repos(self, user):
@@ -27,4 +28,20 @@ class GitService:
     def ensure_user_webhooks(self, user, config):
         ensure_webhooks(user, f"{_gitsrht}/api/user/webhooks", config)
 
+class ListService():
+    def get_lists(self, user):
+        return get_results(f"{_listsrht}/api/lists", user)
+
+    def get_list(self, user, list_name):
+        r = requests.get(f"{_listsrht}/api/lists/{list_name}",
+                headers=get_authorization(user))
+        if r.status_code != 200:
+            raise Exception(r.json())
+        return r.json()
+
+    def ensure_mailing_list_webhooks(self, user, list_name, config):
+        url = f"{_listsrht}/api/user/{user.canonical_name}/lists/{list_name}/webhooks"
+        ensure_webhooks(user, url, config)
+
 git = GitService()
+lists = ListService()

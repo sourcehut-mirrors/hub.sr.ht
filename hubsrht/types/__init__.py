@@ -12,3 +12,4 @@ class Visibility(Enum):
 
 from hubsrht.types.project import Project
 from hubsrht.types.sourcerepo import SourceRepo, RepoType
+from hubsrht.types.mailinglist import MailingList

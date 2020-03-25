@@ -21,6 +21,13 @@
       project_name=project.name), "sources")}}
   </li>
   {% endif %}
+  {% if any(project.mailing_lists) %}
+  <li class="nav-item">
+    {{link(url_for("projects.mailing_lists_GET",
+      owner=owner.canonical_name,
+      project_name=project.name), "mailing lists")}}
+  </li>
+  {% endif %}
   {# TODO
   <li class="nav-item">
     <a
@@ -29,9 +36,6 @@
   </li>
   <li class="nav-item">
     {{link("#", "documentation")}}
-  </li>
-  <li class="nav-item">
-    {{link("#", "mailing lists")}}
   </li>
   <li class="nav-item">
     {{link("#", "tickets")}}

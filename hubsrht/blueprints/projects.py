@@ -1,7 +1,8 @@
 from flask import Blueprint, render_template, request, redirect, url_for
 from hubsrht.projects import ProjectAccess, get_project
-from hubsrht.services import git
+from hubsrht.services import git, lists
 from hubsrht.types import Project, RepoType, SourceRepo, Visibility
+from hubsrht.types import MailingList
 from srht.config import get_origin
 from srht.database import db
 from srht.flask import paginate_query
@@ -161,5 +162,61 @@ def set_summary_repo(owner, project_name, repo_id):
         abort(404)
     project.summary_repo_id = repo.id
     db.session.commit()
+    return redirect(url_for("projects.summary_GET",
+        owner=owner.canonical_name, project_name=project.name))
+
+@projects.route("/<owner>/<project_name>/lists")
+@loginrequired
+def mailing_lists_GET(owner, project_name):
+    owner, project = get_project(owner, project_name, ProjectAccess.read)
+    mailing_lists = (MailingList.query
+            .filter(MailingList.project_id == project.id)
+            .order_by(MailingList.updated.desc()))
+    mailing_lists, pagination = paginate_query(mailing_lists)
+    return render_template("project-mailing-lists.html", view="mailing lists",
+            owner=owner, project=project, mailing_lists=mailing_lists,
+            **pagination)
+
+@projects.route("/<owner>/<project_name>/lists/new")
+@loginrequired
+def mailing_lists_new_GET(owner, project_name):
+    owner, project = get_project(owner, project_name, ProjectAccess.write)
+    # TODO: Pagination
+    mls = lists.get_lists(owner)
+    mls = sorted(mls, key=lambda r: r["updated"], reverse=True)
+    return render_template("project-lists-new.html", view="new-resource",
+            owner=owner, project=project, lists=mls)
+
+@projects.route("/<owner>/<project_name>/lists/new", methods=["POST"])
+@loginrequired
+def mailing_lists_new_POST(owner, project_name):
+    owner, project = get_project(owner, project_name, ProjectAccess.write)
+    valid = Validation(request)
+    if "create" in valid:
+        assert False # TODO: Create list
+    if "from-template" in valid:
+        assert False # TODO: Create lists from template
+
+    list_name = None
+    for field in valid.source:
+        if field.startswith("existing-"):
+            list_name = field[len("existing-"):]
+            break
+
+    mailing_list = lists.get_list(owner, list_name)
+    ml = MailingList()
+    ml.remote_id = mailing_list["id"]
+    ml.project_id = project.id
+    ml.owner_id = project.owner_id
+    ml.name = mailing_list["name"]
+    ml.description = mailing_list["description"]
+    db.session.add(ml)
+
+    lists.ensure_mailing_list_webhooks(owner, list_name, {
+        url_for("webhooks.mailing_list_update"): ["list:update", "list:delete"],
+    })
+
+    db.session.commit()
+
     return redirect(url_for("projects.summary_GET",
         owner=owner.canonical_name, project_name=project.name))

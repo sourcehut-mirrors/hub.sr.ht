@@ -46,13 +46,26 @@
             {% endif %}
           </li>
           <li>
+            {% if any(project.mailing_lists) %}
+            {{icon('check', cls='text-success')}}
+            Add mailing lists
+            <br />
+            <small class="text-muted">
+              You can see the list of your mailing lists by clicking
+              "mailing lists" on the project navigation.
+            </small>
+            {% else %}
             {{icon('plus-square', cls='text-info')}}
-            <a href="#">Add mailing lists&nbsp;{{icon('arrow-right')}}</a>
+            <a
+              href="{{url_for("projects.mailing_lists_new_GET",
+                owner=owner.canonical_name, project_name=project.name)}}"
+            >Add mailing lists&nbsp;{{icon('arrow-right')}}</a>
             <br />
             <small class="text-muted">
               Mailing lists give users a means of asking questions about the
               project or sending patches to contribute to the source code.
             </small>
+            {% endif %}
           </li>
           <li>
             {{icon('plus-square', cls='text-info')}}
