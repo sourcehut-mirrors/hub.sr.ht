@@ -1,6 +1,7 @@
 from flask import Blueprint, render_template, request, redirect, url_for
 from hubsrht.projects import ProjectAccess, get_project
 from hubsrht.services import git, lists
+from hubsrht.types import Event, EventType
 from hubsrht.types import Project, RepoType, SourceRepo, Visibility
 from hubsrht.types import MailingList
 from srht.config import get_origin
@@ -22,8 +23,13 @@ def summary_GET(owner, project_name):
         assert repo.repo_type != RepoType.hg # TODO
         summary = git.get_readme(owner, repo.name)
 
+    events = (Event.query
+        .filter(Event.project_id == project.id)
+        .order_by(Event.created.desc())
+        .limit(2))
+
     return render_template("project-summary.html", view="summary",
-            owner=owner, project=project, summary=summary)
+            owner=owner, project=project, summary=summary, events=events)
 
 @projects.route("/projects/create")
 @loginrequired
@@ -140,6 +146,14 @@ def sources_git_new_POST(owner, project_name):
     repo.description = git_repo["description"]
     repo.repo_type = RepoType.git
     db.session.add(repo)
+    db.session.flush()
+
+    event = Event()
+    event.event_type = EventType.source_repo_added
+    event.source_repo_id = repo.id
+    event.project_id = project.id
+    event.user_id = project.owner_id
+    db.session.add(event)
 
     git.ensure_user_webhooks(owner, {
         url_for("webhooks.git_repo_update"): ["repo:update", "repo:delete"],
@@ -211,6 +225,14 @@ def mailing_lists_new_POST(owner, project_name):
     ml.name = mailing_list["name"]
     ml.description = mailing_list["description"]
     db.session.add(ml)
+    db.session.flush()
+
+    event = Event()
+    event.event_type = EventType.mailing_list_added 
+    event.mailing_list_id = ml.id
+    event.project_id = project.id
+    event.user_id = project.owner_id
+    db.session.add(event)
 
     lists.ensure_mailing_list_webhooks(owner, list_name, {
         url_for("webhooks.mailing_list_update"): ["list:update", "list:delete"],
