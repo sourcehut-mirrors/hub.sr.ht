@@ -228,7 +228,7 @@ def mailing_lists_new_POST(owner, project_name):
                 list_name = field[len("existing-"):]
                 break
         if not list_name:
-            search = valid.optional("searc")
+            search = valid.optional("search")
             mls = lists.get_list(owner)
             # TODO: Search properly
             mls = filter(lambda r: search.lower() in r["name"].lower(), mls)
