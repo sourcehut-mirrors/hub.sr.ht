@@ -78,27 +78,27 @@
         <label for="{{ typename }}">Name</label>
         <input
           type="text"
-          name="list_name"
+          name="name"
           id="name"
-          class="form-control {{ valid.cls("list_name") }}"
-          value="{{ list_name or project.name }}" />
-        {{ valid.summary("list_name") }}
+          class="form-control {{ valid.cls("name") }}"
+          value="{{ name or project.name }}" />
+        {{ valid.summary("name") }}
         <div class="form-group">
           <label for="list_description">Description</label>
           <input
             type="text"
-            name="list_description"
-            id="list_description"
-            class="form-control {{valid.cls("list_description")}}"
-            value="{{ list_description or project.description }}" />
-          {{valid.summary("list_description")}}
+            name="description"
+            id="description"
+            class="form-control {{valid.cls("description")}}"
+            value="{{ description or project.description }}" />
+          {{valid.summary("description")}}
         </div>
       </div>
       <div class="flex-grow-1 d-flex flex-row justify-content-end">
         <button
           type="submit"
           class="btn btn-primary align-self-end"
-          name="new"
+          name="create"
         >Create new mailing list {{icon("caret-right")}}</button>
       </div>
     </div>

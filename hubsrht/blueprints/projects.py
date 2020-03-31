@@ -215,18 +215,33 @@ def mailing_lists_new_GET(owner, project_name):
 def mailing_lists_new_POST(owner, project_name):
     owner, project = get_project(owner, project_name, ProjectAccess.write)
     valid = Validation(request)
-    if "create" in valid:
-        assert False # TODO: Create list
     if "from-template" in valid:
         assert False # TODO: Create lists from template
+    elif "create" in valid:
+        mailing_list = lists.create_list(owner, valid)
+        if not valid.ok:
+            mls = lists.get_lists(owner)
+            mls = sorted(mls, key=lambda r: r["updated"], reverse=True)
+            return render_template("project-lists-new.html",
+                    view="new-resource", owner=owner, project=project,
+                    lists=mls, **valid.kwargs)
+    else:
+        list_name = None
+        for field in valid.source:
+            if field.startswith("existing-"):
+                list_name = field[len("existing-"):]
+                break
+        if not list_name:
+            search = valid.optional("searc")
+            mls = lists.get_list(owner)
+            # TODO: Search properly
+            mls = filter(lambda r: search.lower() in r["name"].lower(), mls)
+            mls = sorted(mls, key=lambda r: r["updated"], reverse=True)
+            return render_template("project-lists-new.html",
+                    view="new-resource", owner=owner, project=project,
+                    lists=mls)
+        mailing_list = lists.get_list(owner, list_name)
 
-    list_name = None
-    for field in valid.source:
-        if field.startswith("existing-"):
-            list_name = field[len("existing-"):]
-            break
-
-    mailing_list = lists.get_list(owner, list_name)
     ml = MailingList()
     ml.remote_id = mailing_list["id"]
     ml.project_id = project.id
@@ -244,7 +259,7 @@ def mailing_lists_new_POST(owner, project_name):
     db.session.add(event)
 
     # TODO: lists webhooks for rigging up new mail events
-    lists.ensure_mailing_list_webhooks(owner, list_name, {
+    lists.ensure_mailing_list_webhooks(owner, ml.name, {
         origin + url_for("webhooks.mailing_list_update"):
             ["list:update", "list:delete"],
     })
