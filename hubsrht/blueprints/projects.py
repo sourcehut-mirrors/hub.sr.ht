@@ -11,7 +11,6 @@ from srht.oauth import current_user, loginrequired
 from srht.validation import Validation
 
 projects = Blueprint("projects", __name__)
-origin = get_origin("hub.sr.ht")
 
 @projects.route("/<owner>/<project_name>")
 def summary_GET(owner, project_name):
@@ -162,11 +161,8 @@ def sources_git_new_POST(owner, project_name):
     event.user_id = project.owner_id
     db.session.add(event)
 
-    # TODO: repo webhooks for rigging up commit events
-    git.ensure_user_webhooks(owner, {
-        origin + url_for("webhooks.git_repo_update"):
-            ["repo:update", "repo:delete"],
-    })
+    git.ensure_user_webhooks(owner)
+    git.ensure_repo_webhooks(owner, repo.name)
 
     db.session.commit()
 
@@ -258,11 +254,7 @@ def mailing_lists_new_POST(owner, project_name):
     event.user_id = project.owner_id
     db.session.add(event)
 
-    # TODO: lists webhooks for rigging up new mail events
-    lists.ensure_mailing_list_webhooks(owner, ml.name, {
-        origin + url_for("webhooks.mailing_list_update"):
-            ["list:update", "list:delete"],
-    })
+    lists.ensure_mailing_list_webhooks(owner, ml.name)
 
     db.session.commit()
 

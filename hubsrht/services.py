@@ -1,10 +1,12 @@
 import requests
 from abc import ABC
+from flask import url_for
 from srht.api import ensure_webhooks, get_authorization, get_results
 from srht.config import get_origin
 
 _gitsrht = get_origin("git.sr.ht", external=True, default=None)
 _listsrht = get_origin("lists.sr.ht", external=True, default=None)
+origin = get_origin("hub.sr.ht")
 
 class SrhtService(ABC):
     def __init__(self):
@@ -58,8 +60,19 @@ class GitService(SrhtService):
             "visibility": "public", # TODO: Should this be different?
         })
 
-    def ensure_user_webhooks(self, user, config):
+    def ensure_user_webhooks(self, user):
+        config = {
+            origin + url_for("webhooks.git_repo"):
+                ["repo:update", "repo:delete"],
+        }
         ensure_webhooks(user, f"{_gitsrht}/api/user/webhooks", config)
+
+    def ensure_repo_webhooks(self, user, repo_name):
+        config = {
+            origin + url_for("webhooks.git_repo"): ["repo:post-update"],
+        }
+        url = f"{_gitsrht}/api/{user.canonical_name}/repos/{repo_name}/webhooks"
+        ensure_webhooks(user, url, config)
 
 class ListService(SrhtService):
     def get_lists(self, user):
@@ -72,7 +85,11 @@ class ListService(SrhtService):
             raise Exception(r.json())
         return r.json()
 
-    def ensure_mailing_list_webhooks(self, user, list_name, config):
+    def ensure_mailing_list_webhooks(self, user, list_name):
+        config = {
+            origin + url_for("webhooks.mailing_list"):
+                ["list:update", "list:delete", "post:received", "patchset:received"],
+        }
         url = f"{_listsrht}/api/user/{user.canonical_name}/lists/{list_name}/webhooks"
         ensure_webhooks(user, url, config)
 
