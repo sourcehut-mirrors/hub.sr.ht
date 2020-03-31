@@ -13,23 +13,23 @@
         <label for="{{ typename }}">Name</label>
         <input
           type="text"
-          name="repo_name"
+          name="name"
           id="name"
-          class="form-control {{ valid.cls("repo_name") }}"
-          value="{{ repo_name or project.name }}" />
-        {{ valid.summary("repo_name") }}
+          class="form-control {{ valid.cls("name") }}"
+          value="{{ name or project.name }}" />
+        {{ valid.summary("name") }}
         <div class="form-group">
-          <label for="repo_description">Description</label>
+          <label for="description">Description</label>
           <input
             type="text"
-            name="repo_description"
-            id="repo_description"
-            class="form-control {{valid.cls("repo_description")}}"
-            value="{{ repo_description or project.description }}" />
-          {{valid.summary("repo_description")}}
+            name="description"
+            id="description"
+            class="form-control {{valid.cls("description")}}"
+            value="{{ description or project.description }}" />
+          {{valid.summary("description")}}
         </div>
       </div>
-      <button type="submit" class="btn btn-primary" name="new">
+      <button type="submit" class="btn btn-primary" name="create">
         Create new {{vcs}} repository {{ icon("caret-right") }}
       </button>
     </div>

@@ -13,7 +13,7 @@ class GitService:
         r = requests.get(f"{_gitsrht}/api/repos/{repo_name}",
                 headers=get_authorization(user))
         if r.status_code != 200:
-            raise Exception(r.json())
+            raise Exception(r.text)
         return r.json()
 
     def get_readme(self, user, repo_name):
@@ -21,9 +21,31 @@ class GitService:
         # TODO: Use default branch
         r = requests.get(f"{_gitsrht}/api/repos/{repo_name}/blob/master/README.md",
                 headers=get_authorization(user))
-        if r.status_code != 200:
+        if r.status_code == 404:
+            return ""
+        elif r.status_code != 200:
             raise Exception(r.text)
         return r.text
+
+    def create_repo(self, user, valid):
+        name = valid.require("name")
+        description = valid.require("description")
+        if not valid.ok:
+            return None
+        r = requests.post(f"{_gitsrht}/api/repos",
+            headers=get_authorization(user),
+            json={
+                "name": name,
+                "description": description,
+                "visibility": "public", # TODO: Should this be different?
+            })
+        if r.status_code == 400:
+            for error in r.json()["errors"]:
+                valid.error(error["reason"], field=error.get("field"))
+            return None
+        elif r.status_code != 201:
+            raise Exception(r.text)
+        return r.json()
 
     def ensure_user_webhooks(self, user, config):
         ensure_webhooks(user, f"{_gitsrht}/api/user/webhooks", config)

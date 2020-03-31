@@ -117,27 +117,34 @@ def sources_git_new_POST(owner, project_name):
     owner, project = get_project(owner, project_name, ProjectAccess.write)
     valid = Validation(request)
     if "create" in valid:
-        assert False # TODO: Create repo
+        git_repo = git.create_repo(owner, valid)
+        if not valid.ok:
+            repos = git.get_repos(owner)
+            return render_template("project-sources-select.html",
+                    view="new-resource", vcs="git",
+                    owner=owner, project=project, repos=repos,
+                    existing=[], **valid.kwargs)
+    else:
+        repo_name = None
+        for field in valid.source:
+            if field.startswith("existing-"):
+                repo_name = field[len("existing-"):]
+                break
 
-    repo_name = None
-    for field in valid.source:
-        if field.startswith("existing-"):
-            repo_name = field[len("existing-"):]
-            break
+        if not repo_name:
+            search = valid.optional("search")
+            repos = git.get_repos(owner)
+            # TODO: Search properly
+            repos = filter(lambda r: search.lower() in r["name"].lower(), repos)
+            repos = sorted(repos, key=lambda r: r["updated"], reverse=True)
+            # TODO: Fetch existing repos for this project
+            return render_template("project-sources-select.html",
+                    view="new-resource", vcs="git",
+                    owner=owner, project=project, repos=repos,
+                    existing=[], search=search)
 
-    if not repo_name:
-        search = valid.optional("search")
-        repos = git.get_repos(owner)
-        # TODO: Search properly
-        repos = filter(lambda r: search.lower() in r["name"].lower(), repos)
-        repos = sorted(repos, key=lambda r: r["updated"], reverse=True)
-        # TODO: Fetch existing repos for this project
-        return render_template("project-sources-select.html",
-                view="new-resource", vcs="git",
-                owner=owner, project=project, repos=repos,
-                existing=[], search=search)
+        git_repo = git.get_repo(owner, repo_name)
 
-    git_repo = git.get_repo(owner, repo_name)
     repo = SourceRepo()
     repo.remote_id = git_repo["id"]
     repo.project_id = project.id
@@ -155,8 +162,10 @@ def sources_git_new_POST(owner, project_name):
     event.user_id = project.owner_id
     db.session.add(event)
 
+    # TODO: repo webhooks for rigging up commit events
     git.ensure_user_webhooks(owner, {
-        url_for("webhooks.git_repo_update"): ["repo:update", "repo:delete"],
+        origin + url_for("webhooks.git_repo_update"):
+            ["repo:update", "repo:delete"],
     })
 
     db.session.commit()
@@ -234,8 +243,10 @@ def mailing_lists_new_POST(owner, project_name):
     event.user_id = project.owner_id
     db.session.add(event)
 
+    # TODO: lists webhooks for rigging up new mail events
     lists.ensure_mailing_list_webhooks(owner, list_name, {
-        url_for("webhooks.mailing_list_update"): ["list:update", "list:delete"],
+        origin + url_for("webhooks.mailing_list_update"):
+            ["list:update", "list:delete"],
     })
 
     db.session.commit()
