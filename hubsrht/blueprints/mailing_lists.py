@@ -28,7 +28,7 @@ def lists_GET(owner, project_name):
         search_error = str(ex)
 
     mailing_lists, pagination = paginate_query(mailing_lists)
-    return render_template("project-mailing-lists.html", view="mailing lists",
+    return render_template("mailing-lists.html", view="mailing lists",
             owner=owner, project=project,
             search=terms, search_error=search_error,
             mailing_lists=mailing_lists,
@@ -41,7 +41,7 @@ def new_GET(owner, project_name):
     # TODO: Pagination
     mls = lists.get_lists(owner)
     mls = sorted(mls, key=lambda r: r["updated"], reverse=True)
-    return render_template("project-lists-new.html", view="new-resource",
+    return render_template("mailing-list-new.html", view="new-resource",
             owner=owner, project=project, lists=mls)
 
 @mailing_lists.route("/<owner>/<project_name>/lists/new", methods=["POST"])
@@ -56,7 +56,7 @@ def new_POST(owner, project_name):
         if not valid.ok:
             mls = lists.get_lists(owner)
             mls = sorted(mls, key=lambda r: r["updated"], reverse=True)
-            return render_template("project-lists-new.html",
+            return render_template("mailing-list-new.html",
                     view="new-resource", owner=owner, project=project,
                     lists=mls, **valid.kwargs)
     else:
@@ -71,7 +71,7 @@ def new_POST(owner, project_name):
             # TODO: Search properly
             mls = filter(lambda r: search.lower() in r["name"].lower(), mls)
             mls = sorted(mls, key=lambda r: r["updated"], reverse=True)
-            return render_template("project-lists-new.html",
+            return render_template("mailing-list-new.html",
                     view="new-resource", owner=owner, project=project,
                     lists=mls)
         mailing_list = lists.get_list(owner, list_name)
@@ -116,7 +116,7 @@ def manage_GET(owner, project_name):
         search_error = str(ex)
 
     mailing_lists, pagination = paginate_query(mailing_lists)
-    return render_template("project-mailing-lists-manage.html",
+    return render_template("mailing-lists-manage.html",
             view="mailing lists", owner=owner, project=project,
             search=terms, search_error=search_error,
             mailing_lists=mailing_lists,

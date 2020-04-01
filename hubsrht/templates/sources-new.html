@@ -1,22 +1,25 @@
-{% extends "project-resource-new.html" %}
+{% extends "resource-new.html" %}
 {% block content %}
 <div class="row">
-  <form class="col-lg-10" method="POST">
-    {{csrf_token()}}
+  <div class="col-lg-10" method="POST">
     <h3>Add source code repository</h3>
     <div class="event-list">
       <div class="event">
-        <button type="submit" name="git" class="btn btn-primary pull-right">
-          Add git repositories&nbsp;{{icon('caret-right')}}
-        </button>
+        <a
+          class="btn btn-primary pull-right"
+          href="{{url_for("sources.git_new_GET",
+            owner=owner, project_name=project.name)}}"
+        >Add git repositories&nbsp;{{icon('caret-right')}}</a>
         <h3 style="border: none; padding-bottom: 0">
           git
         </h3>
       </div>
       <div class="event">
-        <button type="submit" name="hg" class="btn btn-primary pull-right">
-          Add hg repositories&nbsp;{{icon('caret-right')}}
-        </button>
+        <a
+          class="btn btn-primary pull-right"
+          href="{{url_for("sources.hg_new_GET",
+            owner=owner, project_name=project.name)}}"
+        >Add hg repositories&nbsp;{{icon('caret-right')}}</a>
         <h3 style="border: none; padding-bottom: 0">
           Mercurial
         </h3>
@@ -39,6 +42,6 @@
       You may use any combination of version control systems in your project.
       If you're not sure, choose git.
     </div>
-  </form>
+  </div>
 </div>
 {% endblock %}

@@ -28,7 +28,7 @@ def sources_GET(owner, project_name):
         search_error = str(ex)
 
     sources, pagination = paginate_query(sources)
-    return render_template("project-sources.html", view="sources",
+    return render_template("sources.html", view="sources",
             owner=owner, project=project, sources=sources,
             search=terms, search_error=search_error,
             **pagination)
@@ -38,7 +38,7 @@ def sources_GET(owner, project_name):
 def new_GET(owner, project_name):
     # TODO: Redirect appropriately if this instance only has git or hg support
     owner, project = get_project(owner, project_name, ProjectAccess.write)
-    return render_template("project-sources-new.html", view="new-resource",
+    return render_template("sources-new.html", view="new-resource",
             owner=owner, project=project)
 
 @sources.route("/<owner>/<project_name>/git/new")
@@ -48,10 +48,15 @@ def git_new_GET(owner, project_name):
     # TODO: Pagination
     repos = git.get_repos(owner)
     repos = sorted(repos, key=lambda r: r["updated"], reverse=True)
-    return render_template("project-sources-select.html",
+    return render_template("sources-select.html",
             view="new-resource", vcs="git",
             owner=owner, project=project, repos=repos,
             existing=[]) # TODO: Fetch existing repos for this project
+
+@sources.route("/<owner>/<project_name>/hg/new")
+@loginrequired
+def hg_new_GET(owner, project_name):
+    pass # TODO
 
 @sources.route("/<owner>/<project_name>/git/new", methods=["POST"])
 @loginrequired
@@ -62,7 +67,7 @@ def git_new_POST(owner, project_name):
         git_repo = git.create_repo(owner, valid)
         if not valid.ok:
             repos = git.get_repos(owner)
-            return render_template("project-sources-select.html",
+            return render_template("sources-select.html",
                     view="new-resource", vcs="git",
                     owner=owner, project=project, repos=repos,
                     existing=[], **valid.kwargs)
@@ -80,7 +85,7 @@ def git_new_POST(owner, project_name):
             repos = filter(lambda r: search.lower() in r["name"].lower(), repos)
             repos = sorted(repos, key=lambda r: r["updated"], reverse=True)
             # TODO: Fetch existing repos for this project
-            return render_template("project-sources-select.html",
+            return render_template("sources-select.html",
                     view="new-resource", vcs="git",
                     owner=owner, project=project, repos=repos,
                     existing=[], search=search)
@@ -129,7 +134,7 @@ def manage_GET(owner, project_name):
         search_error = str(ex)
 
     sources, pagination = paginate_query(sources)
-    return render_template("project-sources-manage.html", view="sources",
+    return render_template("sources-manage.html", view="sources",
             owner=owner, project=project, sources=sources,
             search=terms, search_error=search_error,
             **pagination)
