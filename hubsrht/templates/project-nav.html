@@ -16,14 +16,14 @@
   </li>
   {% if any(project.source_repos) %}
   <li class="nav-item">
-    {{link(url_for("sources.list_GET",
+    {{link(url_for("sources.sources_GET",
       owner=owner.canonical_name,
       project_name=project.name), "sources")}}
   </li>
   {% endif %}
   {% if any(project.mailing_lists) %}
   <li class="nav-item">
-    {{link(url_for("mailing_lists.list_GET",
+    {{link(url_for("mailing_lists.lists_GET",
       owner=owner.canonical_name,
       project_name=project.name), "mailing lists")}}
   </li>
