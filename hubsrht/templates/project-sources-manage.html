@@ -41,7 +41,7 @@
         <form
           class="d-inline"
           method="POST"
-          action="{{url_for("projects.set_summary_repo",
+          action="{{url_for("sources.summary_POST",
             owner=project.owner.canonical_name,
             project_name=project.name,
             repo_id=repo.id)}}"

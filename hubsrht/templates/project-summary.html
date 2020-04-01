@@ -35,7 +35,7 @@
             {% else %}
             {{icon('plus-square', cls='text-info')}}
             <a
-              href="{{url_for("projects.sources_new_GET",
+              href="{{url_for("sources.new_GET",
                 owner=owner.canonical_name, project_name=project.name)}}"
             >Add source code repositories&nbsp;{{icon('arrow-right')}}</a>
             <br />
@@ -125,13 +125,17 @@
     <div class="col-md-10">
       {% if current_user and current_user.id == project.owner_id and not summary %}
       <div class="alert alert-danger">
-        <strong>Head's up!</strong> This project is configured to use the
-        README.md file from
+        <strong>Head's up!</strong> This project is configured to use
+        "<code>README.md</code>" from
         <a href="{{project.summary_repo.url()}}">
           {{project.summary_repo.owner.canonical_name}}/{{project.summary_repo.name}}
         </a>
-        as the project summary - but there is no such file. Push a README.md
-        file to update the project summary.
+        as the project summary, but there is no such file. Push one to update
+        the project summary, or
+        <a
+          href="{{url_for("sources.manage_GET",
+                 owner=owner.canonical_name, project_name=project.name)}}"
+        >choose a different repository</a>.
       </div>
       {% else %}
       {{summary | extended_md}}
@@ -151,7 +155,7 @@
         <form
           class="event"
           method="POST"
-          action="{{url_for("projects.set_summary_repo",
+          action="{{url_for("sources.summary_POST",
             owner=project.owner.canonical_name,
             project_name=project.name,
             repo_id=repo.id)}}"

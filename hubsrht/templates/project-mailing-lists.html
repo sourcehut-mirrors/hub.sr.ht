@@ -14,7 +14,11 @@
 {% endif %}
 <form class="container">
   <div class="row">
+    {% if current_user and current_user.id == owner.id %}
     <div class="form-group col-md-12">
+    {% else %}
+    <div class="form-group col-md-10">
+    {% endif %}
       <input
         name="search"
         type="text"

@@ -14,7 +14,11 @@
 {% endif %}
 <form class="container">
   <div class="row">
+    {% if current_user and current_user.id == owner.id %}
     <div class="form-group col-md-12">
+    {% else %}
+    <div class="form-group col-md-10">
+    {% endif %}
       <input
         name="search"
         type="text"
@@ -46,12 +50,12 @@
     {% if current_user and current_user.id == owner.id %}
     <div class="col-md-2">
       <a
-        href="{{url_for("projects.sources_new_GET",
+        href="{{url_for("sources.new_GET",
                 owner=owner.canonical_name, project_name=project.name)}}"
         class="btn btn-primary btn-block"
       >Add repository&nbsp;{{icon('caret-right')}}</a>
       <a
-        href="{{url_for("projects.sources_manage_GET",
+        href="{{url_for("sources.manage_GET",
                 owner=owner.canonical_name, project_name=project.name)}}"
         class="btn btn-default btn-block"
       >Manage sources&nbsp;{{icon('caret-right')}}</a>

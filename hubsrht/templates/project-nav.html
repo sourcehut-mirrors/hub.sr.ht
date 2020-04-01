@@ -16,7 +16,7 @@
   </li>
   {% if any(project.source_repos) %}
   <li class="nav-item">
-    {{link(url_for("projects.sources_GET",
+    {{link(url_for("sources.list_GET",
       owner=owner.canonical_name,
       project_name=project.name), "sources")}}
   </li>
