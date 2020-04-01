@@ -1,7 +1,7 @@
 from flask import Blueprint, render_template, request, redirect, url_for
 from hubsrht.projects import ProjectAccess, get_project
 from hubsrht.services import git
-from hubsrht.types import Event
+from hubsrht.types import Event, EventType
 from hubsrht.types import Project, RepoType, Visibility
 from srht.database import db
 from srht.oauth import current_user, loginrequired
@@ -22,10 +22,12 @@ def summary_GET(owner, project_name):
     events = (Event.query
         .filter(Event.project_id == project.id)
         .order_by(Event.created.desc())
-        .limit(2))
+        .limit(2)).all()
+    print(events)
 
     return render_template("project-summary.html", view="summary",
-            owner=owner, project=project, summary=summary, events=events)
+            owner=owner, project=project, summary=summary,
+            events=events, EventType=EventType)
 
 @projects.route("/projects/create")
 @loginrequired

@@ -177,8 +177,11 @@ def delete_POST(owner, project_name, repo_id):
         .filter(SourceRepo.project_id == project.id)).one_or_none()
     if not repo:
         abort(404)
+
     if project.summary_repo_id == repo.id:
         project.summary_repo_id = None
+        db.session.commit()
+
     db.session.delete(repo)
 
     valid = Validation(request)

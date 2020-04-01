@@ -71,11 +71,27 @@
   <div class="row">
     <div class="col-md-12">
       <div class="event-list project-events">
+        {% for event in events %}
+        {% if event.event_type == EventType.source_repo_added %}
         <div class="event">
-          <a href="#">~sircmpwn/scdoc</a>
-          <p>New git repository</p>
-          <small class="text-muted">1 hour ago</small>
+          <a
+            href="{{event.source_repo.url()}}"
+          >{{event.source_repo.owner.canonical_name}}/{{event.source_repo.name}}</a>
+          <p>New {{event.source_repo.repo_type.value}} repository added</p>
+          <small class="text-muted">{{event.created | date}}</small>
         </div>
+        {% elif event.event_type == EventType.mailing_list_added %}
+        <div class="event">
+          <a
+            href="{{event.mailing_list.url()}}"
+          >{{event.mailing_list.owner.canonical_name}}/{{event.mailing_list.name}}</a>
+          <p>New mailing list added</p>
+          <small class="text-muted">{{event.created | date}}</small>
+        </div>
+        {% else %}
+        TODO: implement event type {{event.event_type}}
+        {% endif %}
+        {% endfor %}
         {#
         <div class="event">
           <a href="#">a7358194</a> <code>gen_temporary: fix (unlikely) buffer overflow</code>
