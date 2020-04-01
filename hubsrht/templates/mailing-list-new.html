@@ -85,12 +85,17 @@
         {{ valid.summary("name") }}
         <div class="form-group">
           <label for="list_description">Description</label>
-          <input
+          <textarea
             type="text"
             name="description"
             id="description"
             class="form-control {{valid.cls("description")}}"
-            value="{{ description or project.description }}" />
+            rows="5"
+            aria-describedby="descriptionHelpText"
+          >{{ description or project.description }}</textarea>
+          <small id="descriptionHelpText" class="form-text text-muted pull-left">
+            Markdown supported
+          </small>
           {{valid.summary("description")}}
         </div>
       </div>
