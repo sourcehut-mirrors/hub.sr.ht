@@ -1,65 +1,28 @@
-{% extends "layout.html" %}
-{% block body %}
-<div class="header-tabbed">
-  <div class="container">
-    {% include 'project-nav.html' %}
-  </div>
+{% extends "resource-list.html" %}
+{% block resource_list %}
+{% for mailing_list in mailing_lists %}
+<div class="event">
+  <h4>
+    <a
+      href="{{mailing_list.url()}}"
+    >~{{owner.username}}/{{mailing_list.name}}</a>
+  </h4>
+  {% if mailing_list.description %}
+  {{ mailing_list.description | md }}
+  {% endif %}
 </div>
-{% if project.description %}
-<div class="header-extension">
-  <div class="container">
-    {{ project.description }}
-  </div>
-</div>
-{% endif %}
-<form class="container">
-  <div class="row">
-    {% if current_user and current_user.id == owner.id %}
-    <div class="form-group col-md-12">
-    {% else %}
-    <div class="form-group col-md-10">
-    {% endif %}
-      <input
-        name="search"
-        type="text"
-        placeholder="Search mailing lists"
-        class="form-control{% if search_error %} is-invalid{% endif %}"
-        value="{{ search if search else "" }}" />
-      {% if search_error %}
-        <div class="invalid-feedback">{{ search_error }}</div>
-      {% endif %}
-    </div>
-  </div>
-  <div class="row">
-    <div class="col-md-10 event-list">
-      {% for mailing_list in mailing_lists %}
-      <div class="event">
-        <h4>
-          <a
-            href="{{mailing_list.url()}}"
-          >~{{owner.username}}/{{mailing_list.name}}</a>
-        </h4>
-        {% if mailing_list.description %}
-        {{ mailing_list.description | md }}
-        {% endif %}
-      </div>
-      {% endfor %}
-      {{pagination()}}
-    </div>
-    {% if current_user and current_user.id == owner.id %}
-    <div class="col-md-2">
-      <a
-        href="{{url_for("mailing_lists.new_GET",
-                owner=owner.canonical_name, project_name=project.name)}}"
-        class="btn btn-primary btn-block"
-      >Add mailing list&nbsp;{{icon('caret-right')}}</a>
-      <a
-        href="{{url_for("mailing_lists.manage_GET",
-                owner=owner.canonical_name, project_name=project.name)}}"
-        class="btn btn-default btn-block"
-      >Manage lists&nbsp;{{icon('caret-right')}}</a>
-    </div>
-    {% endif %}
-  </div>
-</form>
+{% endfor %}
+{% endblock %}
+
+{% block sidebar %}
+<a
+  href="{{url_for("mailing_lists.new_GET",
+          owner=owner.canonical_name, project_name=project.name)}}"
+  class="btn btn-primary btn-block"
+>Add mailing list&nbsp;{{icon('caret-right')}}</a>
+<a
+  href="{{url_for("mailing_lists.manage_GET",
+          owner=owner.canonical_name, project_name=project.name)}}"
+  class="btn btn-default btn-block"
+>Manage lists&nbsp;{{icon('caret-right')}}</a>
 {% endblock %}

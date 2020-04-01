@@ -1,0 +1,49 @@
+{% extends "layout.html" %}
+{% block body %}
+<div class="header-tabbed">
+  <div class="container">
+    {% include 'project-nav.html' %}
+  </div>
+</div>
+{% if project.description %}
+<div class="header-extension">
+  <div class="container">
+    {{ project.description }}
+  </div>
+</div>
+{% endif %}
+<form class="container">
+  <div class="row">
+    {% if current_user and current_user.id == owner.id %}
+    <div class="form-group col-md-12">
+    {% else %}
+    <div class="form-group col-md-10">
+    {% endif %}
+      <input
+        name="search"
+        type="text"
+        placeholder="Search {{view}}"
+        class="form-control{% if search_error %} is-invalid{% endif %}"
+        value="{{ search if search else "" }}" />
+      {% if search_error %}
+        <div class="invalid-feedback">{{ search_error }}</div>
+      {% endif %}
+    </div>
+  </div>
+  <div class="row">
+    <div class="col-md-10 event-list">
+      {% block resource_list %}
+        TODO: populate resource list
+      {% endblock %}
+      {{pagination()}}
+    </div>
+    {% if current_user and current_user.id == owner.id %}
+    <div class="col-md-2">
+      {% block sidebar %}
+      TODO: populate sidebar
+      {% endblock %}
+    </div>
+    {% endif %}
+  </div>
+</form>
+{% endblock %}
