@@ -19,8 +19,11 @@
                 class="form-check-input"
                 type="checkbox"
                 name="delete-remote">
-              Remove from the project <em>and</em> delete the {{resource_type}}
-              (<span class="text-danger">this cannot be undone</span>)
+              Permanently <strong>delete</strong> the {{resource_type}} as well
+              &mdash;
+              <span class="text-danger">
+                if checked, this operation cannot be undone.
+              </span>
             </label>
           </div>
         </div>
@@ -30,9 +33,11 @@
         <button type="submit" class="btn btn-danger">
           Remove this {{resource_type}} {{icon('caret-right')}}
         </button>
-        <a href="#" class="btn btn-default">
-          Cancel {{icon('caret-right')}}
-        </a>
+        <a
+          href="{{url_for("projects.summary_GET",
+            owner=owner.canonical_name, project_name=project.name)}}"
+          class="btn btn-default"
+        >Cancel {{icon('caret-right')}}</a>
       </div>
     </div>
   </div>
