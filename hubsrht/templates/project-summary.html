@@ -58,7 +58,10 @@
           </li>
           <li>
             {{icon('plus-square', cls='text-info')}}
-            <a href="#">Add bug trackers&nbsp;{{icon('arrow-right')}}</a>
+            <a
+              href="{{url_for("trackers.new_GET",
+                owner=owner.canonical_name, project_name=project.name)}}"
+            >Add bug trackers&nbsp;{{icon('arrow-right')}}</a>
             <br />
             <small class="text-muted">
               Bug trackers give you a place to organize your tasks and record

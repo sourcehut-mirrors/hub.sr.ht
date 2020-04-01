@@ -84,16 +84,17 @@
           value="{{ name or project.name }}" />
         {{ valid.summary("name") }}
         <div class="form-group">
-          <label for="list_description">Description</label>
+          <label for="description">Description</label>
           <textarea
             type="text"
             name="description"
             id="description"
             class="form-control {{valid.cls("description")}}"
             rows="5"
-            aria-describedby="descriptionHelpText"
-          >{{ description or project.description }}</textarea>
-          <small id="descriptionHelpText" class="form-text text-muted pull-left">
+            aria-describedby="description-help-text"
+            placeholder="Introduce this mailing list to users and explain the posting rules."
+          >{{ description or "" }}</textarea>
+          <small id="description-help-text" class="form-text text-muted pull-left">
             Markdown supported
           </small>
           {{valid.summary("description")}}

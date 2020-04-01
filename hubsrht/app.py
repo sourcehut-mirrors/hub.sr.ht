@@ -15,6 +15,7 @@ class HubApp(SrhtFlask):
         from hubsrht.blueprints.projects import projects
         from hubsrht.blueprints.public import public
         from hubsrht.blueprints.sources import sources
+        from hubsrht.blueprints.trackers import trackers
         from hubsrht.blueprints.users import users
         from hubsrht.blueprints.webhooks import webhooks
 
@@ -22,6 +23,7 @@ class HubApp(SrhtFlask):
         self.register_blueprint(projects)
         self.register_blueprint(public)
         self.register_blueprint(sources)
+        self.register_blueprint(trackers)
         self.register_blueprint(users)
         self.register_blueprint(webhooks)
 

@@ -11,6 +11,7 @@ class Visibility(Enum):
     private = "private"
 
 from hubsrht.types.event import Event, EventType
+from hubsrht.types.mailinglist import MailingList
 from hubsrht.types.project import Project
 from hubsrht.types.sourcerepo import SourceRepo, RepoType
-from hubsrht.types.mailinglist import MailingList
+from hubsrht.types.tracker import Tracker

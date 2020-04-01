@@ -1,0 +1,84 @@
+{% extends "resource-new.html" %}
+{% block content %}
+<form method="POST">
+  {{csrf_token()}}
+  <div class="row">
+    <div class="col-lg-8">
+      <h3 style="margin-top: 1rem">
+        Create a new ticket tracker
+      </h3>
+      <div class="form-group">
+        <label for="{{ typename }}">Name</label>
+        <input
+          type="text"
+          name="name"
+          id="name"
+          class="form-control {{ valid.cls("name") }}"
+          value="{{ name or project.name }}" />
+        {{ valid.summary("name") }}
+        <div class="form-group">
+          <label for="description">Description</label>
+          <textarea
+            type="text"
+            name="description"
+            id="description"
+            class="form-control {{valid.cls("description")}}"
+            rows="5"
+            aria-describedby="description-help-text"
+            placeholder="Give users an idea of how to submit a good ticket for this tracker."
+          >{{ description or "" }}</textarea>
+          <small id="description-help-text" class="form-text text-muted pull-left">
+            Markdown supported
+          </small>
+          {{valid.summary("description")}}
+        </div>
+      </div>
+      <div class="flex-grow-1 d-flex flex-row justify-content-end">
+        <button
+          type="submit"
+          class="btn btn-primary align-self-end"
+          name="create"
+        >Create new tracker {{icon("caret-right")}}</button>
+      </div>
+    </div>
+  </div>
+  {% if any(trackers) %}
+  <div class="row">
+    <div class="col-lg-8">
+      <h3 style="margin-top: 1rem">
+        Or add an existing tracker
+      </h3>
+      {# TODO: Pagination #}
+      <div class="form-group">
+        {# TODO: How exactly should this work #}
+        <input
+          name="search"
+          type="text"
+          placeholder="Search your ticket trackers"
+          class="form-control"
+          value="{{ search if search else "" }}" />
+      </div>
+      <div class="event-list select-resource">
+        {% for tracker in trackers %}
+        <div class="event">
+          <h3>
+            <button
+              type="submit"
+              name="existing-{{ tracker["name"] }}"
+              class="pull-right btn btn-primary btn-lg"
+            >Select tracker&nbsp;{{ icon("caret-right") }}</button>
+            <a
+              href="{{get_origin("todo.sr.ht",
+                external=True)}}/{{ tracker["owner"]["canonical_name"] }}/{{tracker["name"]}}"
+              target="_blank"
+              rel="noopener"
+            >{{ tracker["name"] }}</a>
+          </h3>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+  {% endif %}
+</form>
+{% endblock %}

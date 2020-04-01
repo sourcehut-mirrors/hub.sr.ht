@@ -6,6 +6,7 @@ from srht.config import get_origin
 
 _gitsrht = get_origin("git.sr.ht", external=True, default=None)
 _listsrht = get_origin("lists.sr.ht", external=True, default=None)
+_todosrht = get_origin("todo.sr.ht", external=True, default=None)
 origin = get_origin("hub.sr.ht")
 
 class SrhtService(ABC):
@@ -51,7 +52,7 @@ class GitService(SrhtService):
 
     def create_repo(self, user, valid):
         name = valid.require("name")
-        description = valid.require("description")
+        description = valid.optional("description")
         if not valid.ok:
             return None
         return self.post(user, valid, f"{_gitsrht}/api/repos", {
@@ -101,8 +102,7 @@ class ListService(SrhtService):
 
     def create_list(self, user, valid):
         name = valid.require("name")
-        description = valid.require("description")
-        print(name, description)
+        description = valid.optional("description")
         if not valid.ok:
             return None
         return self.post(user, valid, f"{_listsrht}/api/lists", {
@@ -110,5 +110,41 @@ class ListService(SrhtService):
             "description": description,
         })
 
+class TodoService(SrhtService):
+    def get_trackers(self, user):
+        return get_results(f"{_todosrht}/api/trackers", user)
+
+    def get_tracker(self, user, tracker_name):
+        r = self.session.get(f"{_todosrht}/api/trackers/{tracker_name}",
+                headers=get_authorization(user))
+        if r.status_code != 200:
+            raise Exception(r.json())
+        return r.json()
+
+    def ensure_tracker_webhooks(self, user, tracker_name):
+        config = {
+            origin + url_for("webhooks.tracker"): ["ticket:create"]
+        }
+        url = f"{_todosrht}/api/user/{user.canonical_name}/trackers/{tracker_name}/webhooks"
+        ensure_webhooks(user, url, config)
+
+    def ensure_ticket_webhooks(self, user, tracker_name, ticket_id):
+        config = {
+            origin + url_for("webhooks.tracker_ticket"): ["event:create"]
+        }
+        url = f"{_todosrht}/api/user/{user.canonical_name}/trackers/{tracker_name}/tickets/{ticket_id}/webhooks"
+        ensure_webhooks(user, url, config)
+
+    def create_tracker(self, user, valid):
+        name = valid.require("name")
+        description = valid.optional("description")
+        if not valid.ok:
+            return None
+        return self.post(user, valid, f"{_todosrht}/api/trackers", {
+            "name": name,
+            "description": description,
+        })
+
 git = GitService()
 lists = ListService()
+todo = TodoService()
