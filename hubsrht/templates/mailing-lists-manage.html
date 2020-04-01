@@ -37,16 +37,13 @@
         {% if mailing_list.description %}
         {{ mailing_list.description | md }}
         {% endif %}
-        <form
-          class="d-inline"
-          method="POST"
-          action="#TODO"
-        >
-          {{csrf_token()}}
-          <button class="btn btn-danger">
-            Remove mailing list {{icon('caret-right')}}
-          </button>
-        </form>
+        <a
+          class="btn btn-danger"
+          href="{{url_for("mailing_lists.delete_POST",
+            owner=project.owner.canonical_name,
+            project_name=project.name,
+            list_id=mailing_list.id)}}"
+        >Remove mailing list {{icon('caret-right')}}</a>
       </div>
       {% endfor %}
       {{pagination()}}

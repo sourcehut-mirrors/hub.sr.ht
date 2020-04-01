@@ -121,3 +121,38 @@ def manage_GET(owner, project_name):
             search=terms, search_error=search_error,
             mailing_lists=mailing_lists,
             **pagination)
+
+@mailing_lists.route("/<owner>/<project_name>/lists/delete/<int:list_id>")
+@loginrequired
+def delete_GET(owner, project_name, list_id):
+    owner, project = get_project(owner, project_name, ProjectAccess.write)
+    mailing_list = (MailingList.query
+        .filter(MailingList.id == list_id)
+        .filter(MailingList.project_id == project.id)).one_or_none()
+    if not mailing_list:
+        abort(404)
+    return render_template("resource-delete.html", view="mailing lists",
+            owner=owner, project=project, resource=mailing_list,
+            resource_type="mailing list",
+            undeletable=True) # TODO: mailing list deletion
+
+@mailing_lists.route("/<owner>/<project_name>/lists/delete/<int:list_id>",
+        methods=["POST"])
+@loginrequired
+def delete_POST(owner, project_name, list_id):
+    owner, project = get_project(owner, project_name, ProjectAccess.write)
+    mailing_list = (MailingList.query
+        .filter(MailingList.id == list_id)
+        .filter(MailingList.project_id == project.id)).one_or_none()
+    if not mailing_list:
+        abort(404)
+    db.session.delete(mailing_list)
+
+    valid = Validation(request)
+    delete_remote = valid.optional("delete-remote") == "on"
+    if delete_remote:
+        assert False # TODO: mailing list deletion
+
+    db.session.commit()
+    return redirect(url_for("projects.summary_GET",
+        owner=owner.canonical_name, project_name=project.name))
