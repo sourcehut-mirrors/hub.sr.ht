@@ -1,0 +1,15 @@
+{% extends "project-base.html" %}
+{% import "event.html" as eventutil with context %}
+{# TODO: RSS feed #}
+{% block content %}
+<div class="container">
+  <div class="row">
+    <div class="col-md-12 event-list">
+      {% for event in events %}
+      {{ eventutil.event(event) }}
+      {% endfor %}
+      {{pagination()}}
+    </div>
+  </div>
+</div>
+{% endblock %}

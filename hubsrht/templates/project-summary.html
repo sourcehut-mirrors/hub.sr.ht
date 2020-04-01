@@ -1,4 +1,5 @@
 {% extends "project-base.html" %}
+{% import "event.html" as eventutil with context %}
 {% block content %}
 <div class="container">
   <div class="row">
@@ -72,25 +73,7 @@
     <div class="col-md-12">
       <div class="event-list project-events">
         {% for event in events %}
-        {% if event.event_type == EventType.source_repo_added %}
-        <div class="event">
-          <a
-            href="{{event.source_repo.url()}}"
-          >{{event.source_repo.owner.canonical_name}}/{{event.source_repo.name}}</a>
-          <p>New {{event.source_repo.repo_type.value}} repository added</p>
-          <small class="text-muted">{{event.created | date}}</small>
-        </div>
-        {% elif event.event_type == EventType.mailing_list_added %}
-        <div class="event">
-          <a
-            href="{{event.mailing_list.url()}}"
-          >{{event.mailing_list.owner.canonical_name}}/{{event.mailing_list.name}}</a>
-          <p>New mailing list added</p>
-          <small class="text-muted">{{event.created | date}}</small>
-        </div>
-        {% else %}
-        TODO: implement event type {{event.event_type}}
-        {% endif %}
+        {{ eventutil.event(event) }}
         {% endfor %}
         {#
         <div class="event">
@@ -106,7 +89,8 @@
         #}
         <div class="view-more">
           <a
-            href="#"
+            href="{{url_for("projects.feed_GET",
+              owner=owner, project_name=project.name)}}"
             class="btn btn-link"
           >View project feed&nbsp;{{icon("caret-right")}}</a>
         </div>

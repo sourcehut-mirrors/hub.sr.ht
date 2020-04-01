@@ -4,6 +4,7 @@ from hubsrht.services import git
 from hubsrht.types import Event, EventType
 from hubsrht.types import Project, RepoType, Visibility
 from srht.database import db
+from srht.flask import paginate_query
 from srht.oauth import current_user, loginrequired
 from srht.validation import Validation
 
@@ -23,11 +24,23 @@ def summary_GET(owner, project_name):
         .filter(Event.project_id == project.id)
         .order_by(Event.created.desc())
         .limit(2)).all()
-    print(events)
 
     return render_template("project-summary.html", view="summary",
             owner=owner, project=project, summary=summary,
             events=events, EventType=EventType)
+
+@projects.route("/<owner>/<project_name>/feed")
+def feed_GET(owner, project_name):
+    owner, project = get_project(owner, project_name, ProjectAccess.read)
+
+    events = (Event.query
+        .filter(Event.project_id == project.id)
+        .order_by(Event.created.desc()))
+    events, pagination = paginate_query(events)
+
+    return render_template("project-feed.html",
+            view="summary", owner=owner, project=project,
+            events=events, EventType=EventType, **pagination)
 
 @projects.route("/projects/create")
 @loginrequired
