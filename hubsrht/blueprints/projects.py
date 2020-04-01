@@ -225,9 +225,20 @@ def mailing_lists_GET(owner, project_name):
     mailing_lists = (MailingList.query
             .filter(MailingList.project_id == project.id)
             .order_by(MailingList.updated.desc()))
+
+    terms = request.args.get("search")
+    search_error = None
+    try:
+        mailing_lists = search_by(mailing_lists, terms,
+                [MailingList.name, MailingList.description])
+    except ValueError as ex:
+        search_error = str(ex)
+
     mailing_lists, pagination = paginate_query(mailing_lists)
     return render_template("project-mailing-lists.html", view="mailing lists",
-            owner=owner, project=project, mailing_lists=mailing_lists,
+            owner=owner, project=project,
+            search=terms, search_error=search_error,
+            mailing_lists=mailing_lists,
             **pagination)
 
 @projects.route("/<owner>/<project_name>/lists/new")
@@ -294,3 +305,26 @@ def mailing_lists_new_POST(owner, project_name):
 
     return redirect(url_for("projects.summary_GET",
         owner=owner.canonical_name, project_name=project.name))
+
+@projects.route("/<owner>/<project_name>/lists/manage")
+@loginrequired
+def mailing_lists_manage_GET(owner, project_name):
+    owner, project = get_project(owner, project_name, ProjectAccess.write)
+    mailing_lists = (MailingList.query
+            .filter(MailingList.project_id == project.id)
+            .order_by(MailingList.updated.desc()))
+
+    terms = request.args.get("search")
+    search_error = None
+    try:
+        mailing_lists = search_by(mailing_lists, terms,
+                [MailingList.name, MailingList.description])
+    except ValueError as ex:
+        search_error = str(ex)
+
+    mailing_lists, pagination = paginate_query(mailing_lists)
+    return render_template("project-mailing-lists-manage.html",
+            view="mailing lists", owner=owner, project=project,
+            search=terms, search_error=search_error,
+            mailing_lists=mailing_lists,
+            **pagination)

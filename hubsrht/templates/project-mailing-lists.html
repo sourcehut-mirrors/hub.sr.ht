@@ -12,7 +12,20 @@
   </div>
 </div>
 {% endif %}
-<div class="container">
+<form class="container">
+  <div class="row">
+    <div class="form-group col-md-12">
+      <input
+        name="search"
+        type="text"
+        placeholder="Search mailing lists"
+        class="form-control{% if search_error %} is-invalid{% endif %}"
+        value="{{ search if search else "" }}" />
+      {% if search_error %}
+        <div class="invalid-feedback">{{ search_error }}</div>
+      {% endif %}
+    </div>
+  </div>
   <div class="row">
     <div class="col-md-10 event-list">
       {% for mailing_list in mailing_lists %}
@@ -36,8 +49,13 @@
                 owner=owner.canonical_name, project_name=project.name)}}"
         class="btn btn-primary btn-block"
       >Add mailing list&nbsp;{{icon('caret-right')}}</a>
+      <a
+        href="{{url_for("projects.mailing_lists_manage_GET",
+                owner=owner.canonical_name, project_name=project.name)}}"
+        class="btn btn-default btn-block"
+      >Manage lists&nbsp;{{icon('caret-right')}}</a>
     </div>
     {% endif %}
   </div>
-</div>
+</form>
 {% endblock %}
