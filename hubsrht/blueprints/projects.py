@@ -8,6 +8,7 @@ from srht.config import get_origin
 from srht.database import db
 from srht.flask import paginate_query
 from srht.oauth import current_user, loginrequired
+from srht.search import search_by
 from srht.validation import Validation
 
 projects = Blueprint("projects", __name__)
@@ -73,9 +74,20 @@ def sources_GET(owner, project_name):
     sources = (SourceRepo.query
             .filter(SourceRepo.project_id == project.id)
             .order_by(SourceRepo.updated.desc()))
+
+    terms = request.args.get("search")
+    search_error = None
+    try:
+        sources = search_by(sources, terms,
+                [SourceRepo.name, SourceRepo.description])
+    except ValueError as ex:
+        search_error = str(ex)
+
     sources, pagination = paginate_query(sources)
     return render_template("project-sources.html", view="sources",
-            owner=owner, project=project, sources=sources, **pagination)
+            owner=owner, project=project, sources=sources,
+            search=terms, search_error=search_error,
+            **pagination)
 
 @projects.route("/<owner>/<project_name>/sources/new")
 @loginrequired
@@ -168,6 +180,28 @@ def sources_git_new_POST(owner, project_name):
 
     return redirect(url_for("projects.summary_GET",
         owner=owner.canonical_name, project_name=project.name))
+
+@projects.route("/<owner>/<project_name>/sources/manage")
+@loginrequired
+def sources_manage_GET(owner, project_name):
+    owner, project = get_project(owner, project_name, ProjectAccess.write)
+    sources = (SourceRepo.query
+            .filter(SourceRepo.project_id == project.id)
+            .order_by(SourceRepo.updated.desc()))
+
+    terms = request.args.get("search")
+    search_error = None
+    try:
+        sources = search_by(sources, terms,
+                [SourceRepo.name, SourceRepo.description])
+    except ValueError as ex:
+        search_error = str(ex)
+
+    sources, pagination = paginate_query(sources)
+    return render_template("project-sources-manage.html", view="sources",
+            owner=owner, project=project, sources=sources,
+            search=terms, search_error=search_error,
+            **pagination)
 
 @projects.route("/<owner>/<project_name>/sources/set-summary/<int:repo_id>",
         methods=["POST"])

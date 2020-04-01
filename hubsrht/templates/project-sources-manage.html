@@ -1,0 +1,76 @@
+{% extends "layout.html" %}
+{% block body %}
+<div class="header-tabbed">
+  <div class="container">
+    {% include 'project-nav.html' %}
+  </div>
+</div>
+{% if project.description %}
+<div class="header-extension">
+  <div class="container">
+    {{ project.description }}
+  </div>
+</div>
+{% endif %}
+<div class="container">
+  <div class="row">
+    <div class="col-md-12 event-list">
+      <h3>Manage sources</h3>
+      <form>
+        <input
+          name="search"
+          type="text"
+          placeholder="Search repositories"
+          class="form-control{% if search_error %} is-invalid{% endif %}"
+          value="{{ search if search else "" }}" />
+        {% if search_error %}
+          <div class="invalid-feedback">{{ search_error }}</div>
+        {% endif %}
+      </form>
+      {% for repo in sources %}
+      <div class="event">
+        <h4>
+          <a href="{{repo.url()}}">~{{owner.username}}/{{repo.name}}</a>
+          <small class="pull-right">
+            {{ repo.repo_type.value }}
+          </small>
+        </h4>
+        {% if repo.description %}
+        <p>{{ repo.description }}</p>
+        {% endif %}
+        <form
+          class="d-inline"
+          method="POST"
+          action="{{url_for("projects.set_summary_repo",
+            owner=project.owner.canonical_name,
+            project_name=project.name,
+            repo_id=repo.id)}}"
+        >
+          {{csrf_token()}}
+          <button
+            class="btn btn-default"
+            {% if project.summary_repo_id == repo.id %}
+            disabled
+            title="This repository is already in use as the project summary"
+            {% endif %}
+          >
+            Use README.md {{icon('caret-right')}}
+          </button>
+        </form>
+        <form
+          class="d-inline"
+          method="POST"
+          action="#TODO"
+        >
+          {{csrf_token()}}
+          <button class="btn btn-danger">
+            Remove repository {{icon('caret-right')}}
+          </button>
+        </form>
+      </div>
+      {% endfor %}
+      {{pagination()}}
+    </div>
+  </div>
+</div>
+{% endblock %}
