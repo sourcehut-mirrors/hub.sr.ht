@@ -15,10 +15,15 @@ def summary_GET(owner, project_name):
     owner, project = get_project(owner, project_name, ProjectAccess.read)
 
     summary = None
+    summary_error = False
     if project.summary_repo_id is not None:
         repo = project.summary_repo
         assert repo.repo_type != RepoType.hg # TODO
-        summary = git.get_readme(owner, repo.name)
+        try:
+            summary = git.get_readme(owner, repo.name)
+        except:
+            summary = None
+            summary_error = True
 
     events = (Event.query
         .filter(Event.project_id == project.id)
@@ -26,7 +31,8 @@ def summary_GET(owner, project_name):
         .limit(2)).all()
 
     return render_template("project-summary.html", view="summary",
-            owner=owner, project=project, summary=summary,
+            owner=owner, project=project,
+            summary=summary, summary_error=summary_error,
             events=events, EventType=EventType)
 
 @projects.route("/<owner>/<project_name>/feed")
