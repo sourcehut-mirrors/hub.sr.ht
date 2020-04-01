@@ -1,17 +1,5 @@
-{% extends "layout.html" %}
-{% block body %}
-<div class="header-tabbed">
-  <div class="container">
-    {% include 'project-nav.html' %}
-  </div>
-</div>
-{% if project.description %}
-<div class="header-extension">
-  <div class="container">
-    {{ project.description }}
-  </div>
-</div>
-{% endif %}
+{% extends "project-base.html" %}
+{% block content %}
 <div class="container">
   <div class="row">
     <div class="col-md-12 event-list">
@@ -57,16 +45,13 @@
             Use README.md {{icon('caret-right')}}
           </button>
         </form>
-        <form
-          class="d-inline"
-          method="POST"
-          action="#TODO"
-        >
-          {{csrf_token()}}
-          <button class="btn btn-danger">
-            Remove repository {{icon('caret-right')}}
-          </button>
-        </form>
+        <a
+          class="btn btn-danger"
+          href="{{url_for("sources.delete_POST",
+            owner=project.owner.canonical_name,
+            project_name=project.name,
+            repo_id=repo.id)}}"
+        >Remove repository {{icon('caret-right')}}</a>
       </div>
       {% endfor %}
       {{pagination()}}

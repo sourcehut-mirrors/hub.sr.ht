@@ -1,17 +1,5 @@
-{% extends "layout.html" %}
-{% block body %}
-<div class="header-tabbed">
-  <div class="container">
-    {% include 'project-nav.html' %}
-  </div>
-</div>
-{% if project.description %}
-<div class="header-extension">
-  <div class="container">
-    {{ project.description }}
-  </div>
-</div>
-{% endif %}
+{% extends "project-base.html" %}
+{% block content %}
 <form class="container">
   <div class="row">
     {% if current_user and current_user.id == owner.id %}

@@ -1,0 +1,40 @@
+{% extends "project-base.html" %}
+{% block content %}
+<form class="container" method="POST">
+  {{csrf_token()}}
+  <div class="row">
+    <div class="col-md-12">
+      <p>
+        Do you really want to remove the
+        <a href="{{resource.url()}}">{{resource.name}}</a>
+        {{resource_type}} from the {{project.name}} project?
+      </p>
+      {# Deletion is complicated, some services don't support it yet #}
+      {% if not undeletable %}
+      <div class="event-list">
+        <div class="event">
+          <div class="form-check form-group">
+            <label class="form-check-label">
+              <input
+                class="form-check-input"
+                type="checkbox"
+                name="delete-remote">
+              Remove from the project <em>and</em> delete the {{resource_type}}
+              (<span class="text-danger">this cannot be undone</span>)
+            </label>
+          </div>
+        </div>
+      </div>
+      {% endif %}
+      <div class="form-group">
+        <button type="submit" class="btn btn-danger">
+          Remove this {{resource_type}} {{icon('caret-right')}}
+        </button>
+        <a href="#" class="btn btn-default">
+          Cancel {{icon('caret-right')}}
+        </a>
+      </div>
+    </div>
+  </div>
+</form>
+{% endblock %}

@@ -153,3 +153,39 @@ def summary_POST(owner, project_name, repo_id):
     db.session.commit()
     return redirect(url_for("projects.summary_GET",
         owner=owner.canonical_name, project_name=project.name))
+
+@sources.route("/<owner>/<project_name>/sources/delete/<int:repo_id>")
+@loginrequired
+def delete_GET(owner, project_name, repo_id):
+    owner, project = get_project(owner, project_name, ProjectAccess.write)
+    repo = (SourceRepo.query
+        .filter(SourceRepo.id == repo_id)
+        .filter(SourceRepo.project_id == project.id)).one_or_none()
+    if not repo:
+        abort(404)
+    return render_template("resource-delete.html", view="sources",
+            owner=owner, project=project, resource=repo,
+            resource_type=repo.repo_type.value + " repository")
+
+@sources.route("/<owner>/<project_name>/sources/delete/<int:repo_id>",
+        methods=["POST"])
+@loginrequired
+def delete_POST(owner, project_name, repo_id):
+    owner, project = get_project(owner, project_name, ProjectAccess.write)
+    repo = (SourceRepo.query
+        .filter(SourceRepo.id == repo_id)
+        .filter(SourceRepo.project_id == project.id)).one_or_none()
+    if not repo:
+        abort(404)
+    if project.summary_repo_id == repo.id:
+        project.summary_repo_id = None
+    db.session.delete(repo)
+
+    valid = Validation(request)
+    delete_remote = valid.optional("delete-remote") == "on"
+    if delete_remote:
+        git.delete_repo(owner, repo.name)
+
+    db.session.commit()
+    return redirect(url_for("projects.summary_GET",
+        owner=owner.canonical_name, project_name=project.name))

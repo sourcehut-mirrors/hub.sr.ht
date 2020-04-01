@@ -60,6 +60,12 @@ class GitService(SrhtService):
             "visibility": "public", # TODO: Should this be different?
         })
 
+    def delete_repo(self, user, repo_name):
+        r = self.session.delete(f"{_gitsrht}/api/repos/{repo_name}",
+                headers=get_authorization(user))
+        if r.status_code != 204:
+            raise Exception(r.text)
+
     def ensure_user_webhooks(self, user):
         config = {
             origin + url_for("webhooks.git_repo"):

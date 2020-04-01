@@ -17,19 +17,23 @@ class Event(Base):
     project = sa.orm.relationship("Project", backref=sa.orm.backref("events"))
     """The project implicated in this event"""
 
-    user_id = sa.Column(sa.Integer, sa.ForeignKey("user.id"), nullable=False)
-    user = sa.orm.relationship("User", backref=sa.orm.backref("events"))
+    user_id = sa.Column(sa.Integer,
+            sa.ForeignKey("user.id", ondelete="CASCADE"), nullable=False)
+    user = sa.orm.relationship("User", backref=sa.orm.backref("events"),
+            cascade="all, delete")
     """The user implicated in this event"""
 
     event_type = sa.Column(sau.ChoiceType(EventType, impl=sa.String()),
             nullable=False)
 
-    source_repo_id = sa.Column(sa.Integer, sa.ForeignKey("source_repo.id"))
-    source_repo = sa.orm.relationship("SourceRepo")
+    source_repo_id = sa.Column(sa.Integer,
+            sa.ForeignKey("source_repo.id", ondelete="CASCADE"))
+    source_repo = sa.orm.relationship("SourceRepo", cascade="all, delete")
     """The source repository implicated in this event, if applicable"""
 
-    mailing_list_id = sa.Column(sa.Integer, sa.ForeignKey("mailing_list.id"))
-    mailing_list = sa.orm.relationship("MailingList")
+    mailing_list_id = sa.Column(sa.Integer,
+            sa.ForeignKey("mailing_list.id", ondelete="CASCADE"))
+    mailing_list = sa.orm.relationship("MailingList", cascade="all, delete")
     """The mailing list implicated in this event, if applicable"""
 
     external_source = sa.Column(sa.Unicode) # e.g. "lists.sr.ht"
