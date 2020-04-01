@@ -23,7 +23,7 @@
   {% endif %}
   {% if any(project.mailing_lists) %}
   <li class="nav-item">
-    {{link(url_for("projects.mailing_lists_GET",
+    {{link(url_for("mailing_lists.list_GET",
       owner=owner.canonical_name,
       project_name=project.name), "mailing lists")}}
   </li>

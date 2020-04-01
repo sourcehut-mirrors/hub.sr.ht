@@ -57,7 +57,7 @@
             {% else %}
             {{icon('plus-square', cls='text-info')}}
             <a
-              href="{{url_for("projects.mailing_lists_new_GET",
+              href="{{url_for("mailing_lists.new_GET",
                 owner=owner.canonical_name, project_name=project.name)}}"
             >Add mailing lists&nbsp;{{icon('arrow-right')}}</a>
             <br />

@@ -11,12 +11,14 @@ class HubApp(SrhtFlask):
         super().__init__("hub.sr.ht", __name__,
                 oauth_service=HubOAuthService())
 
+        from hubsrht.blueprints.mailing_lists import mailing_lists
         from hubsrht.blueprints.projects import projects
         from hubsrht.blueprints.public import public
         from hubsrht.blueprints.sources import sources
         from hubsrht.blueprints.users import users
         from hubsrht.blueprints.webhooks import webhooks
 
+        self.register_blueprint(mailing_lists)
         self.register_blueprint(projects)
         self.register_blueprint(public)
         self.register_blueprint(sources)

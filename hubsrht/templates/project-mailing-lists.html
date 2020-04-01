@@ -49,12 +49,12 @@
     {% if current_user and current_user.id == owner.id %}
     <div class="col-md-2">
       <a
-        href="{{url_for("projects.mailing_lists_new_GET",
+        href="{{url_for("mailing_lists.new_GET",
                 owner=owner.canonical_name, project_name=project.name)}}"
         class="btn btn-primary btn-block"
       >Add mailing list&nbsp;{{icon('caret-right')}}</a>
       <a
-        href="{{url_for("projects.mailing_lists_manage_GET",
+        href="{{url_for("mailing_lists.manage_GET",
                 owner=owner.canonical_name, project_name=project.name)}}"
         class="btn btn-default btn-block"
       >Manage lists&nbsp;{{icon('caret-right')}}</a>
