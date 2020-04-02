@@ -3,9 +3,10 @@ from hubsrht.projects import ProjectAccess, get_project
 from hubsrht.services import lists
 from hubsrht.types import Event, EventType
 from hubsrht.types import MailingList
+from srht.config import get_origin
 from srht.database import db
 from srht.flask import paginate_query
-from srht.oauth import loginrequired
+from srht.oauth import current_user, loginrequired
 from srht.search import search_by
 from srht.validation import Validation
 
@@ -44,13 +45,94 @@ def new_GET(owner, project_name):
     return render_template("mailing-list-new.html", view="new-resource",
             owner=owner, project=project, lists=mls)
 
+def lists_from_template(owner, project, template):
+    project_url = url_for("projects.summary_GET",
+        owner=owner.canonical_name, project_name=project.name)
+    project_url = get_origin("hub.sr.ht", external=True) + project_url
+    templates = {
+        "public-inbox": ["public-inbox"],
+        "announce-devel": [f"{project.name}-announce", f"{project.name}-devel"],
+        "announce-devel-discuss": [
+            f"{project.name}-announce",
+            f"{project.name}-devel",
+            f"{project.name}-discuss", 
+        ],
+    }
+    descs = {
+        "public-inbox": f"""
+General catch-all for patches, questions, and discussions for any of
+{current_user.canonical_name}'s projects which do not have their own mailing
+list.
+
+When posting patches to this list, please edit the [PATCH] line to include the
+specific project you're contributing to, e.g.
+
+    [PATCH {project.name} v2] Add thing to stuff
+""",
+        f"{project.name}-announce": f"""
+Low-volume mailing list for announcements related to the
+[{project.name}]({project_url}) project.
+""",
+        f"{project.name}-devel": f"""
+Mailing list for development discussion and patches related to the
+[{project.name}]({project_url}) project. For help sending patches to this
+list, please consult [git-send-email.io](https://git-send-email.io).
+""",
+        f"{project.name}-discuss": f"""
+Mailing list for end-user discussion and questions related to the
+[{project.name}]({project_url}) project.
+""",
+    }
+    template = templates[template]
+
+    for list_name in template:
+        try:
+            mailing_list = lists.get_list(owner, list_name)
+        except:
+            mailing_list = lists.create_list(owner, Validation({
+                "name": list_name,
+                "description": descs[list_name],
+            }))
+
+        ml = MailingList()
+        ml.remote_id = mailing_list["id"]
+        ml.project_id = project.id
+        ml.owner_id = project.owner_id
+        ml.name = mailing_list["name"]
+        ml.description = mailing_list["description"]
+        db.session.add(ml)
+        db.session.flush()
+
+        event = Event()
+        event.event_type = EventType.mailing_list_added 
+        event.mailing_list_id = ml.id
+        event.project_id = project.id
+        event.user_id = project.owner_id
+        db.session.add(event)
+
+        lists.ensure_mailing_list_webhooks(owner, ml.name)
+
+        db.session.commit()
+
+    return redirect(project_url)
+
 @mailing_lists.route("/<owner>/<project_name>/lists/new", methods=["POST"])
 @loginrequired
 def new_POST(owner, project_name):
     owner, project = get_project(owner, project_name, ProjectAccess.write)
     valid = Validation(request)
     if "from-template" in valid:
-        assert False # TODO: Create lists from template
+        template = valid.require("template")
+        valid.expect(template in ["public-inbox",
+                "announce-devel", "announce-devel-discuss"],
+            "Invalid template selection")
+        if not valid.ok:
+            mls = lists.get_lists(owner)
+            mls = sorted(mls, key=lambda r: r["updated"], reverse=True)
+            return render_template("mailing-list-new.html",
+                    view="new-resource", owner=owner, project=project,
+                    lists=mls, **valid.kwargs)
+        return lists_from_template(owner, project, template)
     elif "create" in valid:
         mailing_list = lists.create_list(owner, valid)
         if not valid.ok:
