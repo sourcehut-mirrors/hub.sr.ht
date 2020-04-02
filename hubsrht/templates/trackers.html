@@ -18,11 +18,9 @@
     project_name=project.name)}}"
   class="btn btn-primary btn-block"
 >Add tracker&nbsp;{{icon('caret-right')}}</a>
-{#
 <a
-  href="{{url_for("tracker.manage_GET",
+  href="{{url_for("trackers.manage_GET",
           owner=owner.canonical_name, project_name=project.name)}}"
   class="btn btn-default btn-block"
->Manage sources&nbsp;{{icon('caret-right')}}</a>
-#}
+>Manage trackers&nbsp;{{icon('caret-right')}}</a>
 {% endblock %}

@@ -8,30 +8,30 @@
         <input
           name="search"
           type="text"
-          placeholder="Search mailing lists"
+          placeholder="Search trackers"
           class="form-control{% if search_error %} is-invalid{% endif %}"
           value="{{ search if search else "" }}" />
         {% if search_error %}
           <div class="invalid-feedback">{{ search_error }}</div>
         {% endif %}
       </form>
-      {% for mailing_list in mailing_lists %}
+      {% for tracker in trackers %}
       <div class="event">
         <h4>
           <a
-            href="{{mailing_list.url()}}"
-          >{{mailing_list.owner.canonical_name}}/{{mailing_list.name}}</a>
+            href="{{tracker.url()}}"
+          >{{tracker.owner.canonical_name}}/{{tracker.name}}</a>
         </h4>
-        {% if mailing_list.description %}
-        {{ mailing_list.description | md }}
+        {% if tracker.description %}
+        {{ tracker.description | md }}
         {% endif %}
         <a
           class="btn btn-danger"
-          href="{{url_for("mailing_lists.delete_POST",
+          href="{{url_for("trackers.delete_POST",
             owner=project.owner.canonical_name,
             project_name=project.name,
-            list_id=mailing_list.id)}}"
-        >Remove mailing list {{icon('caret-right')}}</a>
+            tracker_id=tracker.id)}}"
+        >Remove tracker {{icon('caret-right')}}</a>
       </div>
       {% endfor %}
       {{pagination()}}

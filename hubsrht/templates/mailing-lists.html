@@ -5,7 +5,7 @@
   <h4>
     <a
       href="{{mailing_list.url()}}"
-    >~{{owner.username}}/{{mailing_list.name}}</a>
+    >{{tracker.owner.canonical_name}}/{{mailing_list.name}}</a>
   </h4>
   {% if mailing_list.description %}
   {{ mailing_list.description | md }}

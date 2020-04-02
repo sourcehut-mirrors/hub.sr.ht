@@ -91,3 +91,59 @@ def new_POST(owner, project_name):
 
     return redirect(url_for("projects.summary_GET",
         owner=owner.canonical_name, project_name=project.name))
+
+@trackers.route("/<owner>/<project_name>/trackers/manage")
+@loginrequired
+def manage_GET(owner, project_name):
+    owner, project = get_project(owner, project_name, ProjectAccess.write)
+    trackers = (Tracker.query
+            .filter(Tracker.project_id == project.id)
+            .order_by(Tracker.updated.desc()))
+
+    terms = request.args.get("search")
+    search_error = None
+    try:
+        trackers = search_by(trackers, terms,
+                [Tracker.name, Tracker.description])
+    except ValueError as ex:
+        search_error = str(ex)
+
+    trackers, pagination = paginate_query(trackers)
+    return render_template("trackers-manage.html", view="tickets",
+            owner=owner, project=project, trackers=trackers,
+            search=terms, search_error=search_error,
+            **pagination)
+
+@trackers.route("/<owner>/<project_name>/trackers/delete/<int:tracker_id>")
+@loginrequired
+def delete_GET(owner, project_name, tracker_id):
+    owner, project = get_project(owner, project_name, ProjectAccess.write)
+    tracker = (Tracker.query
+        .filter(Tracker.id == tracker_id)
+        .filter(Tracker.project_id == project.id)).one_or_none()
+    if not tracker:
+        abort(404)
+    return render_template("resource-delete.html", view="tickets",
+            owner=owner, project=project, resource=tracker,
+            resource_type="ticket tracker")
+
+@trackers.route("/<owner>/<project_name>/trackers/delete/<int:tracker_id>",
+        methods=["POST"])
+@loginrequired
+def delete_POST(owner, project_name, tracker_id):
+    owner, project = get_project(owner, project_name, ProjectAccess.write)
+    tracker = (Tracker.query
+        .filter(Tracker.id == tracker_id)
+        .filter(Tracker.project_id == project.id)).one_or_none()
+    if not tracker:
+        abort(404)
+    db.session.delete(tracker)
+
+    valid = Validation(request)
+    delete_remote = valid.optional("delete-remote") == "on"
+    if delete_remote:
+        todo.delete_tracker(owner, tracker.name)
+
+    db.session.commit()
+    return redirect(url_for("projects.summary_GET",
+        owner=owner.canonical_name, project_name=project.name))

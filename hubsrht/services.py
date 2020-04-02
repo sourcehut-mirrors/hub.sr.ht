@@ -121,6 +121,12 @@ class TodoService(SrhtService):
             raise Exception(r.json())
         return r.json()
 
+    def delete_tracker(self, user, tracker_name):
+        r = self.session.delete(f"{_todosrht}/api/trackers/{tracker_name}",
+                headers=get_authorization(user))
+        if r.status_code != 204:
+            raise Exception(r.text)
+
     def ensure_user_webhooks(self, user):
         config = {
             origin + url_for("webhooks.tracker"): ["tracker:update", "tracker:delete"]

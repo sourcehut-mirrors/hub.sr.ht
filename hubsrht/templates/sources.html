@@ -3,7 +3,7 @@
 {% for repo in sources %}
 <div class="event">
   <h4>
-    <a href="{{repo.url()}}">~{{repo.owner.username}}/{{repo.name}}</a>
+    <a href="{{repo.url()}}">{{repo.owner.canonical_name}}/{{repo.name}}</a>
     <small class="pull-right">
       {{ repo.repo_type.value }}
     </small>
