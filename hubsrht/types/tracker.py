@@ -12,14 +12,14 @@ class Tracker(Base):
     updated = sa.Column(sa.DateTime, nullable=False)
 
     project_id = sa.Column(sa.Integer,
-            sa.ForeignKey("project.id"), nullable=False)
+            sa.ForeignKey("project.id", ondelete="CASCADE"), nullable=False)
     project = sa.orm.relationship("Project",
-            backref=sa.orm.backref("trackers"),
+            backref=sa.orm.backref("trackers", cascade="all, delete"),
             foreign_keys=[project_id])
 
     # Note: in theory this may eventually be different from the project owner(?)
     owner_id = sa.Column(sa.Integer,
-            sa.ForeignKey("user.id"), nullable=False)
+            sa.ForeignKey("user.id", ondelete="CASCADE"), nullable=False)
     owner = sa.orm.relationship("User")
 
     name = sa.Column(sa.Unicode(128), nullable=False)

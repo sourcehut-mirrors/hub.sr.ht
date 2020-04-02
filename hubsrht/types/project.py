@@ -9,8 +9,11 @@ class Project(Base):
     created = sa.Column(sa.DateTime, nullable=False)
     updated = sa.Column(sa.DateTime, nullable=False)
 
-    owner_id = sa.Column(sa.Integer, sa.ForeignKey("user.id"))
-    owner = sa.orm.relationship("User", backref=sa.orm.backref("projects"))
+    owner_id = sa.Column(sa.Integer,
+            sa.ForeignKey("user.id", ondelete="CASCADE"),
+            nullable=False)
+    owner = sa.orm.relationship("User",
+            backref=sa.orm.backref("projects", cascade="all, delete"))
 
     name = sa.Column(sa.Unicode(128), nullable=False)
     description = sa.Column(sa.Unicode(512), nullable=False)
@@ -21,6 +24,8 @@ class Project(Base):
     checklist_complete = sa.Column(sa.Boolean,
             nullable=False, server_default='f')
 
-    summary_repo_id = sa.Column(sa.Integer, sa.ForeignKey("source_repo.id"))
+    summary_repo_id = sa.Column(sa.Integer,
+            sa.ForeignKey("source_repo.id", ondelete="CASCADE"))
     summary_repo = sa.orm.relationship("SourceRepo",
-            foreign_keys=[summary_repo_id])
+            foreign_keys=[summary_repo_id],
+            cascade="all, delete")

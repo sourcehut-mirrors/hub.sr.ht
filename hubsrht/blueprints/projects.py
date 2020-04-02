@@ -122,3 +122,12 @@ def config_POST(owner, project_name):
     return redirect(url_for("projects.summary_GET",
         owner=current_user.canonical_name,
         project_name=project.name))
+
+@projects.route("/<owner>/<project_name>/delete", methods=["POST"])
+@loginrequired
+def delete_POST(owner, project_name):
+    owner, project = get_project(owner, project_name, ProjectAccess.write)
+    project.summary_repo_id = None
+    db.session.delete(project)
+    db.session.commit()
+    return redirect(url_for("public.index"))

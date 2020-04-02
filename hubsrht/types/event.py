@@ -14,8 +14,11 @@ class Event(Base):
     id = sa.Column(sa.Integer, primary_key=True)
     created = sa.Column(sa.DateTime, nullable=False)
 
-    project_id = sa.Column(sa.Integer, sa.ForeignKey("project.id"), nullable=False)
-    project = sa.orm.relationship("Project", backref=sa.orm.backref("events"))
+    project_id = sa.Column(sa.Integer,
+            sa.ForeignKey("project.id", ondelete="CASCADE"),
+            nullable=False)
+    project = sa.orm.relationship("Project",
+            backref=sa.orm.backref("events", cascade="all, delete"))
     """The project implicated in this event"""
 
     user_id = sa.Column(sa.Integer,

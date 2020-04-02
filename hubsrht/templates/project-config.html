@@ -186,7 +186,13 @@
         </div>
       </div>
 
-      <div class="event">
+      <form
+        class="event"
+        method="POST"
+        action="{{url_for("projects.delete_POST",
+          owner=owner.canonical_name, project_name=project.name)}}"
+      >
+        {{csrf_token()}}
         <h3>Delete project</h3>
         <p>
           This will permanently delete your project,
@@ -194,16 +200,12 @@
         </p>
         <div class="row">
           <div class="col-md-3">
-            <a
-              href="#"
-              class="btn btn-danger btn-block"
-            >
+            <button class="btn btn-danger btn-block" type="submit">
               Delete project {{icon('caret-right')}}
-            </a>
+            </button>
           </div>
         </div>
-      </div>
-
+      </form>
     </div>
   </div>
 </div>
