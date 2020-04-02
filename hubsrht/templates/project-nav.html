@@ -43,10 +43,10 @@
     {{link("#", "documentation")}}
   </li>
   #}
-  {% if view == "summary" and current_user and current_user.id == owner.id %}
+  {% if current_user and current_user.id == owner.id %}
   <li class="flex-grow-1"></li>
   <li class="nav-item">
-    {{link("#", "add +", cls="btn-primary")}}
+    {{link("#", "add more +")}}
   </li>
   {% endif %}
 </ul>

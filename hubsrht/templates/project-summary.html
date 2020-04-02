@@ -13,7 +13,9 @@
         </h3>
         <ul class="checklist">
           <li>
+            {% set ncomplete = 0 %}
             {% if any(project.source_repos) %}
+            {% set ncomplete = ncomplete + 1 %}
             {{icon('check', cls='text-success')}}
             Add source code repositories
             <br />
@@ -36,6 +38,7 @@
           </li>
           <li>
             {% if any(project.mailing_lists) %}
+            {% set ncomplete = ncomplete + 1 %}
             {{icon('check', cls='text-success')}}
             Add mailing lists
             <br />
@@ -58,6 +61,7 @@
           </li>
           <li>
             {% if any(project.trackers) %}
+            {% set ncomplete = ncomplete + 1 %}
             {{icon('check', cls='text-success')}}
             Add bug trackers
             <br />
@@ -79,6 +83,15 @@
             {% endif %}
           </li>
         </ul>
+        {% if ncomplete == 3 %}
+        <div class="alert alert-info">
+          <p>
+            <a class="text-muted pull-right" href="#">dismiss</a>
+            You're all set! If you want to set up more things for your project,
+            click "add more" on the top right.
+          </p>
+        </div>
+        {% endif %}
       </div>
     </div>
   </div>
