@@ -10,6 +10,28 @@ from srht.validation import Validation
 
 trackers = Blueprint("trackers", __name__)
 
+@trackers.route("/<owner>/<project_name>/trackers")
+@loginrequired
+def trackers_GET(owner, project_name):
+    owner, project = get_project(owner, project_name, ProjectAccess.write)
+    trackers = (Tracker.query
+            .filter(Tracker.project_id == project.id)
+            .order_by(Tracker.updated.desc()))
+
+    terms = request.args.get("search")
+    search_error = None
+    try:
+        trackers = search_by(trackers, terms,
+                [Tracker.name, Tracker.description])
+    except ValueError as ex:
+        search_error = str(ex)
+
+    trackers, pagination = paginate_query(trackers)
+    return render_template("trackers.html", view="tickets",
+            owner=owner, project=project, trackers=trackers,
+            search=terms, search_error=search_error,
+            **pagination)
+
 @trackers.route("/<owner>/<project_name>/trackers/new")
 @loginrequired
 def new_GET(owner, project_name):
