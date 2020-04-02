@@ -55,7 +55,15 @@ def tracker():
     event = request.headers.get("X-Webhook-Event")
     payload = json.loads(request.data.decode("utf-8"))
     if event == "tracker:update":
-        raise NotImplementedError()
+        tracker = (Tracker.query
+                .filter(Tracker.remote_id == payload["id"])
+                .one_or_none())
+        if not tracker:
+            return "I don't recognize this tracker.", 404
+        tracker.name = payload["name"]
+        tracker.description = payload["description"]
+        db.session.commit()
+        return f"Updated local:{tracker.id}/remote:{tracker.remote_id}. Thanks!", 200
     elif event == "tracker:delete":
         raise NotImplementedError()
     elif event == "ticket:create":
