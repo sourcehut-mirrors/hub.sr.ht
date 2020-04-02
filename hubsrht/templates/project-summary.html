@@ -2,14 +2,23 @@
 {% import "event.html" as eventutil with context %}
 {% block content %}
 <div class="container">
+  {% if not project.checklist_complete %}
   <div class="row">
     <div class="col-md-12 event-list">
-      <div class="event">
+      <form
+        class="event"
+        method="POST"
+        action="{{url_for("projects.dismiss_checklist_POST",
+          owner=owner.canonical_name, project_name=project.name)}}"
+      >
+        {{csrf_token()}}
         <h3>
           New project checklist
-          <small style="font-size: 0.9rem;" class="pull-right">
-            <a class="text-muted" href="#">dismiss</a>
-          </small>
+          <button class="btn btn-link text-muted pull-right" type="submit">
+            <small style="font-size: 0.9rem;">
+              dismiss
+            </small>
+          </button>
         </h3>
         <ul class="checklist">
           <li>
@@ -86,15 +95,18 @@
         {% if ncomplete == 3 %}
         <div class="alert alert-info">
           <p>
-            <a class="text-muted pull-right" href="#">dismiss</a>
+            <button class="btn btn-link text-muted pull-right" type="submit">
+              dismiss
+            </button>
             You're all set! If you want to set up more things for your project,
             click "add more" on the top right.
           </p>
         </div>
         {% endif %}
       </div>
-    </div>
+    </form>
   </div>
+  {% endif %}
   <div class="row">
     <div class="col-md-12">
       <div class="event-list project-events">

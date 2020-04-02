@@ -17,6 +17,9 @@ class Project(Base):
     visibility = sa.Column(sau.ChoiceType(Visibility, impl=sa.String()),
             nullable=False, server_default="unlisted")
 
+    checklist_complete = sa.Column(sa.Boolean,
+            nullable=False, server_default='f')
+
     summary_repo_id = sa.Column(sa.Integer, sa.ForeignKey("source_repo.id"))
     summary_repo = sa.orm.relationship("SourceRepo",
             foreign_keys=[summary_repo_id])

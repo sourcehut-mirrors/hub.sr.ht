@@ -48,6 +48,16 @@ def feed_GET(owner, project_name):
             view="summary", owner=owner, project=project,
             events=events, EventType=EventType, **pagination)
 
+@projects.route("/<owner>/<project_name>/dismiss-checklist", methods=["POST"])
+@loginrequired
+def dismiss_checklist_POST(owner, project_name):
+    owner, project = get_project(owner, project_name, ProjectAccess.write)
+    project.checklist_complete = True
+    db.session.commit()
+    return redirect(url_for("projects.summary_GET",
+        owner=current_user.canonical_name,
+        project_name=project.name))
+
 @projects.route("/projects/create")
 @loginrequired
 def create_GET():
