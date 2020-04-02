@@ -14,6 +14,15 @@
       owner=owner.canonical_name,
       project_name=project.name), "summary")}}
   </li>
+  {% if project.website %}
+  <li class="nav-item">
+    <a
+      class="nav-link"
+      href="{{project.website}}"
+      rel="noopener nofollow"
+    >website&nbsp;{{icon('external-link-alt')}}</a>
+  </li>
+  {% endif %}
   {% if any(project.source_repos) %}
   <li class="nav-item">
     {{link(url_for("sources.sources_GET",
@@ -37,18 +46,15 @@
   {% endif %}
   {# TODO
   <li class="nav-item">
-    <a
-      class="nav-link" href="#"
-    >website&nbsp;{{icon('external-link-alt')}}</a>
-  </li>
-  <li class="nav-item">
     {{link("#", "documentation")}}
   </li>
   #}
   {% if current_user and current_user.id == owner.id %}
   <li class="flex-grow-1"></li>
   <li class="nav-item">
-    {{link("#", "add more +")}}
+    {{link(url_for("projects.config_GET",
+      owner=owner.canonical_name, project_name=project.name), "more +",
+      alternates=["add more"])}}
   </li>
   {% endif %}
 </ul>

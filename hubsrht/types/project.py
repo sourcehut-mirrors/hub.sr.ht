@@ -14,6 +14,7 @@ class Project(Base):
 
     name = sa.Column(sa.Unicode(128), nullable=False)
     description = sa.Column(sa.Unicode(512), nullable=False)
+    website = sa.Column(sa.Unicode)
     visibility = sa.Column(sau.ChoiceType(Visibility, impl=sa.String()),
             nullable=False, server_default="unlisted")
 

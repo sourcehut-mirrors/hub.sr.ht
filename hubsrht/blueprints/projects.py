@@ -6,7 +6,7 @@ from hubsrht.types import Project, RepoType, Visibility
 from srht.database import db
 from srht.flask import paginate_query
 from srht.oauth import current_user, loginrequired
-from srht.validation import Validation
+from srht.validation import Validation, valid_url
 
 projects = Blueprint("projects", __name__)
 
@@ -88,6 +88,35 @@ def create_POST():
     project.visibility = visibility
     project.owner_id = current_user.id
     db.session.add(project)
+    db.session.commit()
+
+    return redirect(url_for("projects.summary_GET",
+        owner=current_user.canonical_name,
+        project_name=project.name))
+
+@projects.route("/<owner>/<project_name>/settings")
+@loginrequired
+def config_GET(owner, project_name):
+    owner, project = get_project(owner, project_name, ProjectAccess.write)
+    return render_template("project-config.html", view="add more",
+            owner=owner, project=project)
+
+@projects.route("/<owner>/<project_name>/settings", methods=["POST"])
+@loginrequired
+def config_POST(owner, project_name):
+    owner, project = get_project(owner, project_name, ProjectAccess.write)
+
+    valid = Validation(request)
+    description = valid.require("description")
+    website = valid.optional("website")
+    valid.expect(not website or valid_url(website),
+            "Website must be a valid http or https URL")
+    if not valid.ok:
+        return render_template("project-config.html", view="add more",
+                owner=owner, project=project, **valid.kwargs)
+
+    project.description = description
+    project.website = website
     db.session.commit()
 
     return redirect(url_for("projects.summary_GET",
