@@ -67,13 +67,13 @@ def new_POST(owner, project_name):
                 break
         if not list_name:
             search = valid.optional("search")
-            mls = lists.get_list(owner)
+            mls = lists.get_lists(owner)
             # TODO: Search properly
             mls = filter(lambda r: search.lower() in r["name"].lower(), mls)
             mls = sorted(mls, key=lambda r: r["updated"], reverse=True)
             return render_template("mailing-list-new.html",
                     view="new-resource", owner=owner, project=project,
-                    lists=mls)
+                    lists=mls, search=search)
         mailing_list = lists.get_list(owner, list_name)
 
     ml = MailingList()

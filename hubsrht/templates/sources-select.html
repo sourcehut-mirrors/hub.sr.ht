@@ -1,76 +1,78 @@
 {% extends "resource-new.html" %}
 {% block content %}
-<form method="POST">
+<div class="row">
+  <div class="col-lg-8">
+    <h3>Create a new {{vcs}} repository</h3>
+  </div>
+</div>
+<form method="POST" class="row">
   {{csrf_token()}}
-  <div class="row">
-    <div class="col-lg-8">
-      <h3>Create a new {{vcs}} repository</h3>
-    </div>
-  </div>
-  <div class="row">
-    <div class="col-lg-6">
+  <div class="col-lg-6">
+    <div class="form-group">
+      <label for="{{ typename }}">Name</label>
+      <input
+        type="text"
+        name="name"
+        id="name"
+        class="form-control {{ valid.cls("name") }}"
+        value="{{ name or project.name }}" />
+      {{ valid.summary("name") }}
       <div class="form-group">
-        <label for="{{ typename }}">Name</label>
+        <label for="description">Description</label>
         <input
           type="text"
-          name="name"
-          id="name"
-          class="form-control {{ valid.cls("name") }}"
-          value="{{ name or project.name }}" />
-        {{ valid.summary("name") }}
-        <div class="form-group">
-          <label for="description">Description</label>
-          <input
-            type="text"
-            name="description"
-            id="description"
-            class="form-control {{valid.cls("description")}}"
-            value="{{ description or project.description }}" />
-          {{valid.summary("description")}}
-        </div>
-      </div>
-      <button type="submit" class="btn btn-primary" name="create">
-        Create new {{vcs}} repository {{ icon("caret-right") }}
-      </button>
-    </div>
-  </div>
-  {% if any(repos) %}
-  <div class="row">
-    <div class="col-lg-8">
-      <h3 style="margin-top: 1rem">
-        Or add an existing {{vcs}} repository
-      </h3>
-      {# TODO: Pagination #}
-      <div class="form-group">
-        {# TODO: How exactly should this work #}
-        <input
-          name="search"
-          type="text"
-          placeholder="Search your {{vcs}} repositories"
-          class="form-control"
-          value="{{ search if search else "" }}" />
-      </div>
-      <div class="event-list select-resource">
-        {% for repo in repos %}
-        <div class="event">
-          <h3>
-            <button
-              type="submit"
-              name="existing-{{ repo["name"] }}"
-              class="pull-right btn btn-primary btn-lg"
-            >Select repo&nbsp;{{ icon("caret-right") }}</button>
-            <a
-              href="{{get_origin("git.sr.ht",
-                external=True)}}/{{ repo["owner"]["canonical_name"] }}/{{repo["name"]}}"
-              target="_blank"
-              rel="noopener"
-            >{{ repo["name"] }}</a>
-          </h3>
-        </div>
-        {% endfor %}
+          name="description"
+          id="description"
+          class="form-control {{valid.cls("description")}}"
+          value="{{ description or project.description }}" />
+        {{valid.summary("description")}}
       </div>
     </div>
+    <button type="submit" class="btn btn-primary" name="create">
+      Create new {{vcs}} repository {{ icon("caret-right") }}
+    </button>
   </div>
-  {% endif %}
 </form>
+{% if any(repos) or search %}
+<div class="row">
+  <div class="col-lg-8">
+    <h3 style="margin-top: 1rem">
+      Or add an existing {{vcs}} repository
+    </h3>
+    {# TODO: Pagination #}
+    <form class="form-group" method="POST">
+      {{csrf_token()}}
+      <input
+        name="search"
+        type="text"
+        placeholder="Search repositories"
+        class="form-control{% if search_error %} is-invalid{% endif %}"
+        value="{{ search if search else "" }}" />
+      {% if search_error %}
+        <div class="invalid-feedback">{{ search_error }}</div>
+      {% endif %}
+    </form>
+    <form method="POST" class="event-list select-resource">
+      {{csrf_token()}}
+      {% for repo in repos %}
+      <div class="event">
+        <h3>
+          <button
+            type="submit"
+            name="existing-{{ repo["name"] }}"
+            class="pull-right btn btn-primary btn-lg"
+          >Select repo&nbsp;{{ icon("caret-right") }}</button>
+          <a
+            href="{{get_origin("git.sr.ht",
+              external=True)}}/{{ repo["owner"]["canonical_name"] }}/{{repo["name"]}}"
+            target="_blank"
+            rel="noopener"
+          >{{ repo["name"] }}</a>
+        </h3>
+      </div>
+      {% endfor %}
+    </form>
+  </div>
+</div>
+{% endif %}
 {% endblock %}

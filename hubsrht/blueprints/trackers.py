@@ -59,9 +59,10 @@ def new_POST(owner, project_name):
         if not tracker_name:
             search = valid.optional("search")
             trackers = todo.get_trackers(owner)
-            # TODO: Search properly
-            tracker = filter(lambda r: search.lower() in r["name"].lower(), trackers)
-            tracker = sorted(trackers, key=lambda r: r["updated"], reverse=True)
+            trackers = filter(lambda r:
+                    search.lower() in r["name"].lower()
+                    or search.lower() in r["description"].lower(), trackers)
+            trackers = sorted(trackers, key=lambda r: r["updated"], reverse=True)
             return render_template("tracker-new.html", view="new-resource",
                     owner=owner, project=project, trackers=trackers,
                     search=search)
