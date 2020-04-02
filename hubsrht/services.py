@@ -121,6 +121,13 @@ class TodoService(SrhtService):
             raise Exception(r.json())
         return r.json()
 
+    def ensure_user_webhooks(self, user):
+        config = {
+            origin + url_for("webhooks.tracker"): ["tracker:update", "tracker:delete"]
+        }
+        url = f"{_todosrht}/api/user/webhooks"
+        ensure_webhooks(user, url, config)
+
     def ensure_tracker_webhooks(self, user, tracker_name):
         config = {
             origin + url_for("webhooks.tracker"): ["ticket:create"]

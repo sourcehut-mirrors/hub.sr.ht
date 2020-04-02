@@ -15,6 +15,14 @@
   <p>New mailing list added</p>
   <small class="text-muted">{{event.created | date}}</small>
 </div>
+{% elif event.event_type == EventType.tracker_added %}
+<div class="event">
+  <a
+    href="{{event.tracker.url()}}"
+  >{{event.tracker.owner.canonical_name}}/{{event.tracker.name}}</a>
+  <p>New ticket tracker added</p>
+  <small class="text-muted">{{event.created | date}}</small>
+</div>
 {% else %}
 TODO: implement event type {{event.event_type}}
 {% endif %}

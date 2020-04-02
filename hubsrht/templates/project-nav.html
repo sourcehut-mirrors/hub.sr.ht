@@ -28,6 +28,11 @@
       project_name=project.name), "mailing lists")}}
   </li>
   {% endif %}
+  {% if any(project.trackers) %}
+  <li class="nav-item">
+    {{link("#", "tickets")}}
+  </li>
+  {% endif %}
   {# TODO
   <li class="nav-item">
     <a
@@ -36,9 +41,6 @@
   </li>
   <li class="nav-item">
     {{link("#", "documentation")}}
-  </li>
-  <li class="nav-item">
-    {{link("#", "tickets")}}
   </li>
   #}
   {% if view == "summary" and current_user and current_user.id == owner.id %}

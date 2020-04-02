@@ -57,6 +57,15 @@
             {% endif %}
           </li>
           <li>
+            {% if any(project.trackers) %}
+            {{icon('check', cls='text-success')}}
+            Add bug trackers
+            <br />
+            <small class="text-muted">
+              You can see the list of your ticket trackers by clicking
+              "tickets" on the project navigation.
+            </small>
+            {% else %}
             {{icon('plus-square', cls='text-info')}}
             <a
               href="{{url_for("trackers.new_GET",
@@ -67,6 +76,7 @@
               Bug trackers give you a place to organize your tasks and record
               known defects.
             </small>
+            {% endif %}
           </li>
         </ul>
       </div>

@@ -48,3 +48,17 @@ def mailing_list():
         raise NotImplementedError()
     elif event == "patchset:received":
         raise NotImplementedError()
+
+@csrf_bypass
+@webhooks.route("/webhooks/tracker", methods=["POST"])
+def tracker():
+    event = request.headers.get("X-Webhook-Event")
+    payload = json.loads(request.data.decode("utf-8"))
+    if event == "tracker:update":
+        raise NotImplementedError()
+    elif event == "tracker:delete":
+        raise NotImplementedError()
+    elif event == "ticket:create":
+        raise NotImplementedError()
+    else:
+        raise NotImplementedError()

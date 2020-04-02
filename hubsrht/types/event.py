@@ -6,6 +6,7 @@ from srht.database import Base
 class EventType(Enum):
     source_repo_added = "source_repo_added"
     mailing_list_added = "mailing_list_added"
+    tracker_added = "tracker_added"
     external_event = "external_event"
 
 class Event(Base):
@@ -35,6 +36,11 @@ class Event(Base):
             sa.ForeignKey("mailing_list.id", ondelete="CASCADE"))
     mailing_list = sa.orm.relationship("MailingList", cascade="all, delete")
     """The mailing list implicated in this event, if applicable"""
+
+    tracker_id = sa.Column(sa.Integer,
+            sa.ForeignKey("tracker.id", ondelete="CASCADE"))
+    tracker = sa.orm.relationship("Tracker", cascade="all, delete")
+    """The ticket tracker implicated in this event, if applicable"""
 
     external_source = sa.Column(sa.Unicode) # e.g. "lists.sr.ht"
     external_summary = sa.Column(sa.Unicode) # markdown
