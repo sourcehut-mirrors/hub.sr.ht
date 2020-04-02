@@ -121,6 +121,16 @@ class TodoService(SrhtService):
             raise Exception(r.json())
         return r.json()
 
+    def create_tracker(self, user, valid):
+        name = valid.require("name")
+        description = valid.optional("description")
+        if not valid.ok:
+            return None
+        return self.post(user, valid, f"{_todosrht}/api/trackers", {
+            "name": name,
+            "description": description,
+        })
+
     def delete_tracker(self, user, tracker_name):
         r = self.session.delete(f"{_todosrht}/api/trackers/{tracker_name}",
                 headers=get_authorization(user))

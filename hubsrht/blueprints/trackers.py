@@ -48,7 +48,13 @@ def new_POST(owner, project_name):
     owner, project = get_project(owner, project_name, ProjectAccess.write)
     valid = Validation(request)
     if "create" in valid:
-        assert False # TODO
+        remote_tracker = todo.create_tracker(owner, valid)
+        trackers = todo.get_trackers(owner)
+        trackers = sorted(trackers, key=lambda r: r["updated"], reverse=True)
+        if not valid.ok:
+            return render_template("tracker-new.html",
+                    view="new-resource", owner=owner, project=project,
+                    trackers=trackers, **valid.kwargs)
     else:
         tracker_name = None
         for field in valid.source:
