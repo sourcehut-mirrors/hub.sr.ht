@@ -5,6 +5,7 @@ from srht.api import ensure_webhooks, get_authorization, get_results
 from srht.config import get_origin
 
 _gitsrht = get_origin("git.sr.ht", external=True, default=None)
+_hgsrht = get_origin("hg.sr.ht", external=True, default=None)
 _listsrht = get_origin("lists.sr.ht", external=True, default=None)
 _todosrht = get_origin("todo.sr.ht", external=True, default=None)
 origin = get_origin("hub.sr.ht")
@@ -79,6 +80,61 @@ class GitService(SrhtService):
             origin + url_for("webhooks.git_repo"): ["repo:post-update"],
         }
         url = f"{_gitsrht}/api/{user.canonical_name}/repos/{repo_name}/webhooks"
+        ensure_webhooks(user, url, config)
+
+class HgService(SrhtService):
+    def __init__(self):
+        super().__init__()
+
+    def get_repos(self, user):
+        return get_results(f"{_hgsrht}/api/repos", user)
+
+    def get_repo(self, user, repo_name):
+        r = self.session.get(f"{_hgsrht}/api/repos/{repo_name}",
+                headers=get_authorization(user))
+        if r.status_code != 200:
+            raise Exception(r.text)
+        return r.json()
+
+    def get_readme(self, user, repo_name):
+        # TODO: Cache?
+        r = self.session.get(f"{_hgsrht}/api/repos/{repo_name}/raw/README.md",
+                headers=get_authorization(user))
+        if r.status_code == 404:
+            return ""
+        elif r.status_code != 200:
+            raise Exception(r.text)
+        return r.text
+
+    def create_repo(self, user, valid):
+        name = valid.require("name")
+        description = valid.optional("description")
+        if not valid.ok:
+            return None
+        return self.post(user, valid, f"{_hgsrht}/api/repos", {
+            "name": name,
+            "description": description,
+            "visibility": "public", # TODO: Should this be different?
+        })
+
+    def delete_repo(self, user, repo_name):
+        r = self.session.delete(f"{_hgsrht}/api/repos/{repo_name}",
+                headers=get_authorization(user))
+        if r.status_code != 204:
+            raise Exception(r.text)
+
+    def ensure_user_webhooks(self, user):
+        config = {
+            origin + url_for("webhooks.hg_repo"):
+                ["repo:update", "repo:delete"],
+        }
+        ensure_webhooks(user, f"{_hgsrht}/api/user/webhooks", config)
+
+    def ensure_repo_webhooks(self, user, repo_name):
+        config = {
+            origin + url_for("webhooks.hg_repo"): ["repo:post-update"],
+        }
+        url = f"{_hgsrht}/api/{user.canonical_name}/repos/{repo_name}/webhooks"
         ensure_webhooks(user, url, config)
 
 class ListService(SrhtService):
@@ -169,5 +225,6 @@ class TodoService(SrhtService):
         })
 
 git = GitService()
+hg = HgService()
 lists = ListService()
 todo = TodoService()

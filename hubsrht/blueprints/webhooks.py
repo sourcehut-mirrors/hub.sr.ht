@@ -28,6 +28,27 @@ def git_repo():
         raise NotImplementedError()
 
 @csrf_bypass
+@webhooks.route("/webhooks/hg-repo", methods=["POST"])
+def hg_repo():
+    event = request.headers.get("X-Webhook-Event")
+    payload = json.loads(request.data.decode("utf-8"))
+    if event == "repo:update":
+        repo = (SourceRepo.query
+                .filter(SourceRepo.remote_id == payload["id"])
+                .filter(SourceRepo.repo_type == RepoType.hg)
+                .one_or_none())
+        if not repo:
+            return "I don't recognize that repository.", 404
+        repo.name = payload["name"]
+        repo.description = payload["description"]
+        db.session.commit()
+        return f"Updated local:{repo.id}/remote:{repo.remote_id}. Thanks!", 200
+    elif event == "repo:delete":
+        raise NotImplementedError()
+    elif event == "repo:post-update":
+        raise NotImplementedError()
+
+@csrf_bypass
 @webhooks.route("/webhooks/mailing-list", methods=["POST"])
 def mailing_list():
     event = request.headers.get("X-Webhook-Event")

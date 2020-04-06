@@ -5,7 +5,7 @@ from srht.config import get_origin
 from srht.database import Base
 
 _gitsrht = get_origin("git.sr.ht", external=True, default=None)
-_hgsrht = get_origin("git.sr.ht", external=True, default=None)
+_hgsrht = get_origin("hg.sr.ht", external=True, default=None)
 
 class RepoType(Enum):
     git = "git"

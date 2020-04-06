@@ -1,6 +1,6 @@
 from flask import Blueprint, render_template, request, redirect, url_for
 from hubsrht.projects import ProjectAccess, get_project
-from hubsrht.services import git
+from hubsrht.services import git, hg
 from hubsrht.types import Event, EventType
 from hubsrht.types import Project, RepoType, Visibility
 from srht.database import db
@@ -18,9 +18,13 @@ def summary_GET(owner, project_name):
     summary_error = False
     if project.summary_repo_id is not None:
         repo = project.summary_repo
-        assert repo.repo_type != RepoType.hg # TODO
         try:
-            summary = git.get_readme(owner, repo.name)
+            if repo.repo_type == RepoType.git:
+                summary = git.get_readme(owner, repo.name)
+            elif repo.repo_type == RepoType.hg:
+                summary = hg.get_readme(owner, repo.name)
+            else:
+                assert False
         except:
             summary = None
             summary_error = True

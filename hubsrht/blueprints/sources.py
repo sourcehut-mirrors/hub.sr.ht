@@ -1,6 +1,6 @@
 from flask import Blueprint, render_template, request, redirect, url_for
 from hubsrht.projects import ProjectAccess, get_project
-from hubsrht.services import git
+from hubsrht.services import git, hg
 from hubsrht.types import Event, EventType
 from hubsrht.types import RepoType, SourceRepo
 from srht.database import db
@@ -56,7 +56,14 @@ def git_new_GET(owner, project_name):
 @sources.route("/<owner>/<project_name>/hg/new")
 @loginrequired
 def hg_new_GET(owner, project_name):
-    pass # TODO
+    owner, project = get_project(owner, project_name, ProjectAccess.write)
+    # TODO: Pagination
+    repos = hg.get_repos(owner)
+    repos = sorted(repos, key=lambda r: r["updated"], reverse=True)
+    return render_template("sources-select.html",
+            view="new-resource", vcs="hg",
+            owner=owner, project=project, repos=repos,
+            existing=[]) # TODO: Fetch existing repos for this project
 
 @sources.route("/<owner>/<project_name>/git/new", methods=["POST"])
 @loginrequired
@@ -111,6 +118,65 @@ def git_new_POST(owner, project_name):
 
     git.ensure_user_webhooks(owner)
     git.ensure_repo_webhooks(owner, repo.name)
+
+    db.session.commit()
+
+    return redirect(url_for("projects.summary_GET",
+        owner=owner.canonical_name, project_name=project.name))
+
+@sources.route("/<owner>/<project_name>/hg/new", methods=["POST"])
+@loginrequired
+def hg_new_POST(owner, project_name):
+    owner, project = get_project(owner, project_name, ProjectAccess.write)
+    valid = Validation(request)
+    if "create" in valid:
+        hg_repo = hg.create_repo(owner, valid)
+        if not valid.ok:
+            repos = hg.get_repos(owner)
+            return render_template("sources-select.html",
+                    view="new-resource", vcs="hg",
+                    owner=owner, project=project, repos=repos,
+                    existing=[], **valid.kwargs)
+    else:
+        repo_name = None
+        for field in valid.source:
+            if field.startswith("existing-"):
+                repo_name = field[len("existing-"):]
+                break
+
+        if not repo_name:
+            search = valid.optional("search")
+            repos = hg.get_repos(owner)
+            # TODO: Search properly
+            repos = filter(lambda r: search.lower() in r["name"].lower(), repos)
+            repos = sorted(repos, key=lambda r: r["updated"], reverse=True)
+            # TODO: Fetch existing repos for this project
+            return render_template("sources-select.html",
+                    view="new-resource", vcs="hg",
+                    owner=owner, project=project, repos=repos,
+                    existing=[], search=search)
+
+        hg_repo = hg.get_repo(owner, repo_name)
+
+    repo = SourceRepo()
+    repo.remote_id = hg_repo["id"]
+    repo.project_id = project.id
+    repo.owner_id = owner.id
+    repo.name = hg_repo["name"]
+    repo.description = hg_repo["description"]
+    repo.repo_type = RepoType.hg
+    db.session.add(repo)
+    db.session.flush()
+
+    event = Event()
+    event.event_type = EventType.source_repo_added
+    event.source_repo_id = repo.id
+    event.project_id = project.id
+    event.user_id = project.owner_id
+    db.session.add(event)
+
+    hg.ensure_user_webhooks(owner)
+    #hg.ensure_repo_webhooks(owner, repo.name) # TODO
 
     db.session.commit()
 
@@ -187,7 +253,12 @@ def delete_POST(owner, project_name, repo_id):
     valid = Validation(request)
     delete_remote = valid.optional("delete-remote") == "on"
     if delete_remote:
-        git.delete_repo(owner, repo.name)
+        if repo.repo_type == RepoType.git:
+            git.delete_repo(owner, repo.name)
+        elif repo.repo_type == RepoType.hg: 
+            hg.delete_repo(owner, repo.name)
+        else:
+            assert False
 
     db.session.commit()
     return redirect(url_for("projects.summary_GET",
