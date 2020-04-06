@@ -70,17 +70,19 @@ class GitService(SrhtService):
 
     def ensure_user_webhooks(self, user):
         config = {
-            origin + url_for("webhooks.git_repo"):
+            origin + url_for("webhooks.git_user", user_id=user.id):
                 ["repo:update", "repo:delete"],
         }
         ensure_webhooks(user, f"{_gitsrht}/api/user/webhooks", config)
 
-    def ensure_repo_webhooks(self, user, repo_name):
+    def ensure_repo_webhooks(self, repo):
         config = {
-            origin + url_for("webhooks.git_repo"): ["repo:post-update"],
+            origin + url_for("webhooks.git_repo", repo_id=repo.id):
+                ["repo:post-update"],
         }
-        url = f"{_gitsrht}/api/{user.canonical_name}/repos/{repo_name}/webhooks"
-        ensure_webhooks(user, url, config)
+        owner = repo.owner
+        url = f"{_gitsrht}/api/{owner.canonical_name}/repos/{repo.name}/webhooks"
+        ensure_webhooks(owner, url, config)
 
 class HgService(SrhtService):
     def __init__(self):
@@ -125,17 +127,10 @@ class HgService(SrhtService):
 
     def ensure_user_webhooks(self, user):
         config = {
-            origin + url_for("webhooks.hg_repo"):
+            origin + url_for("webhooks.hg_repo", user_id=user.id):
                 ["repo:update", "repo:delete"],
         }
         ensure_webhooks(user, f"{_hgsrht}/api/user/webhooks", config)
-
-    def ensure_repo_webhooks(self, user, repo_name):
-        config = {
-            origin + url_for("webhooks.hg_repo"): ["repo:post-update"],
-        }
-        url = f"{_hgsrht}/api/{user.canonical_name}/repos/{repo_name}/webhooks"
-        ensure_webhooks(user, url, config)
 
 class ListService(SrhtService):
     def get_lists(self, user):
@@ -148,13 +143,14 @@ class ListService(SrhtService):
             raise Exception(r.json())
         return r.json()
 
-    def ensure_mailing_list_webhooks(self, user, list_name):
+    def ensure_mailing_list_webhooks(self, mailing_list):
         config = {
-            origin + url_for("webhooks.mailing_list"):
+            origin + url_for("webhooks.mailing_list", list_id=mailing_list.id):
                 ["list:update", "list:delete", "post:received", "patchset:received"],
         }
-        url = f"{_listsrht}/api/user/{user.canonical_name}/lists/{list_name}/webhooks"
-        ensure_webhooks(user, url, config)
+        owner = mailing_list.owner
+        url = f"{_listsrht}/api/user/{owner.canonical_name}/lists/{mailing_list.name}/webhooks"
+        ensure_webhooks(owner, url, config)
 
     def create_list(self, user, valid):
         name = valid.require("name")
@@ -195,24 +191,29 @@ class TodoService(SrhtService):
 
     def ensure_user_webhooks(self, user):
         config = {
-            origin + url_for("webhooks.tracker"): ["tracker:update", "tracker:delete"]
+            origin + url_for("webhooks.todo_user", user_id=user.id):
+                ["tracker:update", "tracker:delete"]
         }
         url = f"{_todosrht}/api/user/webhooks"
         ensure_webhooks(user, url, config)
 
-    def ensure_tracker_webhooks(self, user, tracker_name):
+    def ensure_tracker_webhooks(self, tracker):
         config = {
-            origin + url_for("webhooks.tracker"): ["ticket:create"]
+            origin + url_for("webhooks.todo_tracker", tracker_id=tracker.id):
+                ["ticket:create"]
         }
-        url = f"{_todosrht}/api/user/{user.canonical_name}/trackers/{tracker_name}/webhooks"
-        ensure_webhooks(user, url, config)
+        owner = tracker.owner
+        url = f"{_todosrht}/api/user/{owner.canonical_name}/trackers/{tracker.name}/webhooks"
+        ensure_webhooks(owner, url, config)
 
-    def ensure_ticket_webhooks(self, user, tracker_name, ticket_id):
+    def ensure_ticket_webhooks(self, tracker, ticket_id):
         config = {
-            origin + url_for("webhooks.tracker_ticket"): ["event:create"]
+            origin + url_for("webhooks.todo_ticket", tracker_id=tracker.id):
+                ["event:create"]
         }
-        url = f"{_todosrht}/api/user/{user.canonical_name}/trackers/{tracker_name}/tickets/{ticket_id}/webhooks"
-        ensure_webhooks(user, url, config)
+        owner = tracker.owner
+        url = f"{_todosrht}/api/user/{owner.canonical_name}/trackers/{tracker.name}/tickets/{ticket_id}/webhooks"
+        ensure_webhooks(owner, url, config)
 
     def create_tracker(self, user, valid):
         name = valid.require("name")

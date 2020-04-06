@@ -92,7 +92,7 @@ def new_POST(owner, project_name):
     db.session.add(event)
 
     todo.ensure_user_webhooks(owner)
-    todo.ensure_tracker_webhooks(owner, tracker.name)
+    todo.ensure_tracker_webhooks(tracker)
 
     db.session.commit()
 

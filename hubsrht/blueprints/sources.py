@@ -117,7 +117,7 @@ def git_new_POST(owner, project_name):
     db.session.add(event)
 
     git.ensure_user_webhooks(owner)
-    git.ensure_repo_webhooks(owner, repo.name)
+    git.ensure_repo_webhooks(repo)
 
     db.session.commit()
 
@@ -176,7 +176,7 @@ def hg_new_POST(owner, project_name):
     db.session.add(event)
 
     hg.ensure_user_webhooks(owner)
-    #hg.ensure_repo_webhooks(owner, repo.name) # TODO
+    #hg.ensure_repo_webhooks(repo) # TODO
 
     db.session.commit()
 

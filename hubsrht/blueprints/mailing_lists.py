@@ -110,7 +110,7 @@ Mailing list for end-user discussion and questions related to the
         event.user_id = project.owner_id
         db.session.add(event)
 
-        lists.ensure_mailing_list_webhooks(owner, ml.name)
+        lists.ensure_mailing_list_webhooks(ml)
 
         db.session.commit()
 
