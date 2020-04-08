@@ -1,6 +1,8 @@
 import json
+from datetime import datetime
 from flask import Blueprint, request
 from hubsrht.types import Event, EventType, MailingList, SourceRepo, RepoType
+from hubsrht.types import Tracker, User
 from srht.database import db
 from srht.flask import csrf_bypass
 
@@ -23,6 +25,7 @@ def git_user(user_id):
             return "I don't recognize this git repo.", 404
         repo.name = payload["name"]
         repo.description = payload["description"]
+        repo.project.updated = datetime.utcnow()
         db.session.commit()
         return f"Updated local:{repo.id}/remote:{repo.remote_id}. Thanks!", 200
     elif event == "repo:delete":
@@ -31,7 +34,13 @@ def git_user(user_id):
                 .filter(SourceRepo.repo_type == RepoType.git)).one_or_none()
         if not repo:
             return "I don't recognize this git repo.", 404
-        raise NotImplementedError()
+        if repo.project.summary_repo_id == repo.id:
+            repo.project.summary_repo = None
+            db.session.commit()
+        db.session.delete(repo)
+        repo.project.updated = datetime.utcnow()
+        db.session.commit()
+        return f"Deleted local:{repo.id}/remote:{repo.remote_id}. Thanks!", 200
     else:
         raise NotImplementedError()
 
@@ -60,16 +69,28 @@ def hg_user(user_id):
 
     if event == "repo:update":
         repo = (SourceRepo.query
-                .filter(SourceRepo.id == repo_id)
+                .filter(SourceRepo.id == payload["id"])
                 .filter(SourceRepo.repo_type == RepoType.hg)).one_or_none()
         if not repo:
             return "I don't recognize that repository.", 404
         repo.name = payload["name"]
         repo.description = payload["description"]
+        repo.project.updated = datetime.utcnow()
         db.session.commit()
         return f"Updated local:{repo.id}/remote:{repo.remote_id}. Thanks!", 200
     elif event == "repo:delete":
-        raise NotImplementedError()
+        repo = (SourceRepo.query
+                .filter(SourceRepo.remote_id == payload["id"])
+                .filter(SourceRepo.repo_type == RepoType.hg)).one_or_none()
+        if not repo:
+            return "I don't recognize this hg repo.", 404
+        if repo.project.summary_repo_id == repo.id:
+            repo.project.summary_repo = None
+            db.session.commit()
+        db.session.delete(repo)
+        repo.project.updated = datetime.utcnow()
+        db.session.commit()
+        return f"Deleted local:{repo.id}/remote:{repo.remote_id}. Thanks!", 200
     else:
         raise NotImplementedError()
 
@@ -86,6 +107,7 @@ def mailing_list():
             return "I don't recognize that mailing list.", 404
         ml.name = payload["name"]
         ml.description = payload["description"]
+        ml.project.updated = datetime.utcnow()
         db.session.commit()
         return f"Updated local:{ml.id}/remote:{ml.remote_id}. Thanks!", 200
     elif event == "list:delete":
@@ -103,27 +125,31 @@ def todo_user(user_id):
     event = request.headers.get("X-Webhook-Event")
     payload = json.loads(request.data.decode("utf-8"))
 
-    user = User.query.get(tracker_id)
+    user = User.query.get(user_id)
     if not user:
         return "I don't recognize this tracker.", 404
 
     if event == "tracker:update":
         tracker = (Tracker.query
                 .filter(Tracker.remote_id == payload["id"])
-                .one_or_default())
+                .one_or_none())
         if not tracker:
             return "I don't recognize this tracker.", 404
         tracker.name = payload["name"]
         tracker.description = payload["description"]
+        tracker.project.updated = datetime.utcnow()
         db.session.commit()
         return f"Updated local:{tracker.id}/remote:{tracker.remote_id}. Thanks!", 200
     elif event == "tracker:delete":
         tracker = (Tracker.query
                 .filter(Tracker.remote_id == payload["id"])
-                .one_or_default())
+                .one_or_none())
         if not tracker:
             return "I don't recognize this tracker.", 404
-        raise NotImplementedError()
+        tracker.project.updated = datetime.utcnow()
+        db.session.delete(tracker)
+        db.session.commit()
+        return f"Deleted local:{tracker.id}/remote:{tracker.remote_id}. Thanks!", 200
     else:
         raise NotImplementedError()
 
@@ -137,14 +163,7 @@ def todo_tracker(tracker_id):
     if not tracker:
         return "I don't recognize this tracker.", 404
 
-    if event == "tracker:update":
-        tracker.name = payload["name"]
-        tracker.description = payload["description"]
-        db.session.commit()
-        return f"Updated local:{tracker.id}/remote:{tracker.remote_id}. Thanks!", 200
-    elif event == "tracker:delete":
-        raise NotImplementedError()
-    elif event == "ticket:create":
+    if event == "ticket:create":
         raise NotImplementedError()
     else:
         raise NotImplementedError()

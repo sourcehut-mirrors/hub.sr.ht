@@ -174,7 +174,7 @@ def new_POST(owner, project_name):
     event.user_id = project.owner_id
     db.session.add(event)
 
-    lists.ensure_mailing_list_webhooks(owner, ml.name)
+    lists.ensure_mailing_list_webhooks(ml)
 
     db.session.commit()
 
