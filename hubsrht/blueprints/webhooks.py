@@ -1,12 +1,18 @@
 import json
 from datetime import datetime
-from flask import Blueprint, request
+from flask import Blueprint, request, current_app
 from hubsrht.types import Event, EventType, MailingList, SourceRepo, RepoType
 from hubsrht.types import Tracker, User
+from srht.config import get_origin
 from srht.database import db
 from srht.flask import csrf_bypass
 
 webhooks = Blueprint("webhooks", __name__)
+
+_gitsrht = get_origin("git.sr.ht", external=True, default=None)
+_hgsrht = get_origin("hg.sr.ht", external=True, default=None)
+_todosrht = get_origin("todo.sr.ht", external=True, default=None)
+_listssrht = get_origin("lists.sr.ht", external=True, default=None)
 
 @csrf_bypass
 @webhooks.route("/webhooks/git-user/<int:user_id>", methods=["POST"])
@@ -54,7 +60,36 @@ def git_repo(repo_id):
         return "I don't recognize that repository.", 404
 
     if event == "repo:post-update":
-        raise NotImplementedError()
+        # XXX: This isn't right for Hg, but Hg doesn't have webhooks yet anyway
+        commit_sha = payload["refs"][0]["new"]["id"][:7]
+        commit_url = repo.url() + f"/commit/{commit_sha}"
+        commit_message = payload["refs"][0]["new"]["message"].split("\n")[0]
+        pusher_name = payload['pusher']['canonical_name']
+        if repo.repo_type == RepoType.git:
+            pusher_url = f"{_gitsrht}/{pusher_name}"
+        elif repo.repo_type == RepoType.hg:
+            pusher_url = f"{_hgsrht}/{pusher_name}"
+        repo_name = repo.owner.canonical_name + "/" + repo.name
+
+        pusher = current_app.oauth_service.lookup_user(payload['pusher']['name'])
+
+        event = Event()
+        event.event_type = EventType.external_event
+        event.source_repo_id = repo.id
+        event.project_id = repo.project_id
+        event.user_id = pusher.id
+
+        event.external_source = "git.sr.ht"
+        event.external_summary = (
+            f"<a href='{commit_url}'>{commit_sha}</a> " +
+            f"<code>{commit_message}</code>")
+        event.external_details = (
+            f"<a href='{pusher_url}'>{pusher_name}</a> pushed to " +
+            f"<a href='{repo.url()}'>{repo_name}</a> git")
+
+        db.session.add(event)
+        db.session.commit()
+        return "Thanks!"
     else:
         raise NotImplementedError()
 

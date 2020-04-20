@@ -23,6 +23,12 @@
   <p>New ticket tracker added</p>
   <small class="text-muted">{{event.created | date}}</small>
 </div>
+{% elif event.event_type == EventType.external_event %}
+<div class="event">
+  {{event.external_summary | md}}
+  {{event.external_details | md}}
+  <small class="text-muted">{{event.created | date}}</small>
+</div>
 {% else %}
 TODO: implement event type {{event.event_type}}
 {% endif %}
