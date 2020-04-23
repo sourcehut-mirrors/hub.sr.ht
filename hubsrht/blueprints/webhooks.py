@@ -1,3 +1,4 @@
+import email
 import json
 from datetime import datetime
 from flask import Blueprint, request, current_app
@@ -7,6 +8,7 @@ from hubsrht.services import todo
 from srht.config import get_origin
 from srht.database import db
 from srht.flask import csrf_bypass
+from urllib.parse import quote
 
 webhooks = Blueprint("webhooks", __name__)
 
@@ -127,16 +129,14 @@ def hg_user(user_id):
         raise NotImplementedError()
 
 @csrf_bypass
-@webhooks.route("/webhooks/mailing-list", methods=["POST"])
-def mailing_list():
+@webhooks.route("/webhooks/mailing-list/<list_id>", methods=["POST"])
+def mailing_list(list_id):
     event = request.headers.get("X-Webhook-Event")
     payload = json.loads(request.data.decode("utf-8"))
-    if event == "list:update":
-        ml = (MailingList.query
-                .filter(MailingList.remote_id == payload["id"])
-                .one_or_none())
-        if not ml:
+    ml = MailingList.query.get(list_id)
+    if not ml:
             return "I don't recognize that mailing list.", 404
+    if event == "list:update":
         ml.name = payload["name"]
         ml.description = payload["description"]
         ml.project.updated = datetime.utcnow()
@@ -145,9 +145,37 @@ def mailing_list():
     elif event == "list:delete":
         raise NotImplementedError()
     elif event == "post:received":
-        raise NotImplementedError()
+        event = Event()
+        print(payload)
+        sender = payload["sender"]
+        if sender:
+            sender = current_app.oauth_service.lookup_user(sender['name'])
+            event.user_id = sender.id
+            sender_url = f"<a href='{_listssrht}/{sender.canonical_name}>{sender.canonical_name}</a>"
+        else:
+            msg = email.message_from_string(payload["envelope"],
+                    policy=email.policy.SMTP)
+            sender = email.utils.parseaddr(msg['From'])
+            sender_url = sender[0] if sender[0] else sender[1]
+
+        event.event_type = EventType.external_event
+        event.mailing_list_id = ml.id
+        event.project_id = ml.project_id
+
+        archive_url = ml.url() + f"/{quote(payload['message_id'])}"
+        subject = payload["subject"]
+
+        event.external_source = "todo.sr.ht"
+        event.external_summary = (
+            f"<a href='{archive_url}'>{subject}</a>")
+        event.external_details = (
+            f"{sender_url} via <a href='{ml.url()}'>{ml.name}</a>")
+
+        db.session.add(event)
+        db.session.commit()
+        return "Thanks!"
     elif event == "patchset:received":
-        raise NotImplementedError()
+        pass # TODO?
     else:
         raise NotImplementedError()
 

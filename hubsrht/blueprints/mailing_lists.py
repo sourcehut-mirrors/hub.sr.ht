@@ -228,6 +228,8 @@ def delete_POST(owner, project_name, list_id):
         .filter(MailingList.project_id == project.id)).one_or_none()
     if not mailing_list:
         abort(404)
+
+    lists.unensure_mailing_list_webhooks(mailing_list)
     db.session.delete(mailing_list)
 
     valid = Validation(request)
