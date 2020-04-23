@@ -3,6 +3,7 @@ from datetime import datetime
 from flask import Blueprint, request, current_app
 from hubsrht.types import Event, EventType, MailingList, SourceRepo, RepoType
 from hubsrht.types import Tracker, User
+from hubsrht.services import todo
 from srht.config import get_origin
 from srht.database import db
 from srht.flask import csrf_bypass
@@ -221,10 +222,11 @@ def todo_tracker(tracker_id):
             f"{ticket_subject}")
         event.external_details = (
             f"{submitter_url} filed ticket on " +
-            f"<a href='{tracker.url()}'>{tracker.name}</a>")
+            f"<a href='{tracker.url()}'>{tracker.name}</a> todo")
 
         db.session.add(event)
         db.session.commit()
+        todo.ensure_ticket_webhooks(tracker, ticket_id)
         return "Thanks!"
     else:
         raise NotImplementedError()
@@ -240,6 +242,39 @@ def todo_ticket(tracker_id):
         return "I don't recognize this tracker.", 404
 
     if event == "event:create":
-        raise NotImplementedError()
+        event = Event()
+        participant = payload["user"]
+        if participant["type"] == "user":
+            event.user_id = current_app.oauth_service.lookup_user(participant['name']).id
+            # TODO: Move this to a hub.sr.ht user page
+            participant_url = f"{_todosrht}/{participant['canonical_name']}"
+            participant_url = f"<a href='{participant_url}'>{participant['canonical_name']}</a>"
+        elif participant["type"] == "email":
+            participant_url = f"{participant['name']}"
+        else:
+            participant_url = f"{participant['external_id']}"
+
+        if not "comment" in payload["event_type"]:
+            return "Thanks!"
+
+        event.event_type = EventType.external_event
+        event.tracker_id = tracker.id
+        event.project_id = tracker.project_id
+
+        ticket_id = payload["ticket"]["id"]
+        ticket_url = tracker.url() + f"/{ticket_id}"
+        ticket_subject = payload["ticket"]["title"]
+
+        event.external_source = "todo.sr.ht"
+        event.external_summary = (
+            f"<a href='{ticket_url}'>#{ticket_id}</a> " +
+            f"{ticket_subject}")
+        event.external_details = (
+            f"{participant_url} commented on " +
+            f"<a href='{tracker.url()}'>{tracker.name}</a> todo")
+
+        db.session.add(event)
+        db.session.commit()
+        return "Thanks!"
     else:
         raise NotImplementedError()
