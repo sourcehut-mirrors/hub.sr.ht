@@ -60,15 +60,11 @@ def git_repo(repo_id):
         return "I don't recognize that repository.", 404
 
     if event == "repo:post-update":
-        # XXX: This isn't right for Hg, but Hg doesn't have webhooks yet anyway
         commit_sha = payload["refs"][0]["new"]["id"][:7]
         commit_url = repo.url() + f"/commit/{commit_sha}"
         commit_message = payload["refs"][0]["new"]["message"].split("\n")[0]
         pusher_name = payload['pusher']['canonical_name']
-        if repo.repo_type == RepoType.git:
-            pusher_url = f"{_gitsrht}/{pusher_name}"
-        elif repo.repo_type == RepoType.hg:
-            pusher_url = f"{_hgsrht}/{pusher_name}"
+        pusher_url = f"{_gitsrht}/{pusher_name}"
         repo_name = repo.owner.canonical_name + "/" + repo.name
 
         pusher = current_app.oauth_service.lookup_user(payload['pusher']['name'])
@@ -199,7 +195,37 @@ def todo_tracker(tracker_id):
         return "I don't recognize this tracker.", 404
 
     if event == "ticket:create":
-        raise NotImplementedError()
+        event = Event()
+        submitter = payload["submitter"]
+        if submitter["type"] == "user":
+            event.user_id = current_app.oauth_service.lookup_user(submitter['name']).id
+            # TODO: Move this to a hub.sr.ht user page
+            submitter_url = f"{_todosrht}/{submitter['canonical_name']}"
+            submitter_url = f"<a href='{submitter_url}'>{submitter['canonical_name']}</a>"
+        elif submitter["type"] == "email":
+            submitter_url = f"{submitter['name']}"
+        else:
+            submitter_url = f"{submitter['external_id']}"
+
+        event.event_type = EventType.external_event
+        event.tracker_id = tracker.id
+        event.project_id = tracker.project_id
+
+        ticket_id = payload["id"]
+        ticket_url = tracker.url() + f"/{ticket_id}"
+        ticket_subject = payload["title"]
+
+        event.external_source = "todo.sr.ht"
+        event.external_summary = (
+            f"<a href='{ticket_url}'>#{ticket_id}</a> " +
+            f"{ticket_subject}")
+        event.external_details = (
+            f"{submitter_url} filed ticket on " +
+            f"<a href='{tracker.url()}'>{tracker.name}</a>")
+
+        db.session.add(event)
+        db.session.commit()
+        return "Thanks!"
     else:
         raise NotImplementedError()
 

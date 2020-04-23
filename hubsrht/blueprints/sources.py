@@ -248,6 +248,9 @@ def delete_POST(owner, project_name, repo_id):
         project.summary_repo_id = None
         db.session.commit()
 
+    if repo.repo_type == RepoType.git:
+        git.unensure_repo_webhooks(repo)
+
     db.session.delete(repo)
 
     valid = Validation(request)

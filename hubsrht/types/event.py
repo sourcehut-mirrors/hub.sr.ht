@@ -10,7 +10,7 @@ class EventType(Enum):
     external_event = "external_event"
 
 class Event(Base):
-    __tablename__ = "events"
+    __tablename__ = "event"
     id = sa.Column(sa.Integer, primary_key=True)
     created = sa.Column(sa.DateTime, nullable=False)
 
@@ -22,7 +22,7 @@ class Event(Base):
     """The project implicated in this event"""
 
     user_id = sa.Column(sa.Integer,
-            sa.ForeignKey("user.id", ondelete="CASCADE"), nullable=False)
+            sa.ForeignKey("user.id", ondelete="CASCADE"))
     user = sa.orm.relationship("User", backref=sa.orm.backref("events"),
             cascade="all, delete")
     """The user implicated in this event"""

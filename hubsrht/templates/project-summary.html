@@ -113,18 +113,6 @@
         {% for event in events %}
         {{ eventutil.event(event) }}
         {% endfor %}
-        {#
-        <div class="event">
-          <a href="#">a7358194</a> <code>gen_temporary: fix (unlikely) buffer overflow</code>
-          <p><a href="#">Drew DeVault</a> pushed to <a href="#">~sircmpwn/scdoc</a> git</p>
-          <small class="text-muted">12 hours ago</small>
-        </div>
-        <div class="event">
-          <a href="#">#360</a> Support for Gmail tabs
-          <p>Comment from <a href="#">~j-james</a> on <a href="#">~sircmpwn/scdoc</a> todo</p>
-          <small class="text-muted">14 hours ago</small>
-        </div>
-        #}
         <div class="view-more">
           <a
             href="{{url_for("projects.feed_GET",
