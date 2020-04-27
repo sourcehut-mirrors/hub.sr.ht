@@ -8,12 +8,18 @@
   border-color: $gray-500;
   color: $gray-900 !important;
 
+  &.btn-sm {
+    padding: 0.2rem 0.25rem;
+  }
+
   &:hover {
     background: $white;
     color: $black !important;
     text-decoration: none;
-    border-color: $black;
+    border-color: $gray-900;
   }
+
+  transition: border-color 0.2s linear;
 }
 
 .service-list {
