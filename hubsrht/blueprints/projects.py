@@ -76,6 +76,7 @@ def create_POST():
     visibility = valid.require("visibility", cls=Visibility)
     valid.expect(not name or len(name) < 128,
             "Name must be fewer than 128 characters", field="name")
+    # TODO: Test that name passes some validity regex
     valid.expect(not name or Project.query
             .filter(Project.name == name)
             .filter(Project.owner_id == current_user.id).count() == 0,
