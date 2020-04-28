@@ -26,7 +26,10 @@
               name="sort"
               id="sort-recently-updated"
               value="recently-updated"
-              checked>
+              {% if sort == "recently-updated" or not sort %}
+              checked
+              {% endif %}
+              >
             <label class="form-check-label" for="sort-recently-updated">
               Recently updated
             </label>
@@ -37,7 +40,11 @@
               type="radio"
               name="sort"
               id="sort-longest-active"
-              value="longest-active">
+              value="longest-active"
+              {% if sort == "longest-active" %}
+              checked
+              {% endif %}
+              >
             <label class="form-check-label" for="sort-longest-active">
               Longest active
             </label>

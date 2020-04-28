@@ -1,7 +1,8 @@
-from flask import Blueprint, render_template
+from flask import Blueprint, render_template, request
 from hubsrht.types import Project, Event, EventType, Visibility
 from srht.flask import paginate_query
 from srht.oauth import current_user, loginrequired
+from srht.search import search_by
 
 public = Blueprint("public", __name__)
 
@@ -31,6 +32,21 @@ def getting_started():
 def project_index():
     projects = (Project.query
             .filter(Project.visibility == Visibility.public))
+
+    search = request.args.get("search")
+    if search:
+        projects = search_by(projects, search,
+                [Project.name, Project.description])
+
+    sort = request.args.get("sort")
+    if sort and sort == "recently-updated":
+        projects = projects.order_by(Project.updated.desc())
+    elif sort and sort == "longest-active":
+        projects = projects.order_by((Project.updated - Project.created).desc())
+    else:
+        projects = projects.order_by(Project.updated.desc())
+
     projects, pagination = paginate_query(projects)
-    return render_template("project-index.html",
-            projects=projects, **pagination)
+
+    return render_template("project-index.html", projects=projects,
+            search=search, sort=sort, **pagination)
