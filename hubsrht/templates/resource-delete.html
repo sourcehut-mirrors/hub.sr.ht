@@ -1,4 +1,7 @@
 {% extends "project-base.html" %}
+{% block title %}
+<title>Delete {{resource_type}} - {{project.name}}</title>
+{% endblock %}
 {% block content %}
 <form class="container" method="POST">
   {{csrf_token()}}

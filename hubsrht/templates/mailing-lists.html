@@ -1,4 +1,7 @@
 {% extends "resource-list.html" %}
+{% block title %}
+<title>{{project.name}} mailing lists</title>
+{% endblock %}
 {% block resource_list %}
 {% for mailing_list in mailing_lists %}
 <div class="event">

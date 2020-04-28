@@ -1,5 +1,8 @@
 {% extends "project-base.html" %}
 {% import "event.html" as eventutil with context %}
+{% block title %}
+<title>{{project.name}}: {{project.description}}</title>
+{% endblock %}
 {% block content %}
 <div class="container">
   {% if not project.checklist_complete %}

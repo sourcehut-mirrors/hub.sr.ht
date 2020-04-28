@@ -1,4 +1,7 @@
 {% extends "project-base.html" %}
+{% block title %}
+<title>{{project.name}} {{view}} - {{cfg("sr.ht", "site-name")}}</title>
+{% endblock %}
 {% block content %}
 <form class="container">
   <div class="row">

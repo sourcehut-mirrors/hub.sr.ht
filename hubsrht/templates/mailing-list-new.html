@@ -1,4 +1,7 @@
 {% extends "resource-new.html" %}
+{% block title %}
+<title>New mailing list - {{project.name}}</title>
+{% endblock %}
 {% block content %}
 <div class="row">
   {# TODO: Hide this option for any projects which already have lists #}
