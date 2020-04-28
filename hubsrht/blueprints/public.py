@@ -1,5 +1,5 @@
 from flask import Blueprint, render_template
-from hubsrht.types import Project, Event, EventType
+from hubsrht.types import Project, Event, EventType, Visibility
 from srht.flask import paginate_query
 from srht.oauth import current_user, loginrequired
 
@@ -26,3 +26,11 @@ def index():
 @loginrequired
 def getting_started():
     return render_template("new-user-dashboard.html")
+
+@public.route("/projects")
+def project_index():
+    projects = (Project.query
+            .filter(Project.visibility == Visibility.public))
+    projects, pagination = paginate_query(projects)
+    return render_template("project-index.html",
+            projects=projects, **pagination)
