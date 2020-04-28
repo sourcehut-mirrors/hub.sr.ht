@@ -1,7 +1,8 @@
-from flask import Blueprint, render_template
+from flask import Blueprint, render_template, request
 from hubsrht.types import User, Project, Visibility, Event, EventType
 from srht.flask import paginate_query
 from srht.oauth import current_user
+from srht.search import search_by
 
 users = Blueprint("users", __name__)
 
@@ -43,6 +44,13 @@ def projects_GET(owner):
     if not current_user or current_user.id != owner.id:
         # TODO: ACLs
         projects = projects.filter(Project.visibility == Visibility.public)
+
+    search = request.args.get("search")
+    if search:
+        projects = search_by(projects, search,
+                [Project.name, Project.description])
+
     projects, pagination = paginate_query(projects)
+
     return render_template("projects.html", user=owner, projects=projects,
-            **pagination)
+            search=search, **pagination)
