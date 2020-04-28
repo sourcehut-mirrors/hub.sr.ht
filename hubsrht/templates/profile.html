@@ -1,42 +1,43 @@
 {% extends "layout.html" %}
 {% import "event.html" as eventutil with context %}
 {% block title %}
-<title>{{cfg("sr.ht", "site-name")}} dashboard</title>
+<title>{{user.canonical_name}} on {{cfg("sr.ht", "site-name")}}</title>
 {% endblock %}
 {% block content %}
 <div class="row">
   <div class="col-md-4">
+    <h2>
+      <a
+        href="{{url_for("users.summary_GET", username=user.username)}}"
+      >{{user.canonical_name}}</a>
+    </h2>
+    {% if user.location %}
+    <p>{{user.location}}</p>
+    {% endif %}
+    {% if user.url %}
     <p>
-      Welcome back, {{current_user.username}}!
-      This is the {{cfg("sr.ht", "site-name")}} hub service, which organizes
-      and indexes projects and users on the platform.
+      <a
+        href="{{user.url}}"
+        target="_blank"
+        rel="me noopener noreferrer nofollow"
+      >{{user.url}}</a>
     </p>
-    <div style="margin-bottom: 1rem">
-      <a
-        href="{{url_for("projects.create_GET")}}"
-        class="btn btn-primary btn-block"
-      >Create new project {{icon("caret-right")}}</a>
-      <a
-        href="#"
-        class="btn btn-white btn-sm btn-block"
-      >Discover projects on {{cfg('sr.ht', 'site-name')}} {{icon("caret-right")}}</a>
-      <a
-        href="{{url_for("public.getting_started")}}"
-        class="btn btn-link btn-sm btn-block"
-        >Getting started with {{cfg('sr.ht', 'site-name')}} {{icon("caret-right")}}</a>
-    </div>
+    {% endif %}
+    {% if user.bio %}
+    <p>{{user.bio | md}}</p>
+    {% endif %}
   </div>
   <div class="col-md-8">
     <div class="row">
       <div class="col-md-12">
         <hr class="d-md-none" />
         <form action="{{url_for("users.projects_GET",
-          owner=current_user.canonical_name)}}"
+          owner=user.canonical_name)}}"
         >
           <input
             name="search"
             type="text"
-            placeholder="Search your projects"
+            placeholder="Search {{user.canonical_name}}'s projects"
             class="form-control" />
           {% if search_error %}
             <div class="invalid-feedback">{{ search_error }}</div>
@@ -67,19 +68,13 @@
         <div class="clearfix"></div>
       </div>
     </div>
-    <div class="row" style="margin-top: 1rem">
-      <div class="col-md-12">
-        <div class="event-list project-events">
-          {% for event in events %}
-          {{ eventutil.event(event, project=True) }}
-          {% endfor %}
-        </div>
-        <div class="pull-right">
-          <a
-            href="{{url_for("users.summary_GET", username=current_user.username)}}"
-            class="btn btn-link"
-          >More on your profile&nbsp;{{icon("caret-right")}}</a>
-        </div>
+    <div class="row">
+      <div class="col-md-12 event-list">
+        <h3>Activity</h3>
+        {% for event in events %}
+        {{ eventutil.event(event, project=True) }}
+        {% endfor %}
+        {{pagination()}}
       </div>
     </div>
   </div>

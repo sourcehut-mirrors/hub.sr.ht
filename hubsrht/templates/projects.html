@@ -1,0 +1,63 @@
+{% extends "layout.html" %}
+{% import "event.html" as eventutil with context %}
+{% block title %}
+<title>{{user.canonical_name}}'s projects - {{cfg("sr.ht", "site-name")}}</title>
+{% endblock %}
+{% block content %}
+<div class="row">
+  <div class="col-md-4">
+    <h2>
+      <a
+        href="{{url_for("users.summary_GET", username=user.username)}}"
+      >{{user.canonical_name}}</a>
+    </h2>
+    {% if user.location %}
+    <p>{{user.location}}</p>
+    {% endif %}
+    {% if user.url %}
+    <p>
+      <a
+        href="{{user.url}}"
+        target="_blank"
+        rel="me noopener noreferrer nofollow"
+      >{{user.url}}</a>
+    </p>
+    {% endif %}
+    {% if user.bio %}
+    <p>{{user.bio | md}}</p>
+    {% endif %}
+  </div>
+  <div class="col-md-8">
+    <form action="{{url_for("users.projects_GET",
+      owner=user.canonical_name)}}"
+    >
+      <input
+        name="search"
+        type="text"
+        placeholder="Search your projects"
+        class="form-control"
+        value="{{search if search else ""}}" />
+      {% if search_error %}
+        <div class="invalid-feedback">{{ search_error }}</div>
+      {% endif %}
+    </form>
+    <div class="event-list">
+      {% for project in projects %}
+      <div class="event">
+        <h4>
+          {% if project.visibility.value != 'public' %}
+          <small class="text-muted pull-right">{{project.visibility.value}}</small>
+          {% endif %}
+          <a href="{{url_for("projects.summary_GET",
+            owner=project.owner.canonical_name,
+            project_name=project.name)}}">{{project.name}}</a>
+        </h4>
+        <p>{{project.description}}</p>
+      </div>
+      {% endfor %}
+    </div>
+    {{pagination()}}
+  </div>
+</div>
+{% endblock %}
+
