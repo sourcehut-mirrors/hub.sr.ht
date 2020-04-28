@@ -76,12 +76,16 @@
     <div class="col-lg-4">
       <h3>Featured projects</h3>
       <div class="event-list">
-        {% for i in range(3) %}
-        <a href="#">~sircmpwn</a>/<a href="#">sourcehut</a>
+        {% for feature in features %}
+        <a href="{{url_for("users.summary_GET",
+          username=feature.project.owner.username)}}"
+        >{{feature.project.owner.canonical_name}}</a>/<a
+          href="{{url_for("projects.summary_GET",
+            owner=feature.project.owner.canonical_name,
+            project_name=feature.project.name)}}"
+        >{{feature.project.name}}</a>
         <blockquote style="margin-top: 0.5rem">
-          SourceHut itself is a free and open-source software project. You
-          can read and contribute to the code, and install it on your own
-          servers.
+          {{feature.summary | md}}
         </blockquote>
         {% endfor %}
       </div>

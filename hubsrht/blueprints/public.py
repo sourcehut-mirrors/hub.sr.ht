@@ -1,5 +1,5 @@
 from flask import Blueprint, render_template, request
-from hubsrht.types import Project, Event, EventType, Visibility
+from hubsrht.types import Project, Feature, Event, EventType, Visibility, User
 from srht.flask import paginate_query
 from srht.oauth import current_user, loginrequired
 from srht.search import search_by
@@ -48,5 +48,12 @@ def project_index():
 
     projects, pagination = paginate_query(projects)
 
+    features = (Feature.query
+            .join(Project, Feature.project_id == Project.id)
+            .join(User, Project.owner_id == User.id)
+            .filter(Project.visibility == Visibility.public)
+            .order_by(Feature.created.desc())
+            .limit(5)).all()
+
     return render_template("project-index.html", projects=projects,
-            search=search, sort=sort, **pagination)
+            search=search, features=features, sort=sort, **pagination)

@@ -1,7 +1,8 @@
 from flask import Blueprint, render_template, request, redirect, url_for
+from hubsrht.decorators import adminrequired
 from hubsrht.projects import ProjectAccess, get_project
 from hubsrht.services import git, hg
-from hubsrht.types import Event, EventType
+from hubsrht.types import Feature, Event, EventType
 from hubsrht.types import Project, RepoType, Visibility
 from srht.database import db
 from srht.flask import paginate_query
@@ -136,3 +137,18 @@ def delete_POST(owner, project_name):
     db.session.delete(project)
     db.session.commit()
     return redirect(url_for("public.index"))
+
+@projects.route("/<owner>/<project_name>/feature", methods=["POST"])
+@adminrequired
+def feature_POST(owner, project_name):
+    owner, project = get_project(owner, project_name, ProjectAccess.read)
+    valid = Validation(request)
+
+    feature = Feature()
+    feature.project_id = project.id
+    feature.summary = valid.require("summary")
+    if not valid.ok:
+        abort(400) # admin-only route, who cares
+    db.session.add(feature)
+    db.session.commit()
+    return redirect(url_for("public.project_index"))
