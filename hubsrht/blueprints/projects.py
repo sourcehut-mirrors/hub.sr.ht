@@ -1,3 +1,4 @@
+import re
 from flask import Blueprint, render_template, request, redirect, url_for
 from hubsrht.decorators import adminrequired
 from hubsrht.projects import ProjectAccess, get_project
@@ -77,7 +78,8 @@ def create_POST():
     visibility = valid.require("visibility", cls=Visibility)
     valid.expect(not name or len(name) < 128,
             "Name must be fewer than 128 characters", field="name")
-    # TODO: Test that name passes some validity regex
+    valid.expect(not name or re.match(r'^[A-Za-z._-][A-Za-z0-9._-]*$', name),
+            "Name must match [A-Za-z._-][A-Za-z0-9._-]*", field="name")
     valid.expect(not name or Project.query
             .filter(Project.name == name)
             .filter(Project.owner_id == current_user.id).count() == 0,
