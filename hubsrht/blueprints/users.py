@@ -12,10 +12,10 @@ def summary_GET(username):
     if not user:
         abort(404)
     projects = (Project.query
-            .filter(Project.owner_id == current_user.id)
+            .filter(Project.owner_id == user.id)
             .order_by(Project.updated.desc()))
     events = (Event.query
-            .filter(Event.user_id == current_user.id)
+            .filter(Event.user_id == user.id)
             .order_by(Event.created.desc()))
 
     if not current_user or current_user.id != user.id:
