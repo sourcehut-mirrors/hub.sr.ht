@@ -68,11 +68,19 @@
       {% for tracker in trackers %}
       <div class="event">
         <h3>
+          {% if tracker["id"] in existing %}
+          <button
+            type="submit"
+            class="pull-right btn btn-primary btn-lg"
+            disabled
+          >Already added&nbsp;{{ icon("caret-right") }}</button>
+          {% else %}
           <button
             type="submit"
             name="existing-{{ tracker["name"] }}"
             class="pull-right btn btn-primary btn-lg"
           >Select tracker&nbsp;{{ icon("caret-right") }}</button>
+          {% endif %}
           <a
             href="{{get_origin("todo.sr.ht",
               external=True)}}/{{ tracker["owner"]["canonical_name"] }}/{{tracker["name"]}}"

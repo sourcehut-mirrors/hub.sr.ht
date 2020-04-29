@@ -48,10 +48,13 @@ def git_new_GET(owner, project_name):
     # TODO: Pagination
     repos = git.get_repos(owner)
     repos = sorted(repos, key=lambda r: r["updated"], reverse=True)
+    existing = [r.remote_id for r in (SourceRepo.query
+            .filter(SourceRepo.project_id == project.id)
+            .filter(SourceRepo.repo_type == RepoType.git)).all()]
     return render_template("sources-select.html",
             view="new-resource", vcs="git",
             owner=owner, project=project, repos=repos,
-            existing=[]) # TODO: Fetch existing repos for this project
+            existing=existing)
 
 @sources.route("/<owner>/<project_name>/hg/new")
 @loginrequired
@@ -60,10 +63,13 @@ def hg_new_GET(owner, project_name):
     # TODO: Pagination
     repos = hg.get_repos(owner)
     repos = sorted(repos, key=lambda r: r["updated"], reverse=True)
+    existing = [r.remote_id for r in (SourceRepo.query
+            .filter(SourceRepo.project_id == project.id)
+            .filter(SourceRepo.repo_type == RepoType.hg)).all()]
     return render_template("sources-select.html",
             view="new-resource", vcs="hg",
             owner=owner, project=project, repos=repos,
-            existing=[]) # TODO: Fetch existing repos for this project
+            existing=existing)
 
 @sources.route("/<owner>/<project_name>/git/new", methods=["POST"])
 @loginrequired

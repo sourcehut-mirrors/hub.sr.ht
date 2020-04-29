@@ -42,8 +42,10 @@ def new_GET(owner, project_name):
     # TODO: Pagination
     mls = lists.get_lists(owner)
     mls = sorted(mls, key=lambda r: r["updated"], reverse=True)
+    existing = [l.remote_id for l in (MailingList.query
+            .filter(MailingList.project_id == project.id)).all()]
     return render_template("mailing-list-new.html", view="new-resource",
-            owner=owner, project=project, lists=mls)
+            owner=owner, project=project, lists=mls, existing=existing)
 
 def lists_from_template(owner, project, template):
     project_url = url_for("projects.summary_GET",

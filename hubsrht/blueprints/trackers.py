@@ -39,8 +39,10 @@ def new_GET(owner, project_name):
     # TODO: Pagination
     trackers = todo.get_trackers(owner)
     trackers = sorted(trackers, key=lambda r: r["updated"], reverse=True)
+    existing = [t.remote_id for t in (Tracker.query
+            .filter(Tracker.project_id == project.id)).all()]
     return render_template("tracker-new.html", view="new-resource",
-            owner=owner, project=project, trackers=trackers)
+            owner=owner, project=project, trackers=trackers, existing=existing)
 
 @trackers.route("/<owner>/<project_name>/trackers/new", methods=["POST"])
 @loginrequired

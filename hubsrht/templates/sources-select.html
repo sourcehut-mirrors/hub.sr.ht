@@ -60,11 +60,19 @@
       {% for repo in repos %}
       <div class="event">
         <h3>
+          {% if repo["id"] in existing %}
+          <button
+            type="submit"
+            class="pull-right btn btn-primary btn-lg"
+            disabled
+          >Already added&nbsp;{{ icon("caret-right") }}</button>
+          {% else %}
           <button
             type="submit"
             name="existing-{{ repo["name"] }}"
             class="pull-right btn btn-primary btn-lg"
           >Select repo&nbsp;{{ icon("caret-right") }}</button>
+          {% endif %}
           <a
             href="{{get_origin("git.sr.ht",
               external=True)}}/{{ repo["owner"]["canonical_name"] }}/{{repo["name"]}}"

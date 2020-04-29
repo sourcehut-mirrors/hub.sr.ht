@@ -136,11 +136,19 @@
       {% for list in lists %}
       <div class="event">
         <h3>
+          {% if list["id"] in existing %}
+          <button
+            type="submit"
+            class="pull-right btn btn-primary btn-lg"
+            disabled
+          >Already added&nbsp;{{ icon("caret-right") }}</button>
+          {% else %}
           <button
             type="submit"
             name="existing-{{ list["name"] }}"
             class="pull-right btn btn-primary btn-lg"
           >Select list&nbsp;{{ icon("caret-right") }}</button>
+          {% endif %}
           <a
             href="{{get_origin("lists.sr.ht",
               external=True)}}/{{ list["owner"]["canonical_name"] }}/{{list["name"]}}"
