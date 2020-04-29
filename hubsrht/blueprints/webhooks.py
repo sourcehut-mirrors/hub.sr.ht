@@ -63,6 +63,8 @@ def git_repo(repo_id):
         return "I don't recognize that repository.", 404
 
     if event == "repo:post-update":
+        if not payload["refs"][0]["new"]:
+            return "Thanks!"
         commit_sha = payload["refs"][0]["new"]["id"][:7]
         commit_url = repo.url() + f"/commit/{commit_sha}"
         commit_message = payload["refs"][0]["new"]["message"].split("\n")[0]
