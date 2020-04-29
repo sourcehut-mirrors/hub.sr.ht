@@ -54,6 +54,9 @@
 
     p {
       margin-bottom: 0;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+      overflow-x: hidden;
     }
   }
 }
