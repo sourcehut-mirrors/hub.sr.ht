@@ -1,5 +1,5 @@
 from flask import abort
-from hubsrht.types import Project, User
+from hubsrht.types import Project, User, Visibility
 from srht.oauth import current_user
 from enum import Enum
 
@@ -21,9 +21,8 @@ def get_project(owner, project_name, access, user=current_user):
     if access == ProjectAccess.write:
         abort(401)
     # TODO: ACLs
-    if project.visibility in (ProjectVisibility.public,
-            ProjectVisibility.unlisted):
+    if project.visibility in (Visibility.public, Visibility.unlisted):
         return project.owner, project
-    elif project.visibility == ProjectVisibility.private:
+    elif project.visibility == Visibility.private:
         abort(401)
     assert False
