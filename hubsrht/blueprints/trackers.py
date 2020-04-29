@@ -1,7 +1,7 @@
 from flask import Blueprint, render_template, request, redirect, url_for
 from hubsrht.projects import ProjectAccess, get_project
 from hubsrht.services import todo
-from hubsrht.types import Event, EventType, Tracker
+from hubsrht.types import Event, EventType, Tracker, Visibility
 from srht.database import db
 from srht.flask import paginate_query
 from srht.oauth import current_user, loginrequired
