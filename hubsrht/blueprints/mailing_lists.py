@@ -91,6 +91,7 @@ Mailing list for end-user discussion and questions related to the
     template = templates[template]
 
     for list_name in template:
+        list_name = list_name.lower() # Per lists.sr.ht naming rules
         try:
             mailing_list = lists.get_list(owner, list_name)
         except:
