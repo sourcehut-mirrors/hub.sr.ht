@@ -88,6 +88,7 @@ def git_repo(repo_id):
             f"<a href='{pusher_url}'>{pusher_name}</a> pushed to " +
             f"<a href='{repo.url()}'>{repo_name}</a> git")
 
+        repo.project.updated = datetime.utcnow()
         db.session.add(event)
         db.session.commit()
         return "Thanks!"
