@@ -1,5 +1,7 @@
+from sqlalchemy import or_
 from flask import Blueprint, render_template, request, abort
 from hubsrht.types import User, Project, Visibility, Event, EventType
+from hubsrht.types import SourceRepo, MailingList, Tracker
 from srht.flask import paginate_query
 from srht.oauth import current_user
 from srht.search import search_by
@@ -22,8 +24,15 @@ def summary_GET(username):
         # TODO: ACLs
         projects = projects.filter(Project.visibility == Visibility.public)
         events = (events
-                .join(Project)
+                .join(Project, Event.project_id == Project.id)
                 .filter(Project.visibility == Visibility.public))
+        events = (events
+            .outerjoin(SourceRepo, Event.source_repo_id == SourceRepo.id)
+            .outerjoin(MailingList, Event.source_repo_id == MailingList.id)
+            .outerjoin(Tracker, Event.source_repo_id == Tracker.id)
+            .filter(or_(Event.source_repo == None, SourceRepo.visibility == Visibility.public),
+                or_(Event.mailing_list == None, MailingList.visibility == Visibility.public),
+                or_(Event.tracker == None, Tracker.visibility == Visibility.public)))
 
     projects = projects.limit(5).all()
     events, pagination = paginate_query(events)

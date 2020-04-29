@@ -40,6 +40,8 @@ setup(
   name = 'hubsrht',
   packages = [
       'hubsrht',
+      'hubsrht.alembic',
+      'hubsrht.alembic.versions',
       'hubsrht.blueprints',
       'hubsrht.types',
   ],
@@ -59,5 +61,6 @@ setup(
   },
   scripts = [
       'hubsrht-initdb',
+      'hubsrht-migrate',
   ]
 )

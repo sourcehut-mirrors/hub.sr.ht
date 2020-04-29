@@ -1,5 +1,10 @@
 {% extends "resource-list.html" %}
 {% block resource_list %}
+{% if not any(trackers) %}
+<div class="alert alert-info">
+  This project has no public ticket trackers.
+</div>
+{% endif %}
 {% for tracker in trackers %}
 <div class="event">
   <h4>

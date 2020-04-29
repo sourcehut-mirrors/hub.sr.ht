@@ -1,6 +1,7 @@
 import sqlalchemy as sa
 import sqlalchemy_utils as sau
 from enum import Enum
+from hubsrht.types import Visibility
 from srht.config import get_origin
 from srht.database import Base
 
@@ -33,6 +34,8 @@ class SourceRepo(Base):
     description = sa.Column(sa.Unicode(512), nullable=False)
     repo_type = sa.Column(sau.ChoiceType(RepoType, impl=sa.String()),
             nullable=False)
+    visibility = sa.Column(sau.ChoiceType(Visibility, impl=sa.String()),
+            nullable=False, server_default="unlisted")
 
     def url(self):
         origin = _gitsrht if self.repo_type == RepoType.git else _hgsrht

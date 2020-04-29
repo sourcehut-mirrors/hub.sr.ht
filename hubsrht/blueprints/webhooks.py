@@ -3,7 +3,7 @@ import json
 from datetime import datetime
 from flask import Blueprint, request, current_app
 from hubsrht.types import Event, EventType, MailingList, SourceRepo, RepoType
-from hubsrht.types import Tracker, User
+from hubsrht.types import Tracker, User, Visibility
 from hubsrht.services import todo
 from srht.config import get_origin
 from srht.database import db
@@ -34,6 +34,7 @@ def git_user(user_id):
             return "I don't recognize this git repo.", 404
         repo.name = payload["name"]
         repo.description = payload["description"]
+        repo.visibility = Visibility(payload["visibility"])
         repo.project.updated = datetime.utcnow()
         db.session.commit()
         return f"Updated local:{repo.id}/remote:{repo.remote_id}. Thanks!", 200
@@ -113,6 +114,7 @@ def hg_user(user_id):
         repo.name = payload["name"]
         repo.description = payload["description"]
         repo.project.updated = datetime.utcnow()
+        repo.visibility = Visibility(payload["visibility"])
         db.session.commit()
         return f"Updated local:{repo.id}/remote:{repo.remote_id}. Thanks!", 200
     elif event == "repo:delete":
@@ -142,6 +144,10 @@ def mailing_list(list_id):
     if event == "list:update":
         ml.name = payload["name"]
         ml.description = payload["description"]
+        if any(payload["permissions"]["nonsubscriber"]):
+            ml.visibility = Visibility.public
+        else:
+            ml.visibility = Visibility.unlisted
         ml.project.updated = datetime.utcnow()
         db.session.commit()
         return f"Updated local:{ml.id}/remote:{ml.remote_id}. Thanks!", 200
@@ -200,6 +206,10 @@ def todo_user(user_id):
             return "I don't recognize this tracker.", 404
         tracker.name = payload["name"]
         tracker.description = payload["description"]
+        if any(payload["default_permissions"]["anonymous"]):
+            tracker.visibility = Visibility.public
+        else:
+            tracker.visibility = Visibility.unlisted
         tracker.project.updated = datetime.utcnow()
         db.session.commit()
         return f"Updated local:{tracker.id}/remote:{tracker.remote_id}. Thanks!", 200

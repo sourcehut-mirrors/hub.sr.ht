@@ -1,10 +1,12 @@
 import re
+from sqlalchemy import or_
 from flask import Blueprint, render_template, request, redirect, url_for
 from hubsrht.decorators import adminrequired
 from hubsrht.projects import ProjectAccess, get_project
 from hubsrht.services import git, hg
 from hubsrht.types import Feature, Event, EventType
 from hubsrht.types import Project, RepoType, Visibility
+from hubsrht.types import SourceRepo, MailingList, Tracker
 from srht.database import db
 from srht.flask import paginate_query
 from srht.oauth import current_user, loginrequired
@@ -33,8 +35,16 @@ def summary_GET(owner, project_name):
 
     events = (Event.query
         .filter(Event.project_id == project.id)
-        .order_by(Event.created.desc())
-        .limit(2)).all()
+        .order_by(Event.created.desc()))
+    if not current_user or current_user.id != owner.id:
+        events = (events
+            .outerjoin(SourceRepo)
+            .outerjoin(MailingList)
+            .outerjoin(Tracker)
+            .filter(or_(Event.source_repo == None, SourceRepo.visibility == Visibility.public),
+                or_(Event.mailing_list == None, MailingList.visibility == Visibility.public),
+                or_(Event.tracker == None, Tracker.visibility == Visibility.public)))
+    events = events.limit(2).all()
 
     return render_template("project-summary.html", view="summary",
             owner=owner, project=project,
@@ -48,6 +58,16 @@ def feed_GET(owner, project_name):
     events = (Event.query
         .filter(Event.project_id == project.id)
         .order_by(Event.created.desc()))
+
+    if not current_user or current_user.id != owner.id:
+        events = (events
+            .outerjoin(SourceRepo)
+            .outerjoin(MailingList)
+            .outerjoin(Tracker)
+            .filter(or_(Event.source_repo == None, SourceRepo.visibility == Visibility.public),
+                or_(Event.mailing_list == None, MailingList.visibility == Visibility.public),
+                or_(Event.tracker == None, Tracker.visibility == Visibility.public)))
+
     events, pagination = paginate_query(events)
 
     return render_template("project-feed.html",

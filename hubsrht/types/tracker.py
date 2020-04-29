@@ -1,4 +1,6 @@
 import sqlalchemy as sa
+import sqlalchemy_utils as sau
+from hubsrht.types import Visibility
 from srht.config import get_origin
 from srht.database import Base
 
@@ -24,6 +26,8 @@ class Tracker(Base):
 
     name = sa.Column(sa.Unicode(128), nullable=False)
     description = sa.Column(sa.Unicode(512), nullable=False)
+    visibility = sa.Column(sau.ChoiceType(Visibility, impl=sa.String()),
+            nullable=False, server_default="unlisted")
 
     def url(self):
         return f"{_todosrht}/{self.owner.canonical_name}/{self.name}"

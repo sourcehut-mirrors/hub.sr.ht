@@ -2,10 +2,10 @@ from flask import Blueprint, render_template, request, redirect, url_for
 from hubsrht.projects import ProjectAccess, get_project
 from hubsrht.services import git, hg
 from hubsrht.types import Event, EventType
-from hubsrht.types import RepoType, SourceRepo
+from hubsrht.types import RepoType, SourceRepo, Visibility
 from srht.database import db
 from srht.flask import paginate_query
-from srht.oauth import loginrequired
+from srht.oauth import current_user, loginrequired
 from srht.search import search_by
 from srht.validation import Validation
 
@@ -17,6 +17,8 @@ def sources_GET(owner, project_name):
     sources = (SourceRepo.query
             .filter(SourceRepo.project_id == project.id)
             .order_by(SourceRepo.updated.desc()))
+    if not current_user or current_user.id != owner.id:
+        sources = sources.filter(SourceRepo.visibility == Visibility.public)
 
     terms = request.args.get("search")
     search_error = None
@@ -111,6 +113,7 @@ def git_new_POST(owner, project_name):
     repo.name = git_repo["name"]
     repo.description = git_repo["description"]
     repo.repo_type = RepoType.git
+    repo.visibility = Visibility(repo["visibility"])
     db.session.add(repo)
     db.session.flush()
 
@@ -170,6 +173,7 @@ def hg_new_POST(owner, project_name):
     repo.name = hg_repo["name"]
     repo.description = hg_repo["description"]
     repo.repo_type = RepoType.hg
+    repo.visibility = Visibility(repo["visibility"])
     db.session.add(repo)
     db.session.flush()
 

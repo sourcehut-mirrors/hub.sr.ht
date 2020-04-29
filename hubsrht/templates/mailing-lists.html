@@ -3,6 +3,11 @@
 <title>{{project.name}} mailing lists</title>
 {% endblock %}
 {% block resource_list %}
+{% if not any(mailing_lists) %}
+<div class="alert alert-info">
+  This project has no public mailing lists.
+</div>
+{% endif %}
 {% for mailing_list in mailing_lists %}
 <div class="event">
   <h4>

@@ -3,7 +3,7 @@ from flask import Blueprint, render_template, request, redirect, url_for
 from hubsrht.projects import ProjectAccess, get_project
 from hubsrht.services import lists
 from hubsrht.types import Event, EventType
-from hubsrht.types import MailingList
+from hubsrht.types import MailingList, Visibility
 from srht.config import get_origin
 from srht.database import db
 from srht.flask import paginate_query
@@ -19,6 +19,9 @@ def lists_GET(owner, project_name):
     mailing_lists = (MailingList.query
             .filter(MailingList.project_id == project.id)
             .order_by(MailingList.updated.desc()))
+    if not current_user or current_user.id != owner.id:
+        mailing_lists = mailing_lists.filter(
+                MailingList.visibility == Visibility.public)
 
     terms = request.args.get("search")
     search_error = None
@@ -105,6 +108,10 @@ Mailing list for end-user discussion and questions related to the
         ml.owner_id = project.owner_id
         ml.name = mailing_list["name"]
         ml.description = mailing_list["description"]
+        if any(mailing_list["permissions"]["nonsubscriber"]):
+            ml.visibility = Visibility.public
+        else:
+            ml.visibility = Visibility.unlisted
         db.session.add(ml)
         db.session.flush()
 
@@ -169,6 +176,10 @@ def new_POST(owner, project_name):
     ml.owner_id = project.owner_id
     ml.name = mailing_list["name"]
     ml.description = mailing_list["description"]
+    if any(mailing_list["permissions"]["nonsubscriber"]):
+        ml.visibility = Visibility.public
+    else:
+        ml.visibility = Visibility.unlisted
     db.session.add(ml)
     db.session.flush()
 

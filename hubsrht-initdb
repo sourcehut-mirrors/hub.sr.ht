@@ -6,21 +6,21 @@ The target database needs to exist, as defined in the config file.
 
 Idempotent. If the tables already exist, they will not be re-created.
 """
-#import hubsrht.alembic
+import hubsrht.alembic
 import hubsrht.types
 
-#from alembic import command
-#from alembic.config import Config
+from alembic import command
+from alembic.config import Config
 from srht.config import cfg
 from srht.database import DbSession
 
 connection_string = cfg("hub.sr.ht", "connection-string")
-#alembic_path = list(hubsrht.alembic.__path__)[0]
+alembic_path = list(hubsrht.alembic.__path__)[0]
 
 db = DbSession(connection_string)
 db.create()
 
-#config = Config()
-#config.set_main_option("sqlalchemy.url", connection_string)
-#config.set_main_option("script_location", alembic_path)
-#command.stamp(config, "head")
+config = Config()
+config.set_main_option("sqlalchemy.url", connection_string)
+config.set_main_option("script_location", alembic_path)
+command.stamp(config, "head")

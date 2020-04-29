@@ -1,5 +1,10 @@
 {% extends "resource-list.html" %}
 {% block resource_list %}
+{% if not any(sources) %}
+<div class="alert alert-info">
+  This project has no public sources.
+</div>
+{% endif %}
 {% for repo in sources %}
 <div class="event">
   <h4>

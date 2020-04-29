@@ -4,7 +4,7 @@ from hubsrht.services import todo
 from hubsrht.types import Event, EventType, Tracker
 from srht.database import db
 from srht.flask import paginate_query
-from srht.oauth import loginrequired
+from srht.oauth import current_user, loginrequired
 from srht.search import search_by
 from srht.validation import Validation
 
@@ -16,6 +16,8 @@ def trackers_GET(owner, project_name):
     trackers = (Tracker.query
             .filter(Tracker.project_id == project.id)
             .order_by(Tracker.updated.desc()))
+    if not current_user or current_user.id != owner.id:
+        trackers = trackers.filter(Tracker.visibility == Visibility.public)
 
     terms = request.args.get("search")
     search_error = None
@@ -82,6 +84,10 @@ def new_POST(owner, project_name):
     tracker.owner_id = owner.id
     tracker.name = remote_tracker["name"]
     tracker.description = remote_tracker["description"]
+    if any(remote_tracker["default_permissions"]["anonymous"]):
+        tracker.visibility = Visibility.public
+    else:
+        tracker.visibility = Visibility.unlisted
     db.session.add(tracker)
     db.session.flush()
 
