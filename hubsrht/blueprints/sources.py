@@ -113,7 +113,7 @@ def git_new_POST(owner, project_name):
     repo.name = git_repo["name"]
     repo.description = git_repo["description"]
     repo.repo_type = RepoType.git
-    repo.visibility = Visibility(repo["visibility"])
+    repo.visibility = Visibility(git_repo["visibility"])
     db.session.add(repo)
     db.session.flush()
 
