@@ -77,9 +77,8 @@
       <h3>Featured projects</h3>
       <div class="event-list">
         {% for feature in features %}
-        <a href="{{url_for("users.summary_GET",
-          username=feature.project.owner.username)}}"
-        >{{feature.project.owner.canonical_name}}</a>/<a
+        <span class="text-muted"
+        >{{feature.project.owner.canonical_name}}/</span><a
           href="{{url_for("projects.summary_GET",
             owner=feature.project.owner.canonical_name,
             project_name=feature.project.name)}}"
