@@ -27,4 +27,6 @@ class HubApp(SrhtFlask):
         self.register_blueprint(users)
         self.register_blueprint(webhooks)
 
+        self.url_map.strict_slashes = False
+
 app = HubApp()

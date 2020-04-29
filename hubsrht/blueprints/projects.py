@@ -12,7 +12,7 @@ from srht.validation import Validation, valid_url
 
 projects = Blueprint("projects", __name__)
 
-@projects.route("/<owner>/<project_name>")
+@projects.route("/<owner>/<project_name>/")
 def summary_GET(owner, project_name):
     owner, project = get_project(owner, project_name, ProjectAccess.read)
 

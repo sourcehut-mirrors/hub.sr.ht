@@ -6,7 +6,7 @@ from srht.search import search_by
 
 users = Blueprint("users", __name__)
 
-@users.route("/~<username>")
+@users.route("/~<username>/")
 def summary_GET(username):
     user = User.query.filter(User.username == username).first()
     if not user:
@@ -32,7 +32,7 @@ def summary_GET(username):
             user=user, projects=projects, EventType=EventType, events=events,
             **pagination)
 
-@users.route("/projects/<owner>")
+@users.route("/projects/<owner>/")
 def projects_GET(owner):
     if owner.startswith("~"):
         owner = owner[1:]
