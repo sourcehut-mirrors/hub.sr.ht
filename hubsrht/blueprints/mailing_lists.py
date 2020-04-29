@@ -1,3 +1,4 @@
+import json
 from flask import Blueprint, render_template, request, redirect, url_for
 from hubsrht.projects import ProjectAccess, get_project
 from hubsrht.services import lists
@@ -94,6 +95,8 @@ Mailing list for end-user discussion and questions related to the
                 "name": list_name,
                 "description": descs[list_name],
             }))
+        if not mailing_list:
+            raise Exception(json.dumps(valid.response))
 
         ml = MailingList()
         ml.remote_id = mailing_list["id"]
