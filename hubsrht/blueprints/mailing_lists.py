@@ -91,12 +91,13 @@ Mailing list for end-user discussion and questions related to the
         try:
             mailing_list = lists.get_list(owner, list_name)
         except:
-            mailing_list = lists.create_list(owner, Validation({
+            valid = Validation({
                 "name": list_name,
                 "description": descs[list_name],
-            }))
-        if not mailing_list:
-            raise Exception(json.dumps(valid.response))
+            })
+            mailing_list = lists.create_list(owner, valid))
+            if not mailing_list:
+                raise Exception(json.dumps(valid.response))
 
         ml = MailingList()
         ml.remote_id = mailing_list["id"]
