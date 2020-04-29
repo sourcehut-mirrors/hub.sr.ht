@@ -12,7 +12,7 @@ trackers = Blueprint("trackers", __name__)
 
 @trackers.route("/<owner>/<project_name>/trackers")
 def trackers_GET(owner, project_name):
-    owner, project = get_project(owner, project_name, ProjectAccess.write)
+    owner, project = get_project(owner, project_name, ProjectAccess.read)
     trackers = (Tracker.query
             .filter(Tracker.project_id == project.id)
             .order_by(Tracker.updated.desc()))
