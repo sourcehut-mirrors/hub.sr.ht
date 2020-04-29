@@ -95,7 +95,7 @@ Mailing list for end-user discussion and questions related to the
                 "name": list_name,
                 "description": descs[list_name],
             })
-            mailing_list = lists.create_list(owner, valid))
+            mailing_list = lists.create_list(owner, valid)
             if not mailing_list:
                 raise Exception(json.dumps(valid.response))
 
