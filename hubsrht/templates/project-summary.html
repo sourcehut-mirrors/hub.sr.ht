@@ -5,7 +5,9 @@
 {% endblock %}
 {% block content %}
 <div class="container">
-  {% if not project.checklist_complete %}
+  {% if not project.checklist_complete
+    and current_user
+    and project.owner_id == current_user.id %}
   <div class="row">
     <div class="col-md-12 event-list">
       <form
