@@ -31,7 +31,8 @@ def getting_started():
 @public.route("/projects")
 def project_index():
     projects = (Project.query
-            .filter(Project.visibility == Visibility.public))
+            .filter(Project.visibility == Visibility.public)
+            .filter(Project.checklist_complete))
 
     search = request.args.get("search")
     if search:
