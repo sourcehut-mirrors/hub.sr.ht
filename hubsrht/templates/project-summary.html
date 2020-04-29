@@ -172,8 +172,13 @@
       <div class="alert alert-success">
         You have added {{len(project.source_repos)}} source
         repositor{{"ies" if len(project.source_repos) > 1 else "y"}}
-        to this project. Would you like to display the README.md file on this
-        page?
+        to this project. Would you like to display
+        {% if len(project.source_repos) > 1 %}
+        one of the README.md files
+        {% else %}
+        the README.md file
+        {% endif %}
+        on this page?
       </div>
       <div class="event-list select-resource">
         {% for repo in project.source_repos %}
