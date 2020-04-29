@@ -91,13 +91,14 @@ Mailing list for end-user discussion and questions related to the
     template = templates[template]
 
     for list_name in template:
+        desc = descs[list_name]
         list_name = list_name.lower() # Per lists.sr.ht naming rules
         try:
             mailing_list = lists.get_list(owner, list_name)
         except:
             valid = Validation({
                 "name": list_name,
-                "description": descs[list_name],
+                "description": desc,
             })
             mailing_list = lists.create_list(owner, valid)
             if not mailing_list:
