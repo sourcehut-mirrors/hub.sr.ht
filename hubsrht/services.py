@@ -137,7 +137,7 @@ class HgService(SrhtService):
 
     def ensure_user_webhooks(self, user):
         config = {
-            origin + url_for("webhooks.hg_repo", user_id=user.id):
+            origin + url_for("webhooks.hg_user", user_id=user.id):
                 ["repo:update", "repo:delete"],
         }
         ensure_webhooks(user, f"{_hgsrht}/api/user/webhooks", config)
