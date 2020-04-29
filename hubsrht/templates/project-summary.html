@@ -139,7 +139,7 @@
   </div>
   <div class="row">
     {% if project.summary_repo_id != None %}
-    <div class="col-md-10">
+    <div class="col-md-10 project-summary">
       {% if current_user and current_user.id == project.owner_id
         and not summary and not summary_error %}
       <div class="alert alert-danger">

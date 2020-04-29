@@ -109,3 +109,11 @@
   display: inline;
   width: inherit;
 }
+
+.project-summary {
+  h2, h3, h4 {
+    &:not(:first-child) {
+      margin-top: 2rem;
+    }
+  }
+}
