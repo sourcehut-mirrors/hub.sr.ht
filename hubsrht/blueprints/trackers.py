@@ -11,7 +11,6 @@ from srht.validation import Validation
 trackers = Blueprint("trackers", __name__)
 
 @trackers.route("/<owner>/<project_name>/trackers")
-@loginrequired
 def trackers_GET(owner, project_name):
     owner, project = get_project(owner, project_name, ProjectAccess.write)
     trackers = (Tracker.query

@@ -12,7 +12,6 @@ from srht.validation import Validation
 sources = Blueprint("sources", __name__)
 
 @sources.route("/<owner>/<project_name>/sources")
-@loginrequired
 def sources_GET(owner, project_name):
     owner, project = get_project(owner, project_name, ProjectAccess.read)
     sources = (SourceRepo.query

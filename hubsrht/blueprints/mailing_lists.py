@@ -13,7 +13,6 @@ from srht.validation import Validation
 mailing_lists = Blueprint("mailing_lists", __name__)
 
 @mailing_lists.route("/<owner>/<project_name>/lists")
-@loginrequired
 def lists_GET(owner, project_name):
     owner, project = get_project(owner, project_name, ProjectAccess.read)
     mailing_lists = (MailingList.query
