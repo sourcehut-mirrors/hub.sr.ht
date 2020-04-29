@@ -173,7 +173,7 @@ def hg_new_POST(owner, project_name):
     repo.name = hg_repo["name"]
     repo.description = hg_repo["description"]
     repo.repo_type = RepoType.hg
-    repo.visibility = Visibility(repo["visibility"])
+    repo.visibility = Visibility(hg_repo["visibility"])
     db.session.add(repo)
     db.session.flush()
 
