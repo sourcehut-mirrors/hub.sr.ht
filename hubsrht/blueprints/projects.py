@@ -145,6 +145,7 @@ def config_POST(owner, project_name):
     valid = Validation(request)
     description = valid.require("description")
     website = valid.optional("website")
+    visibility = valid.require("visibility", cls=Visibility)
     valid.expect(not website or valid_url(website),
             "Website must be a valid http or https URL")
     if not valid.ok:
@@ -153,6 +154,7 @@ def config_POST(owner, project_name):
 
     project.description = description
     project.website = website
+    project.visibility = visibility
     db.session.commit()
 
     return redirect(url_for("projects.summary_GET",

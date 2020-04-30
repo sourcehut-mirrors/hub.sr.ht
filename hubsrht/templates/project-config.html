@@ -54,8 +54,10 @@
                     class="form-check-input"
                     type="radio"
                     name="visibility"
-                    value="public"
-                    checked> Public
+                    {% if project.visibility.value == "public" %}
+                    checked
+                    {% endif %}
+                    value="public"> Public
                   <small id="visibility-public-help" class="form-text text-muted">
                     Shown on your profile and listed in the public project index
                   </small>
@@ -70,6 +72,9 @@
                     class="form-check-input"
                     type="radio"
                     name="visibility"
+                    {% if project.visibility.value == "unlisted" %}
+                    checked
+                    {% endif %}
                     value="unlisted"> Unlisted
                   <small id="visibility-unlisted-help" class="form-text text-muted">
                     Visible to anyone who knows the URL, but not shown on your profile
@@ -85,6 +90,9 @@
                     class="form-check-input"
                     type="radio"
                     name="visibility"
+                    {% if project.visibility.value == "private" %}
+                    checked
+                    {% endif %}
                     value="private"> Private
                   <small id="visibility-unlisted-help" class="form-text text-muted">
                     Only visible to you and your collaborators
