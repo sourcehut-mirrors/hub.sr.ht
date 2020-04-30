@@ -31,7 +31,7 @@ class SourceRepo(Base):
     owner = sa.orm.relationship("User")
 
     name = sa.Column(sa.Unicode(128), nullable=False)
-    description = sa.Column(sa.Unicode(512), nullable=False)
+    description = sa.Column(sa.Unicode, nullable=False)
     repo_type = sa.Column(sau.ChoiceType(RepoType, impl=sa.String()),
             nullable=False)
     visibility = sa.Column(sau.ChoiceType(Visibility, impl=sa.String()),
