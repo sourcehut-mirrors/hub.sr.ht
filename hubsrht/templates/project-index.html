@@ -77,12 +77,14 @@
       <h3>Featured projects</h3>
       <div class="event-list">
         {% for feature in features %}
-        <span class="text-muted"
-        >{{feature.project.owner.canonical_name}}/</span><a
-          href="{{url_for("projects.summary_GET",
-            owner=feature.project.owner.canonical_name,
-            project_name=feature.project.name)}}"
-        >{{feature.project.name}}</a>
+        <h5>
+          <span class="text-muted"
+          >{{feature.project.owner.canonical_name}}/</span><a
+            href="{{url_for("projects.summary_GET",
+              owner=feature.project.owner.canonical_name,
+              project_name=feature.project.name)}}"
+          >{{feature.project.name}}</a>
+        </h5>
         <blockquote style="margin-top: 0.5rem">
           {{feature.summary | md}}
         </blockquote>
