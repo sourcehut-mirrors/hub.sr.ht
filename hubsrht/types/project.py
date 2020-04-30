@@ -28,5 +28,4 @@ class Project(Base):
             sa.ForeignKey("source_repo.id", ondelete="CASCADE"))
     summary_repo = sa.orm.relationship("SourceRepo",
             foreign_keys=[summary_repo_id],
-            cascade="all, delete",
-            post_update=True)
+            cascade="all, delete")
