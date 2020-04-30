@@ -23,6 +23,7 @@ _listssrht = get_origin("lists.sr.ht", external=True, default=None)
 def git_user(user_id):
     event = request.headers.get("X-Webhook-Event")
     payload = verify_request_signature(request)
+    payload = json.loads(payload.decode('utf-8'))
     user = User.query.get(user_id)
     if not user:
         return "I don't recognize this user.", 404
@@ -60,6 +61,7 @@ def git_user(user_id):
 def git_repo(repo_id):
     event = request.headers.get("X-Webhook-Event")
     payload = verify_request_signature(request)
+    payload = json.loads(payload.decode('utf-8'))
     repo = SourceRepo.query.get(repo_id)
     if not repo:
         return "I don't recognize that repository.", 404
@@ -102,6 +104,7 @@ def git_repo(repo_id):
 def hg_user(user_id):
     event = request.headers.get("X-Webhook-Event")
     payload = verify_request_signature(request)
+    payload = json.loads(payload.decode('utf-8'))
     user = User.query.get(user_id)
     if not user:
         return "I don't recognize this user.", 404
@@ -139,6 +142,7 @@ def hg_user(user_id):
 def mailing_list(list_id):
     event = request.headers.get("X-Webhook-Event")
     payload = verify_request_signature(request)
+    payload = json.loads(payload.decode('utf-8'))
     ml = MailingList.query.get(list_id)
     if not ml:
             return "I don't recognize that mailing list.", 404
@@ -194,6 +198,7 @@ def mailing_list(list_id):
 def todo_user(user_id):
     event = request.headers.get("X-Webhook-Event")
     payload = verify_request_signature(request)
+    payload = json.loads(payload.decode('utf-8'))
 
     user = User.query.get(user_id)
     if not user:
@@ -232,6 +237,7 @@ def todo_user(user_id):
 def todo_tracker(tracker_id):
     event = request.headers.get("X-Webhook-Event")
     payload = verify_request_signature(request)
+    payload = json.loads(payload.decode('utf-8'))
 
     tracker = Tracker.query.get(tracker_id)
     if not tracker:
@@ -278,6 +284,7 @@ def todo_tracker(tracker_id):
 def todo_ticket(tracker_id):
     event = request.headers.get("X-Webhook-Event")
     payload = verify_request_signature(request)
+    payload = json.loads(payload.decode('utf-8'))
 
     tracker = Tracker.query.get(tracker_id)
     if not tracker:
