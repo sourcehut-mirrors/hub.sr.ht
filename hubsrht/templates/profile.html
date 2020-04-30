@@ -28,9 +28,9 @@
     {% endif %}
   </div>
   <div class="col-md-8">
+    {% if projects %}
     <div class="row">
       <div class="col-md-12">
-        <hr class="d-md-none" />
         <form action="{{url_for("users.projects_GET",
           owner=user.canonical_name)}}"
         >
@@ -68,6 +68,7 @@
         <div class="clearfix"></div>
       </div>
     </div>
+    {% endif %}
     <div class="row">
       <div class="col-md-12 event-list">
         <h3>Activity</h3>
@@ -75,6 +76,9 @@
         {{ eventutil.event(event, project=True) }}
         {% endfor %}
         {{pagination()}}
+        {% if not(events) %}
+        <div class="alert alert-info">No activity for this user.</div>
+        {% endif %}
       </div>
     </div>
   </div>
