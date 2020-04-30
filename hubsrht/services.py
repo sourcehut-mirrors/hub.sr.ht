@@ -53,7 +53,7 @@ class GitService(SrhtService):
 
     def create_repo(self, user, valid):
         name = valid.require("name")
-        description = valid.optional("description")
+        description = valid.require("description")
         if not valid.ok:
             return None
         return self.post(user, valid, f"{_gitsrht}/api/repos", {
@@ -120,7 +120,7 @@ class HgService(SrhtService):
 
     def create_repo(self, user, valid):
         name = valid.require("name")
-        description = valid.optional("description")
+        description = valid.require("description")
         if not valid.ok:
             return None
         return self.post(user, valid, f"{_hgsrht}/api/repos", {
