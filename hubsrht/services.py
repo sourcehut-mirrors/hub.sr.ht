@@ -65,7 +65,7 @@ class GitService(SrhtService):
     def delete_repo(self, user, repo_name):
         r = self.session.delete(f"{_gitsrht}/api/repos/{repo_name}",
                 headers=get_authorization(user))
-        if r.status_code != 204:
+        if r.status_code != 204 and r.status_code != 404:
             raise Exception(r.text)
 
     def ensure_user_webhooks(self, user):
@@ -135,7 +135,7 @@ class HgService(SrhtService):
     def delete_repo(self, user, repo_name):
         r = self.session.delete(f"{_hgsrht}/api/repos/{repo_name}",
                 headers=get_authorization(user))
-        if r.status_code != 204:
+        if r.status_code != 204 and r.status_code != 404:
             raise Exception(r.text)
 
     def ensure_user_webhooks(self, user):
@@ -215,7 +215,7 @@ class TodoService(SrhtService):
     def delete_tracker(self, user, tracker_name):
         r = self.session.delete(f"{_todosrht}/api/trackers/{tracker_name}",
                 headers=get_authorization(user))
-        if r.status_code != 204:
+        if r.status_code != 204 and r.status_code != 404:
             raise Exception(r.text)
 
     def ensure_user_webhooks(self, user):
