@@ -92,7 +92,10 @@ class GitService(SrhtService):
         config = { }
         owner = repo.owner
         url = f"{_gitsrht}/api/{owner.canonical_name}/repos/{repo.name}/webhooks"
-        ensure_webhooks(owner, url, config)
+        try:
+            ensure_webhooks(owner, url, config)
+        except:
+            pass # nbd, upstream was presumably deleted
 
 class HgService(SrhtService):
     def __init__(self):
@@ -144,7 +147,10 @@ class HgService(SrhtService):
 
     def unensure_user_webhooks(self, user):
         config = { }
-        ensure_webhooks(user, f"{_hgsrht}/api/user/webhooks", config)
+        try:
+            ensure_webhooks(user, f"{_hgsrht}/api/user/webhooks", config)
+        except:
+            pass # nbd, upstream was presumably deleted
 
 class ListService(SrhtService):
     def get_lists(self, user):
@@ -170,7 +176,10 @@ class ListService(SrhtService):
         config = { }
         owner = mailing_list.owner
         url = f"{_listsrht}/api/user/{owner.canonical_name}/lists/{mailing_list.name}/webhooks"
-        ensure_webhooks(owner, url, config)
+        try:
+            ensure_webhooks(owner, url, config)
+        except:
+            pass # nbd, upstream was presumably deleted
 
     def create_list(self, user, valid):
         name = valid.require("name")
@@ -220,7 +229,10 @@ class TodoService(SrhtService):
     def unensure_user_webhooks(self, user):
         config = { }
         url = f"{_todosrht}/api/user/webhooks"
-        ensure_webhooks(user, url, config)
+        try:
+            ensure_webhooks(user, url, config)
+        except:
+            pass # nbd, upstream was presumably deleted
 
     def ensure_tracker_webhooks(self, tracker):
         config = {
@@ -235,7 +247,10 @@ class TodoService(SrhtService):
         config = { }
         owner = tracker.owner
         url = f"{_todosrht}/api/user/{owner.canonical_name}/trackers/{tracker.name}/webhooks"
-        ensure_webhooks(owner, url, config)
+        try:
+            ensure_webhooks(owner, url, config)
+        except:
+            pass # nbd, upstream was presumably deleted
 
     def ensure_ticket_webhooks(self, tracker, ticket_id):
         config = {
@@ -250,7 +265,10 @@ class TodoService(SrhtService):
         config = { }
         owner = tracker.owner
         url = f"{_todosrht}/api/user/{owner.canonical_name}/trackers/{tracker.name}/tickets/{ticket_id}/webhooks"
-        ensure_webhooks(owner, url, config)
+        try:
+            ensure_webhooks(owner, url, config)
+        except:
+            pass # nbd, upstream was presumably deleted
 
     def create_tracker(self, user, valid):
         name = valid.require("name")
