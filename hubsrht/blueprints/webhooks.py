@@ -165,7 +165,7 @@ def mailing_list(list_id):
         if sender:
             sender = current_app.oauth_service.lookup_user(sender['name'])
             event.user_id = sender.id
-            sender_url = f"<a href='{_listssrht}/{sender.canonical_name}>{sender.canonical_name}</a>"
+            sender_url = f"<a href='{_listssrht}/{sender.canonical_name}'>{sender.canonical_name}</a>"
         else:
             msg = email.message_from_string(payload["envelope"],
                     policy=email.policy.SMTP)
