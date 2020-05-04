@@ -189,7 +189,8 @@ def mailing_list(list_id):
         db.session.commit()
         return "Thanks!"
     elif event == "patchset:received":
-        pass # TODO?
+        # TODO?
+        return "Thanks!"
     else:
         raise NotImplementedError()
 
