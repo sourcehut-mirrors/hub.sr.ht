@@ -34,7 +34,7 @@
       <input
         name="search"
         type="text"
-        placeholder="Search your projects"
+        placeholder="Search {{user.canonical_name}}'s projects"
         class="form-control"
         value="{{search if search else ""}}" />
       {% if search_error %}
