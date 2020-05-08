@@ -99,10 +99,17 @@
         {% if ncomplete == 3 %}
         <div class="alert alert-info">
           <p>
+            {% if project.visibility.value == "public" %}
+            <button class="btn btn-primary pull-right" type="submit">
+              Publish project
+              <span style="position: relative; top: -1px">{{icon('caret-right')}}</span>
+            </button>
+            {% else %}
             <button class="btn btn-primary pull-right" type="submit">
               <span style="position: relative; top: -1px">{{icon('check')}}</span>
               Done
             </button>
+            {% endif %}
             You're all set! If you want to set up more things for your project,
             click "more +" on the top right.
           </p>
