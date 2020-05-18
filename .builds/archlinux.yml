@@ -1,0 +1,32 @@
+image: archlinux
+repositories:
+  sr.ht: https://mirror.sr.ht/archlinux/sr.ht/#C0AAFC1676BD998617C94C42DC59670F1EB0A189
+packages:
+  - rsync
+  - pacman-contrib
+sources:
+  - https://git.sr.ht/~sircmpwn/hub.sr.ht
+  - https://git.sr.ht/~sircmpwn/sr.ht-pkgbuilds
+environment:
+  project: hub.sr.ht
+  remote: deploy@mirror.sr.ht
+  remote_path: /var/www/mirror.sr.ht/archlinux
+secrets:
+  - fa00a8d3-7b63-42d5-8060-3bb31c3e3018 # ssh deploy key
+  - af47c6cd-75b8-4ba8-8086-fb548750160d # package signing key
+tasks:
+  - archive: |
+      cd ${project}
+      pkgver=$(git describe | sed -e 's/-/_/g')
+      echo "pkgver=$pkgver" >> ~/.buildenv
+      git archive -o ~/sr.ht-pkgbuilds/$project/$project-$pkgver.tar.gz \
+        --prefix=$project-$pkgver/ HEAD
+  - package: |
+      cd sr.ht-pkgbuilds
+      ./pkgkit build -cuv "$pkgver" $project
+      cd ~/$project
+      git describe --exact-match HEAD || complete-build
+  - publish: |
+      cd sr.ht-pkgbuilds
+      echo "StrictHostKeyChecking=no" >> ~/.ssh/config
+      ./pkgkit upload "$remote" "$remote_path" sr.ht $project
