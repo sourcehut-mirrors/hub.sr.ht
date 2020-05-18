@@ -204,8 +204,7 @@
               class="pull-right btn btn-primary btn-lg"
             >Use README.md&nbsp;{{ icon("caret-right") }}</button>
             <a
-              href="{{get_origin("git.sr.ht",
-                external=True)}}/{{ repo.owner.canonical_name }}/{{repo.name}}"
+              href="{{repo.url()}"
               target="_blank"
               rel="noopener"
             >{{ repo.name }}</a>
