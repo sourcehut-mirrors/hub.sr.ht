@@ -7,10 +7,8 @@ from hubsrht.services import git, hg
 from hubsrht.types import Feature, Event, EventType
 from hubsrht.types import Project, RepoType, Visibility
 from hubsrht.types import SourceRepo, MailingList, Tracker
-from jinja2 import Markup
 from srht.database import db
 from srht.flask import paginate_query
-from srht.markdown import markdown
 from srht.oauth import current_user, loginrequired
 from srht.validation import Validation, valid_url
 
@@ -26,17 +24,11 @@ def summary_GET(owner, project_name):
         repo = project.summary_repo
         try:
             if repo.repo_type == RepoType.git:
-                summary = git.get_readme(owner, repo.name)
-                link_prefix = repo.url() + "/blob/refs/heads/master/"
+                summary = git.get_readme(owner, repo.name, repo.url())
             elif repo.repo_type == RepoType.hg:
-                summary = hg.get_readme(owner, repo.name)
-                link_prefix = repo.url() + "/raw/"
+                summary = hg.get_readme(owner, repo.name, repo.url())
             else:
                 assert False
-            # TODO: Pick from default branch
-            summary = markdown(summary, ["h1", "h2", "h3", "h4", "h5"],
-                    link_prefix=link_prefix)
-            summary = Markup(summary)
         except:
             summary = None
             summary_error = True

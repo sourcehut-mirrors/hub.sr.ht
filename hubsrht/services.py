@@ -1,7 +1,10 @@
+import os.path
 import requests
 from abc import ABC
 from flask import url_for
+from jinja2 import Markup, escape
 from srht.api import ensure_webhooks, get_authorization, get_results
+from srht.markdown import markdown
 from srht.config import get_origin
 
 _gitsrht = get_origin("git.sr.ht", external=True, default=None)
@@ -9,6 +12,18 @@ _hgsrht = get_origin("hg.sr.ht", external=True, default=None)
 _listsrht = get_origin("lists.sr.ht", external=True, default=None)
 _todosrht = get_origin("todo.sr.ht", external=True, default=None)
 origin = get_origin("hub.sr.ht")
+
+readme_names = ["README.md", "README.markdown", "README"]
+
+def format_readme(content, filename="", link_prefix=None):
+    markdown_exts = ['.md', '.markdown']
+    basename, ext = os.path.splitext(filename)
+    if ext in markdown_exts:
+        html = markdown(content, ["h1", "h2", "h3", "h4", "h5"],
+                link_prefix=link_prefix)
+    else:
+        html = f"<pre>{escape(content)}</pre>"
+    return Markup(html)
 
 class SrhtService(ABC):
     def __init__(self):
@@ -40,16 +55,19 @@ class GitService(SrhtService):
             raise Exception(r.text)
         return r.json()
 
-    def get_readme(self, user, repo_name):
+    def get_readme(self, user, repo_name, repo_url):
         # TODO: Cache?
         # TODO: Use default branch
-        r = self.session.get(f"{_gitsrht}/api/repos/{repo_name}/blob/master/README.md",
-                headers=get_authorization(user))
-        if r.status_code == 404:
-            return ""
-        elif r.status_code != 200:
-            raise Exception(r.text)
-        return r.text
+        link_prefix = repo_url + "/blob/refs/heads/master/"
+        for readme_name in readme_names:
+            r = self.session.get(f"{_gitsrht}/api/repos/{repo_name}/blob/master/{readme_name}",
+                    headers=get_authorization(user))
+            if r.status_code == 404:
+                continue
+            elif r.status_code != 200:
+                raise Exception(r.text)
+            return format_readme(r.text, readme_name, link_prefix)
+        return format_readme("")
 
     def create_repo(self, user, valid):
         name = valid.require("name")
@@ -111,15 +129,18 @@ class HgService(SrhtService):
             raise Exception(r.text)
         return r.json()
 
-    def get_readme(self, user, repo_name):
+    def get_readme(self, user, repo_name, repo_url):
         # TODO: Cache?
-        r = self.session.get(f"{_hgsrht}/api/repos/{repo_name}/raw/README.md",
-                headers=get_authorization(user))
-        if r.status_code == 404:
-            return ""
-        elif r.status_code != 200:
-            raise Exception(r.text)
-        return r.text
+        link_prefix = repo_url + "/raw/"
+        for readme_name in readme_names:
+            r = self.session.get(f"{_hgsrht}/api/repos/{repo_name}/raw/{readme_name}",
+                    headers=get_authorization(user))
+            if r.status_code == 404:
+                continue
+            elif r.status_code != 200:
+                raise Exception(r.text)
+            return format_readme(r.text, readme_name, link_prefix)
+        return format_readme("")
 
     def create_repo(self, user, valid):
         name = valid.require("name")
