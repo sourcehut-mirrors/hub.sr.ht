@@ -19,7 +19,7 @@ def format_readme(content, filename="", link_prefix=None):
     markdown_exts = ['.md', '.markdown']
     basename, ext = os.path.splitext(filename)
     if ext in markdown_exts:
-        html = markdown(content, ["h1", "h2", "h3", "h4", "h5"],
+        html = markdown(content,
                 link_prefix=link_prefix)
     else:
         html = f"<pre>{escape(content)}</pre>"
