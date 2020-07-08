@@ -260,18 +260,19 @@ def delete_POST(owner, project_name, repo_id):
     if repo.repo_type == RepoType.git:
         git.unensure_repo_webhooks(repo)
 
+    repo_name = repo.name
     db.session.delete(repo)
+    db.session.commit()
 
     valid = Validation(request)
     delete_remote = valid.optional("delete-remote") == "on"
     if delete_remote:
         if repo.repo_type == RepoType.git:
-            git.delete_repo(owner, repo.name)
+            git.delete_repo(owner, repo_name)
         elif repo.repo_type == RepoType.hg: 
-            hg.delete_repo(owner, repo.name)
+            hg.delete_repo(owner, repo_name)
         else:
             assert False
 
-    db.session.commit()
     return redirect(url_for("projects.summary_GET",
         owner=owner.canonical_name, project_name=project.name))

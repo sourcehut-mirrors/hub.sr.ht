@@ -1,5 +1,5 @@
 import json
-from flask import Blueprint, render_template, request, redirect, url_for
+from flask import Blueprint, render_template, request, redirect, url_for, abort
 from hubsrht.projects import ProjectAccess, get_project
 from hubsrht.services import lists
 from hubsrht.types import Event, EventType
@@ -233,8 +233,7 @@ def delete_GET(owner, project_name, list_id):
         abort(404)
     return render_template("resource-delete.html", view="mailing lists",
             owner=owner, project=project, resource=mailing_list,
-            resource_type="mailing list",
-            undeletable=True) # TODO: mailing list deletion
+            resource_type="mailing list")
 
 @mailing_lists.route("/<owner>/<project_name>/lists/delete/<int:list_id>",
         methods=["POST"])
@@ -247,14 +246,15 @@ def delete_POST(owner, project_name, list_id):
     if not mailing_list:
         abort(404)
 
+    list_name = mailing_list.name
     lists.unensure_mailing_list_webhooks(mailing_list)
     db.session.delete(mailing_list)
+    db.session.commit()
 
     valid = Validation(request)
     delete_remote = valid.optional("delete-remote") == "on"
     if delete_remote:
-        assert False # TODO: mailing list deletion
+        lists.delete_list(owner, list_name)
 
-    db.session.commit()
     return redirect(url_for("projects.summary_GET",
         owner=owner.canonical_name, project_name=project.name))

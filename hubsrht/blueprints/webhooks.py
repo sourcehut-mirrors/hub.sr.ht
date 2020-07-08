@@ -157,7 +157,10 @@ def mailing_list(list_id):
         db.session.commit()
         return f"Updated local:{ml.id}/remote:{ml.remote_id}. Thanks!", 200
     elif event == "list:delete":
-        raise NotImplementedError()
+        db.session.delete(ml)
+        ml.project.updated = datetime.utcnow()
+        db.session.commit()
+        return f"Deleted local:{ml.id}/remote:{ml.remote_id}. Thanks!", 200
     elif event == "post:received":
         event = Event()
         print(payload)

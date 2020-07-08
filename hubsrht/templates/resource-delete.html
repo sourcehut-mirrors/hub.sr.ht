@@ -12,8 +12,6 @@
         <a href="{{resource.url()}}">{{resource.name}}</a>
         {{resource_type}} from the {{project.name}} project?
       </p>
-      {# Deletion is complicated, some services don't support it yet #}
-      {% if not undeletable %}
       <div class="event-list">
         <div class="event">
           <div class="form-check form-group">
@@ -31,7 +29,6 @@
           </div>
         </div>
       </div>
-      {% endif %}
       <div class="form-group">
         <button type="submit" class="btn btn-danger">
           Remove this {{resource_type}} {{icon('caret-right')}}

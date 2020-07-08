@@ -212,6 +212,12 @@ class ListService(SrhtService):
             "description": description,
         })
 
+    def delete_list(self, user, list_name):
+        r = self.session.delete(f"{_listsrht}/api/lists/{list_name}",
+                headers=get_authorization(user))
+        if r.status_code != 204 and r.status_code != 404:
+            raise Exception(r.text)
+
 class TodoService(SrhtService):
     def get_trackers(self, user):
         return get_results(f"{_todosrht}/api/trackers", user)
