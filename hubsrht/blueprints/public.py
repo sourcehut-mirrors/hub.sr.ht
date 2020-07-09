@@ -28,6 +28,7 @@ def index():
 @public.route("/getting-started")
 @loginrequired
 def getting_started():
+    notice = session.pop("notice", None)
     return render_template("new-user-dashboard.html", notice=notice)
 
 @public.route("/projects")
