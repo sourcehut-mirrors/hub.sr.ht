@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, request
+from flask import Blueprint, render_template, request, session
 from hubsrht.types import Project, Feature, Event, EventType, Visibility, User
 from srht.flask import paginate_query
 from srht.oauth import current_user, loginrequired
@@ -9,6 +9,7 @@ public = Blueprint("public", __name__)
 @public.route("/")
 def index():
     if current_user:
+        notice = session.pop("notice", None)
         projects = (Project.query
                 .filter(Project.owner_id == current_user.id)
                 .order_by(Project.updated.desc())
@@ -19,14 +20,15 @@ def index():
                     .order_by(Event.created.desc())
                     .limit(2)).all()
             return render_template("dashboard.html",
-                    projects=projects, EventType=EventType, events=events)
-        return render_template("new-user-dashboard.html")
+                    projects=projects, EventType=EventType, events=events,
+                    notice=notice)
+        return render_template("new-user-dashboard.html", notice=notice)
     return render_template("index.html")
 
 @public.route("/getting-started")
 @loginrequired
 def getting_started():
-    return render_template("new-user-dashboard.html")
+    return render_template("new-user-dashboard.html", notice=notice)
 
 @public.route("/projects")
 def project_index():

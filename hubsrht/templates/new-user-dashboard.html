@@ -3,6 +3,9 @@
 <title>{{cfg("sr.ht", "site-name")}} dashboard</title>
 {% endblock %}
 {% block content %}
+{% if notice %}
+<div class="alert alert-info">{{notice}}</div>
+{% endif %}
 <div class="row">
   <div class="col-md-10 offset-md-1" style="margin-top: 1rem; margin-bottom: 1rem;">
     <strong>Welcome to {{cfg("sr.ht", "site-name")}}!</strong>

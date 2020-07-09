@@ -157,8 +157,8 @@ def config_POST(owner, project_name):
 @loginrequired
 def delete_POST(owner, project_name):
     owner, project = get_project(owner, project_name, ProjectAccess.write)
-    project.summary_repo_id = None
-    db.session.delete(project)
+    session["notice"] = f"{project.name} has been deleted."
+    db.engine.execute(f"DELETE FROM project WHERE id = {project.id}")
     db.session.commit()
     return redirect(url_for("public.index"))
 
