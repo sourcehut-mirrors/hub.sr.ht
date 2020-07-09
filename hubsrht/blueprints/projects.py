@@ -1,6 +1,7 @@
 import re
 from sqlalchemy import or_
 from flask import Blueprint, render_template, request, redirect, url_for
+from flask import session
 from hubsrht.decorators import adminrequired
 from hubsrht.projects import ProjectAccess, get_project
 from hubsrht.services import git, hg
