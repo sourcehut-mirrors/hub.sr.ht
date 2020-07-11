@@ -69,7 +69,7 @@ class GitService(SrhtService):
             return format_readme(r.text, readme_name, link_prefix)
         return format_readme("")
 
-    def create_repo(self, user, valid):
+    def create_repo(self, user, valid, visibility):
         name = valid.require("name")
         description = valid.require("description")
         if not valid.ok:
@@ -77,7 +77,7 @@ class GitService(SrhtService):
         return self.post(user, valid, f"{_gitsrht}/api/repos", {
             "name": name,
             "description": description,
-            "visibility": "public", # TODO: Should this be different?
+            "visibility": visibility.value,
         })
 
     def delete_repo(self, user, repo_name):
@@ -142,7 +142,7 @@ class HgService(SrhtService):
             return format_readme(r.text, readme_name, link_prefix)
         return format_readme("")
 
-    def create_repo(self, user, valid):
+    def create_repo(self, user, valid, visibility):
         name = valid.require("name")
         description = valid.require("description")
         if not valid.ok:
@@ -150,7 +150,7 @@ class HgService(SrhtService):
         return self.post(user, valid, f"{_hgsrht}/api/repos", {
             "name": name,
             "description": description,
-            "visibility": "public", # TODO: Should this be different?
+            "visibility": visibility.value,
         })
 
     def delete_repo(self, user, repo_name):

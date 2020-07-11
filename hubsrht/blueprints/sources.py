@@ -78,7 +78,7 @@ def git_new_POST(owner, project_name):
     owner, project = get_project(owner, project_name, ProjectAccess.write)
     valid = Validation(request)
     if "create" in valid:
-        git_repo = git.create_repo(owner, valid)
+        git_repo = git.create_repo(owner, valid, project.visibility)
         if not valid.ok:
             repos = git.get_repos(owner)
             return render_template("sources-select.html",
@@ -138,7 +138,7 @@ def hg_new_POST(owner, project_name):
     owner, project = get_project(owner, project_name, ProjectAccess.write)
     valid = Validation(request)
     if "create" in valid:
-        hg_repo = hg.create_repo(owner, valid)
+        hg_repo = hg.create_repo(owner, valid, project.visibility)
         if not valid.ok:
             repos = hg.get_repos(owner)
             return render_template("sources-select.html",
