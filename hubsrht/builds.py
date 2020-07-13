@@ -1,12 +1,16 @@
-import yaml
 import email.utils
-from srht.config import get_origin
-from hubsrht.services import builds, git
+import json
+import yaml
+from flask import url_for
+from hubsrht.services import builds, git, lists
 from hubsrht.types import SourceRepo, RepoType
 from sqlalchemy import func
+from srht.config import get_origin
+from srht.crypto import fernet
 
 def submit_patchset(ml, payload):
-    if not get_origin("builds.sr.ht", default=None):
+    buildsrht = get_origin("builds.sr.ht", external=True, default=None)
+    if not buildsrht:
         return None
     from buildsrht.manifest import Manifest, Task
     from buildsrht.manifest import Trigger, TriggerAction, TriggerCondition
@@ -36,6 +40,10 @@ def submit_patchset(ml, payload):
     # TODO: Add UI to lists.sr.ht indicating build status
     ids = []
     for key, value in manifests.items():
+        tool_key = f"hub.sr.ht:builds.sr.ht:{key}"
+        lists.patchset_set_tool(ml.owner, ml.name, payload["id"],
+                tool_key, "pending", f"build pending: {key}")
+
         manifest = Manifest(yaml.safe_load(value))
         # TODO: https://todo.sr.ht/~sircmpwn/builds.sr.ht/291
         task = Task({
@@ -57,6 +65,19 @@ git am -3 /tmp/{payload["id"]}.patch"""
             })
             manifest.triggers.append(trigger)
         trigger.condition = TriggerCondition.always
+
+        root = get_origin("hub.sr.ht", external=True)
+        details = fernet.encrypt(json.dumps({
+            "mailing_list": ml.id,
+            "patchset_id": payload["id"],
+            "key": tool_key,
+            "name": key,
+        }).encode()).decode()
+        manifest.triggers.append(Trigger({
+            "action": TriggerAction.webhook,
+            "condition": TriggerCondition.always,
+            "url": root + url_for("webhooks.build_complete", details=details),
+        }))
 
         addrs = email.utils.getaddresses(trigger.attrs.get("to", ""))
         submitter = email.utils.parseaddr(payload["submitter"])
@@ -82,4 +103,7 @@ git am -3 /tmp/{payload["id"]}.patch"""
 [0]: {ml.url()}/patches/{payload["id"]}
 [1]: mailto:{submitter[1]}""", tags=[repo.name, "patches", key])
         ids.append(b["id"])
+        build_url = f"{buildsrht}/{project.owner.canonical_name}/job/{b['id']}"
+        lists.patchset_set_tool(ml.owner, ml.name, payload["id"],
+                tool_key, "waiting", f"[#{b['id']}]({build_url}) running {key}")
     return ids

@@ -3,11 +3,11 @@ import json
 from datetime import datetime
 from flask import Blueprint, request, current_app
 from hubsrht.builds import submit_patchset
-from hubsrht.services import todo
+from hubsrht.services import todo, lists
 from hubsrht.types import Event, EventType, MailingList, SourceRepo, RepoType
 from hubsrht.types import Tracker, User, Visibility
 from srht.config import get_origin
-from srht.crypto import verify_request_signature
+from srht.crypto import fernet, verify_request_signature
 from srht.database import db
 from srht.flask import csrf_bypass
 from urllib.parse import quote
@@ -334,3 +334,26 @@ def todo_ticket(tracker_id):
         return "Thanks!"
     else:
         raise NotImplementedError()
+
+@csrf_bypass
+@webhooks.route("/webhooks/build-complete/<details>", methods=["POST"])
+def build_complete(details):
+    payload = json.loads(request.data.decode())
+    details = fernet.decrypt(details.encode())
+    if not details:
+        return "Bad payload", 400
+    details = json.loads(details.decode())
+    ml = (MailingList.query
+            .filter(MailingList.id == details["mailing_list"])).one_or_none()
+    if not ml:
+        return "Unknown mailing list", 404
+    project = ml.project
+
+    buildsrht = get_origin("builds.sr.ht", external=True)
+    build_url = f"{buildsrht}/{project.owner.canonical_name}/job/{payload['id']}"
+
+    lists.patchset_set_tool(ml.owner, ml.name, details["patchset_id"],
+            details['key'], payload["status"],
+            f"[#{payload['id']}]({build_url}) {details['name']} {payload['status']}")
+
+    return "Thanks!"

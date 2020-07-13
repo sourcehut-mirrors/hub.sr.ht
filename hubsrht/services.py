@@ -44,6 +44,19 @@ class SrhtService(ABC):
             raise Exception(r.text)
         return r.json()
 
+    def put(self, user, valid, url, payload):
+        r = self.session.put(url,
+            headers=get_authorization(user),
+            json=payload)
+        if r.status_code == 400:
+            if valid:
+                for error in r.json()["errors"]:
+                    valid.error(error["reason"], field=error.get("field"))
+            return None
+        elif r.status_code not in [200, 201]:
+            raise Exception(r.text)
+        return r.json()
+
 manifests_query = """
 query Manifests($repoId: Int!) {
   repository(id: $repoId) {
@@ -261,6 +274,14 @@ class ListService(SrhtService):
                 headers=get_authorization(user))
         if r.status_code != 204 and r.status_code != 404:
             raise Exception(r.text)
+
+    def patchset_set_tool(self, user, list_name, patchset_id, key, icon, details):
+        return self.put(user, None,
+            f"{_listsrht}/api/lists/{list_name}/patchsets/{patchset_id}/tools", {
+                "key": key,
+                "icon": icon,
+                "details": details,
+            })
 
 class TodoService(SrhtService):
     def get_trackers(self, user):
