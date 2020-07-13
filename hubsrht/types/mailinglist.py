@@ -3,6 +3,7 @@ import sqlalchemy_utils as sau
 from hubsrht.types import Visibility
 from srht.config import get_origin
 from srht.database import Base
+from urllib.parse import urlparse
 
 _listsrht = get_origin("lists.sr.ht", external=True, default=None)
 
@@ -31,3 +32,7 @@ class MailingList(Base):
 
     def url(self):
         return f"{_listsrht}/{self.owner.canonical_name}/{self.name}"
+
+    def posting_addr(self):
+        p = urlparse(_listsrht)
+        return f"{self.owner.canonical_name}/{self.name}@{p.netloc}"

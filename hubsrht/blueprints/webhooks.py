@@ -2,9 +2,10 @@ import email
 import json
 from datetime import datetime
 from flask import Blueprint, request, current_app
+from hubsrht.builds import submit_patchset
+from hubsrht.services import todo
 from hubsrht.types import Event, EventType, MailingList, SourceRepo, RepoType
 from hubsrht.types import Tracker, User, Visibility
-from hubsrht.services import todo
 from srht.config import get_origin
 from srht.crypto import verify_request_signature
 from srht.database import db
@@ -163,7 +164,6 @@ def mailing_list(list_id):
         return f"Deleted local:{ml.id}/remote:{ml.remote_id}. Thanks!", 200
     elif event == "post:received":
         event = Event()
-        print(payload)
         sender = payload["sender"]
         if sender:
             sender = current_app.oauth_service.lookup_user(sender['name'])
@@ -192,8 +192,11 @@ def mailing_list(list_id):
         db.session.commit()
         return "Thanks!"
     elif event == "patchset:received":
-        # TODO?
-        return "Thanks!"
+        build_ids = submit_patchset(ml, payload)
+        if build_ids:
+            return f"Submitted builds #{build_ids}. Thanks!"
+        else:
+            return "Thanks!"
     else:
         raise NotImplementedError()
 

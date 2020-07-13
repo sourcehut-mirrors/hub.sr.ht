@@ -1,5 +1,6 @@
 import os.path
 import requests
+import yaml
 from abc import ABC
 from flask import url_for
 from jinja2 import Markup, escape
@@ -11,6 +12,7 @@ _gitsrht = get_origin("git.sr.ht", external=True, default=None)
 _hgsrht = get_origin("hg.sr.ht", external=True, default=None)
 _listsrht = get_origin("lists.sr.ht", external=True, default=None)
 _todosrht = get_origin("todo.sr.ht", external=True, default=None)
+_buildsrht = get_origin("builds.sr.ht", default=None)
 origin = get_origin("hub.sr.ht")
 
 readme_names = ["README.md", "README.markdown", "README"]
@@ -34,12 +36,37 @@ class SrhtService(ABC):
             headers=get_authorization(user),
             json=payload)
         if r.status_code == 400:
-            for error in r.json()["errors"]:
-                valid.error(error["reason"], field=error.get("field"))
+            if valid:
+                for error in r.json()["errors"]:
+                    valid.error(error["reason"], field=error.get("field"))
             return None
-        elif r.status_code != 201:
+        elif r.status_code not in [200, 201]:
             raise Exception(r.text)
         return r.json()
+
+manifests_query = """
+query Manifests($repoId: Int!) {
+  repository(id: $repoId) {
+    multiple: path(path:".builds") {
+      object {
+        ... on Tree {
+          entries {
+            results {
+              name
+              object { ... on TextBlob { text } }
+            }
+          }
+        }
+      }
+    },
+    single: path(path:".build.yml") {
+      object {
+        ... on TextBlob { text }
+      }
+    }
+  }
+}
+"""
 
 class GitService(SrhtService):
     def __init__(self):
@@ -68,6 +95,23 @@ class GitService(SrhtService):
                 raise Exception(r.text)
             return format_readme(r.text, readme_name, link_prefix)
         return format_readme("")
+
+    def get_manifests(self, user, repo_id):
+        r = self.post(user, None, f"{_gitsrht}/query", {
+            "query": manifests_query,
+            "variables": {
+                "repoId": repo_id,
+            },
+        })
+        manifests = dict()
+        if r["data"]["repository"]["multiple"]:
+            raise NotImplemented() # TODO
+        elif r["data"]["repository"]["single"]:
+            manifests[".build.yml"] = r["data"]["repository"]["single"]\
+                    ["object"]["text"]
+        else:
+            return None
+        return manifests
 
     def create_repo(self, user, valid, visibility):
         name = valid.require("name")
@@ -307,7 +351,17 @@ class TodoService(SrhtService):
             "description": description,
         })
 
+class BuildService(SrhtService):
+    def submit_build(self, user, manifest, note, tags):
+        return self.post(user, None, f"{_buildsrht}/api/jobs", {
+            "manifest": yaml.dump(manifest.to_dict(), default_flow_style=False),
+            "tags": tags,
+            "note": note,
+            "secrets": False,
+        })
+
 git = GitService()
 hg = HgService()
 lists = ListService()
 todo = TodoService()
+builds = BuildService()
