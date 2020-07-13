@@ -118,7 +118,9 @@ class GitService(SrhtService):
         })
         manifests = dict()
         if r["data"]["repository"]["multiple"]:
-            raise NotImplemented() # TODO
+            for ent in r["data"]["repository"]["multiple"]["object"]\
+                    ["entries"]["results"]:
+                manifests[ent["name"]] = ent["object"]["text"]
         elif r["data"]["repository"]["single"]:
             manifests[".build.yml"] = r["data"]["repository"]["single"]\
                     ["object"]["text"]
