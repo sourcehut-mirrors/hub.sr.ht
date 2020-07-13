@@ -21,6 +21,8 @@ def submit_patchset(ml, payload):
     repo = (SourceRepo.query
             .filter(SourceRepo.project_id == project.id)
             .filter(func.lower(SourceRepo.name) == prefix.lower())).one_or_none()
+    if not repo:
+        return None
     if repo.repo_type != RepoType.git:
         # TODO: support for hg.sr.ht
         return None
