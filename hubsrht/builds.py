@@ -13,11 +13,15 @@ def submit_patchset(ml, payload):
 
     project = ml.project
     subject = payload["subject"]
+
     prefix = payload["prefix"]
-    # TODO: More sophisticated matching is possible
-    # - test if patch is applicable to a repo; see the following:
-    #   https://github.com/libgit2/pygit2/pull/1019
-    # Will be useful for mailing lists shared by many repositories
+    if not prefix:
+        # TODO: More sophisticated matching is possible
+        # - test if patch is applicable to a repo; see the following:
+        #   https://github.com/libgit2/pygit2/pull/1019
+        # Will be useful for mailing lists shared by many repositories
+        return None
+
     repo = (SourceRepo.query
             .filter(SourceRepo.project_id == project.id)
             .filter(func.lower(SourceRepo.name) == prefix.lower())).one_or_none()
@@ -39,7 +43,7 @@ def submit_patchset(ml, payload):
 git config --global user.name 'builds.sr.ht'
 git config --global user.email builds@sr.ht
 cd {repo.name}
-curl -s {ml.url()}/patches/{payload["id"]}/mbox >/tmp/{payload["id"]}.patch
+curl --no-progress-meter {ml.url()}/patches/{payload["id"]}/mbox >/tmp/{payload["id"]}.patch
 git am -3 /tmp/{payload["id"]}.patch"""
         })
         manifest.tasks.insert(0, task)
