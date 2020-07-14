@@ -3,4 +3,3 @@ import hubsrht.alembic
 import srht.alembic
 from srht.database import alembic
 alembic("hub.sr.ht", hubsrht.alembic)
-alembic("hub.sr.ht", srht.alembic)
