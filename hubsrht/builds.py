@@ -37,7 +37,6 @@ def submit_patchset(ml, payload):
     manifests = git.get_manifests(repo.owner, repo.remote_id)
     if not manifests:
         return None
-    # TODO: Add UI to lists.sr.ht indicating build status
     ids = []
     for key, value in manifests.items():
         tool_key = f"hub.sr.ht:builds.sr.ht:{key}"
@@ -80,7 +79,11 @@ git am -3 /tmp/{payload["id"]}.patch"""
         }))
 
         addrs = email.utils.getaddresses(trigger.attrs.get("to", ""))
-        submitter = email.utils.parseaddr(payload["submitter"])
+        reply_to = payload.get("reply_to")
+        if reply_to:
+            submitter = email.utils.parseaddr(reply_to)
+        else:
+            submitter = email.utils.parseaddr(payload["submitter"])
         if submitter not in addrs:
             addrs.append(submitter)
         trigger.attrs["to"] = ", ".join([email.utils.formataddr(a) for a in addrs])
