@@ -197,34 +197,19 @@
         </div>
       </div>
 
-      <form
-        class="event"
-        method="POST"
-        action="{{url_for("projects.delete_POST",
-          owner=owner.canonical_name, project_name=project.name)}}"
-      >
-        {{csrf_token()}}
+      <div class="event">
         <h3>Delete project</h3>
-        <p>
-          This will permanently delete your project,
-          <strong>{{project.name}}</strong>. This cannot be undone.
-        </p>
+        <p>Remove {{project.name}} from the project hub.</p>
         <div class="row">
           <div class="col-md-3">
-            <button class="btn btn-danger btn-block" type="submit">
-              Delete project {{icon('caret-right')}}
-            </button>
+            <a
+              href="{{url_for("projects.delete_GET",
+                owner=owner.canonical_name, project_name=project.name)}}"
+                class="btn btn-danger btn-block"
+            >Delete project {{icon('caret-right')}}</a>
           </div>
-          {#
-          <div class="col-md-9">
-            <label class="checkbox">
-              <input type="checkbox" name="delete-resources" />
-              Permanently delete project resources (repos, mailing lists, etc)
-            </label>
-          </div>
-          #}
         </div>
-      </form>
+      </div>
     </div>
   </div>
 </div>

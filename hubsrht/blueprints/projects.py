@@ -154,6 +154,13 @@ def config_POST(owner, project_name):
         owner=current_user.canonical_name,
         project_name=project.name))
 
+@projects.route("/<owner>/<project_name>/delete")
+@loginrequired
+def delete_GET(owner, project_name):
+    owner, project = get_project(owner, project_name, ProjectAccess.write)
+    return render_template("project-delete.html", view="add more",
+            owner=owner, project=project)
+
 @projects.route("/<owner>/<project_name>/delete", methods=["POST"])
 @loginrequired
 def delete_POST(owner, project_name):
