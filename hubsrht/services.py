@@ -375,12 +375,21 @@ class TodoService(SrhtService):
         })
 
 class BuildService(SrhtService):
-    def submit_build(self, user, manifest, note, tags):
+    def submit_build(self, user, manifest, note, tags, execute=True):
         return self.post(user, None, f"{_buildsrht}/api/jobs", {
             "manifest": yaml.dump(manifest.to_dict(), default_flow_style=False),
             "tags": tags,
             "note": note,
             "secrets": False,
+            "execute": execute,
+        })
+
+    def create_group(self, user, job_ids, note, triggers):
+        return self.post(user, None, f"{_buildsrht}/api/job-group", {
+            "jobs": job_ids,
+            "note": note,
+            "execute": True,
+            "triggers": triggers,
         })
 
 git = GitService()

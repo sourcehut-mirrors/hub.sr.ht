@@ -38,6 +38,24 @@ def submit_patchset(ml, payload):
     if not manifests:
         return None
     ids = []
+
+    version = payload["version"]
+    if version == 1:
+        version = ""
+    else:
+        version = f" v{version}"
+
+    reply_to = payload.get("reply_to")
+    if reply_to:
+        submitter = email.utils.parseaddr(reply_to)
+    else:
+        submitter = email.utils.parseaddr(payload["submitter"])
+
+    build_note = f"""[{subject}][0]{version} from [{submitter[0]}][1]
+
+[0]: {ml.url()}/patches/{payload["id"]}
+[1]: mailto:{submitter[1]}"""
+
     for key, value in manifests.items():
         tool_key = f"hub.sr.ht:builds.sr.ht:{key}"
         lists.patchset_set_tool(ml.owner, ml.name, payload["id"],
@@ -55,16 +73,7 @@ git am -3 /tmp/{payload["id"]}.patch"""
         })
         manifest.tasks.insert(0, task)
 
-        trigger = next((t for t in manifest.triggers
-            if t.action == TriggerAction.email), None)
-        if not trigger:
-            trigger = Trigger({
-                "action": TriggerAction.email,
-                "condition": TriggerCondition.always,
-            })
-            manifest.triggers.append(trigger)
-        trigger.condition = TriggerCondition.always
-
+        # Add webhook trigger
         root = get_origin("hub.sr.ht", external=True)
         details = fernet.encrypt(json.dumps({
             "mailing_list": ml.id,
@@ -78,35 +87,19 @@ git am -3 /tmp/{payload["id"]}.patch"""
             "url": root + url_for("webhooks.build_complete", details=details),
         }))
 
-        addrs = email.utils.getaddresses(trigger.attrs.get("to", ""))
-        reply_to = payload.get("reply_to")
-        if reply_to:
-            submitter = email.utils.parseaddr(reply_to)
-        else:
-            submitter = email.utils.parseaddr(payload["submitter"])
-        if submitter not in addrs:
-            addrs.append(submitter)
-        trigger.attrs["to"] = ", ".join([email.utils.formataddr(a) for a in addrs])
-
-        cc = email.utils.getaddresses(trigger.attrs.get("cc", ""))
-        if not ml.posting_addr() in cc:
-            cc.append(('', ml.posting_addr()))
-        trigger.attrs["cc"] = ", ".join([email.utils.formataddr(a) for a in cc])
-
-        trigger.attrs["in_reply_to"] = payload["message_id"]
-
-        version = payload["version"]
-        if version == 1:
-            version = ""
-        else:
-            version = f" v{version}"
-        b = builds.submit_build(project.owner, manifest,
-        f"""[{subject}][0]{version} from [{submitter[0]}][1]
-
-[0]: {ml.url()}/patches/{payload["id"]}
-[1]: mailto:{submitter[1]}""", tags=[repo.name, "patches", key])
+        b = builds.submit_build(project.owner, manifest, build_note,
+            tags=[repo.name, "patches", key], execute=False)
         ids.append(b["id"])
         build_url = f"{buildsrht}/{project.owner.canonical_name}/job/{b['id']}"
         lists.patchset_set_tool(ml.owner, ml.name, payload["id"],
                 tool_key, "waiting", f"[#{b['id']}]({build_url}) running {key}")
+
+    trigger = Trigger({
+        "action": TriggerAction.email,
+        "condition": TriggerCondition.always,
+    })
+    trigger.attrs["to"] = email.utils.formataddr(submitter)
+    trigger.attrs["cc"] = ml.posting_addr()
+    trigger.attrs["in_reply_to"] = payload["message_id"]
+    builds.create_group(project.owner, ids, build_note, [trigger.to_dict()])
     return ids
