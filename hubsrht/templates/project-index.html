@@ -89,6 +89,10 @@
           {{feature.summary | md}}
         </blockquote>
         {% endfor %}
+        <a
+          href="{{url_for("public.featured_projects")}}"
+          class="btn btn-default btn-block"
+        >More featured projects {{icon('caret-right')}}</a>
       </div>
     </div>
   </div>

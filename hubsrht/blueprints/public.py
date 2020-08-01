@@ -61,3 +61,14 @@ def project_index():
 
     return render_template("project-index.html", projects=projects,
             search=search, features=features, sort=sort, **pagination)
+
+@public.route("/projects/featured")
+def featured_projects():
+    features = (Feature.query
+            .join(Project, Feature.project_id == Project.id)
+            .join(User, Project.owner_id == User.id)
+            .filter(Project.visibility == Visibility.public)
+            .order_by(Feature.created.desc()))
+    features, pagination = paginate_query(features)
+    return render_template("featured-projects.html",
+            features=features, **pagination)
