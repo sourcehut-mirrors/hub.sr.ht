@@ -23,7 +23,14 @@ def index():
                     projects=projects, EventType=EventType, events=events,
                     notice=notice)
         return render_template("new-user-dashboard.html", notice=notice)
-    return render_template("index.html")
+
+    features = (Feature.query
+            .join(Project, Feature.project_id == Project.id)
+            .join(User, Project.owner_id == User.id)
+            .filter(Project.visibility == Visibility.public)
+            .order_by(Feature.created.desc())
+            .limit(6)).all()
+    return render_template("index.html", features=features)
 
 @public.route("/getting-started")
 @loginrequired

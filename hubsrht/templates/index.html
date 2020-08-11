@@ -6,20 +6,51 @@
 <div class="row">
   <div class="col-md-8">
     <p>
-      Welcome to 
+      Welcome to
       <a href="{{cfg("sr.ht", "site-info")}}">
         {{cfg("sr.ht", "site-name")}}</a>,
       {{cfg("sr.ht", "site-blurb")}}!
     </p>
+    <p>
+      <a
+        class="btn btn-primary"
+        href="{{get_origin("meta.sr.ht", external=True)}}/register"
+      >Register here {{icon('caret-right')}}</a>
+      or
+      <a href="{{oauth_url}}">
+        Log in {{icon('caret-right')}}
+      </a>
+      to get started.
+    </p>
+    <hr />
+    <h2>Featured projects</h2>
+  </div>
+</div>
+<div class="row event-list">
+  {% for feature in features %}
+  <div class="col-md-6">
+    <div class="event">
+      <h5>
+        <span class="text-muted"
+        >{{feature.project.owner.canonical_name}}/</span><a
+          href="{{url_for("projects.summary_GET",
+            owner=feature.project.owner.canonical_name,
+            project_name=feature.project.name)}}"
+        >{{feature.project.name}}</a>
+      </h5>
+      <blockquote>
+        {{feature.summary | md}}
+      </blockquote>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+<div class="row">
+  <div class="col-md-4 offset-md-8">
     <a
-      class="btn btn-primary"
-      href="{{get_origin("meta.sr.ht", external=True)}}/register"
-    >Register here {{icon('caret-right')}}</a>
-    or
-    <a href="{{oauth_url}}">
-      Log in {{icon('caret-right')}}
-    </a>
-    to get started.
+      href="{{url_for("public.project_index")}}"
+      class="btn btn-default btn-block"
+    >More projects {{icon('caret-right')}}</a>
   </div>
 </div>
 {% endblock %}
