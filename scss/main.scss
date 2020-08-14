@@ -124,3 +124,13 @@
     max-width: 100%;
   }
 }
+
+.feature-list {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-gap: 1rem;
+
+  .event {
+    margin: 0;
+  }
+}
