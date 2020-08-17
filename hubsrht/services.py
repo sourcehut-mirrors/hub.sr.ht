@@ -97,10 +97,9 @@ class GitService(SrhtService):
 
     def get_readme(self, user, repo_name, repo_url):
         # TODO: Cache?
-        # TODO: Use default branch
-        link_prefix = repo_url + "/blob/refs/heads/master/"
+        link_prefix = repo_url + "/blob/HEAD/"
         for readme_name in readme_names:
-            r = self.session.get(f"{_gitsrht}/api/repos/{repo_name}/blob/master/{readme_name}",
+            r = self.session.get(f"{_gitsrht}/api/repos/{repo_name}/blob/HEAD/{readme_name}",
                     headers=get_authorization(user))
             if r.status_code == 404:
                 continue
