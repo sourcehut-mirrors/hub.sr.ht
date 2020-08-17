@@ -151,8 +151,8 @@
       {% if current_user and current_user.id == project.owner_id
         and not summary and not summary_error %}
       <div class="alert alert-danger">
-        <strong>Head's up!</strong> This project is configured to use
-        "<code>README.md</code>" from
+        <strong>Heads up!</strong>
+        This project is configured to use a README from
         <a href="{{project.summary_repo.url()}}">
           {{project.summary_repo.owner.canonical_name}}/{{project.summary_repo.name}}
         </a>
@@ -168,7 +168,7 @@
       {{summary}}
       {% else %}
       <div class="alert alert-danger">
-        An internal error occured fetching the README.md for this project.
+        An internal error occured fetching the README for this project.
       </div>
       {% endif %}
       {% endif %}
@@ -181,9 +181,9 @@
         repositor{{"ies" if len(project.source_repos) > 1 else "y"}}
         to this project. Would you like to display
         {% if len(project.source_repos) > 1 %}
-        one of the README.md files
+        one of the README files
         {% else %}
-        the README.md file
+        the README file
         {% endif %}
         on this page?
       </div>
@@ -202,7 +202,7 @@
             <button
               type="submit"
               class="pull-right btn btn-primary btn-lg"
-            >Use README.md&nbsp;{{ icon("caret-right") }}</button>
+            >Use README&nbsp;{{ icon("caret-right") }}</button>
             <a
               href="{{repo.url()}}"
               target="_blank"
