@@ -1,6 +1,6 @@
 import re
 from sqlalchemy import or_
-from flask import Blueprint, render_template, request, redirect, url_for
+from flask import Blueprint, Response, render_template, request, redirect, url_for, abort
 from flask import session
 from hubsrht.decorators import adminrequired
 from hubsrht.projects import ProjectAccess, get_project
@@ -8,12 +8,30 @@ from hubsrht.services import git, hg
 from hubsrht.types import Feature, Event, EventType
 from hubsrht.types import Project, RepoType, Visibility
 from hubsrht.types import SourceRepo, MailingList, Tracker
+from srht.config import cfg, get_origin
 from srht.database import db
-from srht.flask import paginate_query
+from srht.flask import csrf_bypass, paginate_query
 from srht.oauth import current_user, loginrequired
 from srht.validation import Validation, valid_url
 
 projects = Blueprint("projects", __name__)
+
+site_name = cfg("sr.ht", "site-name")
+ext_origin = get_origin("hub.sr.ht", external=True)
+clone_message = lambda owner, project: f"""
+
+You have tried to clone a project from {site_name}, but you probably meant to
+clone a specific git repository for this project instead. A single project on
+{site_name} often has more than one git repository.
+
+You can visit the following URL:
+
+  {ext_origin}{url_for("sources.sources_GET",
+      owner=owner.canonical_name, project_name=project.name)}
+
+To the browse source repositories for this project.
+
+"""
 
 @projects.route("/<owner>/<project_name>/")
 def summary_GET(owner, project_name):
@@ -51,6 +69,19 @@ def summary_GET(owner, project_name):
             owner=owner, project=project,
             summary=summary, summary_error=summary_error,
             events=events, EventType=EventType)
+
+@projects.route("/<owner>/<project_name>/info/refs")
+def summary_refs(owner, project_name):
+    if request.args.get("service") == "git-upload-pack":
+        owner, project = get_project(owner, project_name, ProjectAccess.read)
+        msg = clone_message(owner, project)
+
+        return Response(f"""001e# service=git-upload-pack
+000000400000000000000000000000000000000000000000 HEAD\0agent=hubsrht
+{'{:04x}'.format(4 + 3 + 1 + len(msg))}ERR {msg}0000""",
+                mimetype="application/x-git-upload-pack-advertisement")
+    else:
+        abort(404)
 
 @projects.route("/<owner>/<project_name>/feed")
 def feed_GET(owner, project_name):
