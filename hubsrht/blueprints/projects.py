@@ -29,7 +29,7 @@ You can visit the following URL:
   {ext_origin}{url_for("sources.sources_GET",
       owner=owner.canonical_name, project_name=project.name)}
 
-To the browse source repositories for this project.
+To browse the source repositories for this project.
 
 """
 
