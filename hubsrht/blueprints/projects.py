@@ -18,11 +18,11 @@ projects = Blueprint("projects", __name__)
 
 site_name = cfg("sr.ht", "site-name")
 ext_origin = get_origin("hub.sr.ht", external=True)
-clone_message = lambda owner, project: f"""
+clone_message = lambda owner, project, scm: f"""
 
 You have tried to clone a project from {site_name}, but you probably meant to
-clone a specific git repository for this project instead. A single project on
-{site_name} often has more than one git repository.
+clone a specific {scm} repository for this project instead. A single project on
+{site_name} often has more than one {scm} repository.
 
 You can visit the following URL:
 
@@ -36,6 +36,11 @@ To the browse source repositories for this project.
 @projects.route("/<owner>/<project_name>/")
 def summary_GET(owner, project_name):
     owner, project = get_project(owner, project_name, ProjectAccess.read)
+
+    # Mercurial clone
+    if request.args.get("cmd") == "capabilities":
+        return Response(clone_message(owner, project, "hg"),
+                mimetype="text/plain")
 
     summary = None
     summary_error = False
@@ -74,7 +79,7 @@ def summary_GET(owner, project_name):
 def summary_refs(owner, project_name):
     if request.args.get("service") == "git-upload-pack":
         owner, project = get_project(owner, project_name, ProjectAccess.read)
-        msg = clone_message(owner, project)
+        msg = clone_message(owner, project, "git")
 
         return Response(f"""001e# service=git-upload-pack
 000000400000000000000000000000000000000000000000 HEAD\0agent=hubsrht
