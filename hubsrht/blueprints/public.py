@@ -67,7 +67,8 @@ def project_index():
             .limit(5)).all()
 
     return render_template("project-index.html", projects=projects,
-            search=search, features=features, sort=sort, **pagination)
+            search=search, features=features, sort=sort, **pagination,
+            search_keys=["sort"])
 
 @public.route("/projects/featured")
 def featured_projects():
