@@ -37,6 +37,9 @@ def submit_patchset(ml, payload):
     manifests = git.get_manifests(repo.owner, repo.remote_id)
     if not manifests:
         return None
+    if len(manifests) > 4:
+        manifests = manifests[:4]
+
     ids = []
 
     version = payload["version"]
