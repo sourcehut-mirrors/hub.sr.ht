@@ -5,7 +5,7 @@ from abc import ABC
 from flask import url_for
 from jinja2 import Markup, escape
 from srht.api import ensure_webhooks, get_authorization, get_results
-from srht.markdown import markdown
+from srht.markdown import markdown, sanitize
 from srht.config import get_origin
 
 _gitsrht = get_origin("git.sr.ht", external=True, default=None)
@@ -26,6 +26,16 @@ def format_readme(content, filename="", link_prefix=None):
     else:
         html = f"<pre>{escape(content)}</pre>"
     return Markup(html)
+
+def try_html_readme(session, prefix, user, repo_name):
+    r = session.get(f"{prefix}/api/repos/{repo_name}/readme",
+            headers=get_authorization(user))
+    if r.status_code == 200:
+        return Markup(sanitize(r.text))
+    elif r.status_code == 404:
+        return None
+    else:
+        raise Exception(r.text)
 
 class SrhtService(ABC):
     def __init__(self):
@@ -97,6 +107,9 @@ class GitService(SrhtService):
 
     def get_readme(self, user, repo_name, repo_url):
         # TODO: Cache?
+        override = try_html_readme(self.session, _gitsrht, user, repo_name)
+        if override is not None:
+            return override
         link_prefix = repo_url + "/blob/HEAD/"
         for readme_name in readme_names:
             r = self.session.get(f"{_gitsrht}/api/repos/{repo_name}/blob/HEAD/{readme_name}",
@@ -189,6 +202,9 @@ class HgService(SrhtService):
 
     def get_readme(self, user, repo_name, repo_url):
         # TODO: Cache?
+        override = try_html_readme(self.session, _hgsrht, user, repo_name)
+        if override is not None:
+            return override
         link_prefix = repo_url + "/raw/"
         for readme_name in readme_names:
             r = self.session.get(f"{_hgsrht}/api/repos/{repo_name}/raw/{readme_name}",
