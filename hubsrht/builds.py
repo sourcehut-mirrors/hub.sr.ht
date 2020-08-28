@@ -38,7 +38,7 @@ def submit_patchset(ml, payload):
     if not manifests:
         return None
     if len(manifests) > 4:
-        manifests = manifests[:4]
+        manifests = { key: manifests[key] for key in list(manifests.keys())[:4] }
 
     ids = []
 
