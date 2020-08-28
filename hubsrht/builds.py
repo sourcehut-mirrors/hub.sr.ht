@@ -1,5 +1,6 @@
 import email.utils
 import json
+import random
 import yaml
 from flask import url_for
 from hubsrht.services import builds, git, lists
@@ -38,7 +39,9 @@ def submit_patchset(ml, payload):
     if not manifests:
         return None
     if len(manifests) > 4:
-        manifests = { key: manifests[key] for key in list(manifests.keys())[:4] }
+        keys = list(manifests.keys())
+        random.shuffle(keys)
+        manifests = { key: manifests[key] for key in keys[:4] }
 
     ids = []
 
