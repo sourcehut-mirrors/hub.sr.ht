@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, request, redirect, url_for
+from flask import Blueprint, render_template, request, redirect, url_for, abort
 from hubsrht.projects import ProjectAccess, get_project
 from hubsrht.services import git, hg
 from hubsrht.types import Event, EventType
