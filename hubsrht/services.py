@@ -164,9 +164,12 @@ class GitService(SrhtService):
         }
         ensure_webhooks(user, f"{_gitsrht}/api/user/webhooks", config)
 
-    def ensure_user_webhooks(self, user):
+    def unensure_user_webhooks(self, user):
         config = { }
-        ensure_webhooks(user, f"{_gitsrht}/api/user/webhooks", config)
+        try:
+            ensure_webhooks(user, f"{_gitsrht}/api/user/webhooks", config)
+        except:
+            pass # nbd, upstream was probably deleted
 
     def ensure_repo_webhooks(self, repo):
         config = {
