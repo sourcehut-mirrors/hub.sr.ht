@@ -25,23 +25,38 @@
   {% endif %}
   {% if any(project.source_repos) %}
   <li class="nav-item">
+  {% if len(project.source_repos) == 1 and
+        not (current_user and current_user.id == project.owner_id) %}
+    {{link(project.source_repos[0].url(), "source")}}
+  {% else %}
     {{link(url_for("sources.sources_GET",
       owner=owner.canonical_name,
       project_name=project.name), "sources")}}
+  {% endif %}
   </li>
   {% endif %}
   {% if any(project.mailing_lists) %}
   <li class="nav-item">
+  {% if len(project.mailing_lists) == 1 and
+        not (current_user and current_user.id == project.owner_id) %}
+    {{link(project.mailing_lists[0].url(), "mailing list")}}
+  {% else %}
     {{link(url_for("mailing_lists.lists_GET",
       owner=owner.canonical_name,
       project_name=project.name), "mailing lists")}}
+  {% endif %}
   </li>
   {% endif %}
   {% if any(project.trackers) %}
   <li class="nav-item">
+  {% if len(project.trackers) == 1 and
+        not (current_user and current_user.id == project.owner_id) %}
+    {{link(project.trackers[0].url(), "tickets")}}
+  {% else %}
     {{link(url_for("trackers.trackers_GET",
       owner=owner.canonical_name,
       project_name=project.name), "tickets")}}
+  {% endif %}
   </li>
   {% endif %}
   {# TODO
