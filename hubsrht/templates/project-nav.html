@@ -1,7 +1,7 @@
 <h2>
   <a
     href="{{url_for("users.summary_GET", username=owner.username)}}"
-  >{{owner.canonical_name}}</a>/{{project.name}}
+  >{{owner.canonical_name}}</a>/<wbr>{{project.name}}
 </h2>
 {% macro link(path, title, alternates, cls="") %}
 <a
