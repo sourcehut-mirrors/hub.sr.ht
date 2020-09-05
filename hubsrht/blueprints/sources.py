@@ -3,6 +3,7 @@ from hubsrht.projects import ProjectAccess, get_project
 from hubsrht.services import git, hg
 from hubsrht.types import Event, EventType
 from hubsrht.types import RepoType, SourceRepo, Visibility
+from srht.config import get_origin
 from srht.database import db
 from srht.flask import paginate_query
 from srht.oauth import current_user, loginrequired
@@ -42,35 +43,28 @@ def new_GET(owner, project_name):
     return render_template("sources-new.html", view="new-resource",
             owner=owner, project=project)
 
-@sources.route("/<owner>/<project_name>/git/new")
-@loginrequired
-def git_new_GET(owner, project_name):
+def src_new_GET(owner, project_name, vcs, service, repo_type):
     owner, project = get_project(owner, project_name, ProjectAccess.write)
     # TODO: Pagination
-    repos = git.get_repos(owner)
+    repos = service.get_repos(owner)
     repos = sorted(repos, key=lambda r: r["updated"], reverse=True)
     existing = [r.remote_id for r in (SourceRepo.query
             .filter(SourceRepo.project_id == project.id)
-            .filter(SourceRepo.repo_type == RepoType.git)).all()]
+            .filter(SourceRepo.repo_type == repo_type)).all()]
     return render_template("sources-select.html",
-            view="new-resource", vcs="git",
+            view="new-resource", vcs=vcs,
             owner=owner, project=project, repos=repos,
-            existing=existing)
+            existing=existing, origin=get_origin(f"{vcs}.sr.ht", external=True))
+
+@sources.route("/<owner>/<project_name>/git/new")
+@loginrequired
+def git_new_GET(owner, project_name):
+    return src_new_GET(owner, project_name, "git", git, RepoType.git)
 
 @sources.route("/<owner>/<project_name>/hg/new")
 @loginrequired
 def hg_new_GET(owner, project_name):
-    owner, project = get_project(owner, project_name, ProjectAccess.write)
-    # TODO: Pagination
-    repos = hg.get_repos(owner)
-    repos = sorted(repos, key=lambda r: r["updated"], reverse=True)
-    existing = [r.remote_id for r in (SourceRepo.query
-            .filter(SourceRepo.project_id == project.id)
-            .filter(SourceRepo.repo_type == RepoType.hg)).all()]
-    return render_template("sources-select.html",
-            view="new-resource", vcs="hg",
-            owner=owner, project=project, repos=repos,
-            existing=existing)
+    return src_new_GET(owner, project_name, "hg", hg, RepoType.hg)
 
 @sources.route("/<owner>/<project_name>/git/new", methods=["POST"])
 @loginrequired
