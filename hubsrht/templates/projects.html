@@ -35,8 +35,8 @@
         name="search"
         type="text"
         placeholder="Search {{user.canonical_name}}'s projects"
-        class="form-control"
-        value="{{search if search else ""}}" />
+        class="form-control {% if search_error %}is-invalid{% endif %}"
+        value="{{search or ""}}" />
       {% if search_error %}
         <div class="invalid-feedback">{{ search_error }}</div>
       {% endif %}

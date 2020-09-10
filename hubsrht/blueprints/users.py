@@ -55,11 +55,15 @@ def projects_GET(owner):
         projects = projects.filter(Project.visibility == Visibility.public)
 
     search = request.args.get("search")
+    search_error = None
     if search:
-        projects = search_by(projects, search,
-                [Project.name, Project.description])
+        try:
+            projects = search_by(projects, search,
+                    [Project.name, Project.description])
+        except ValueError as e:
+            search_error = str(e)
 
     projects, pagination = paginate_query(projects)
 
     return render_template("projects.html", user=owner, projects=projects,
-            search=search, **pagination)
+            search=search, search_error=search_error, **pagination)
