@@ -12,7 +12,7 @@
           name="search"
           type="text"
           placeholder="Search all public projects"
-          class="form-control"
+          class="form-control {% if search_error %} is-invalid{% endif %}"
           value="{{search if search else ""}}" />
         {% if search_error %}
           <div class="invalid-feedback">{{ search_error }}</div>

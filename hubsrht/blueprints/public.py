@@ -45,9 +45,13 @@ def project_index():
             .filter(Project.checklist_complete))
 
     search = request.args.get("search")
+    search_error = None
     if search:
-        projects = search_by(projects, search,
-                [Project.name, Project.description])
+        try:
+            projects = search_by(projects, search,
+                    [Project.name, Project.description])
+        except ValueError as e:
+            search_error = str(e)
 
     sort = request.args.get("sort")
     if sort and sort == "recently-updated":
@@ -68,7 +72,7 @@ def project_index():
 
     return render_template("project-index.html", projects=projects,
             search=search, features=features, sort=sort, **pagination,
-            search_keys=["sort"])
+            search_keys=["sort"], search_error=search_error)
 
 @public.route("/projects/featured")
 def featured_projects():
