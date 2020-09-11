@@ -43,6 +43,18 @@
         value="{{description or ""}}" />
       {{valid.summary("description")}}
     </div>
+    <div class="form-group">
+      <label for="tags">Tags</label>
+      <input
+        type="text"
+        id="tags"
+        name="tags"
+        class="form-control {{valid.cls("tags")}}"
+        placeholder="Up to three comma-separated topics"
+        required
+        value="{{", ".join(tags) or ""}}" />
+      {{valid.summary("tags")}}
+    </div>
     <div class="flex-grow-1 d-flex flex-row justify-content-end">
       <button type="submit" class="btn btn-primary align-self-end">
         Create project {{icon("caret-right")}}

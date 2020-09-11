@@ -17,6 +17,8 @@ class Project(Base):
 
     name = sa.Column(sa.Unicode(128), nullable=False)
     description = sa.Column(sa.Unicode(512), nullable=False)
+    tags = sa.Column(sa.ARRAY(sa.String(16), dimensions=1),
+            nullable=False, server_default="{}")
     website = sa.Column(sa.Unicode)
     visibility = sa.Column(sau.ChoiceType(Visibility, impl=sa.String()),
             nullable=False, server_default="unlisted")

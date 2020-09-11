@@ -1,3 +1,4 @@
+from sqlalchemy.sql import operators
 from flask import Blueprint, render_template, request, session
 from hubsrht.types import Project, Feature, Event, EventType, Visibility, User
 from srht.flask import paginate_query
@@ -49,7 +50,10 @@ def project_index():
     if search:
         try:
             projects = search_by(projects, search,
-                    [Project.name, Project.description])
+                    [Project.name, Project.description],
+                    key_fns={"tag": lambda t:
+                        Project.tags.any(t, operator=operators.ilike_op)},
+                    term_map=lambda t: f"tag:{t[1:]}" if t.startswith("#") else t)
         except ValueError as e:
             search_error = str(e)
 

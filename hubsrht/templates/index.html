@@ -41,6 +41,14 @@
         <blockquote>
           {{feature.summary | md}}
         </blockquote>
+        {% if project.tags %}
+        <div class="tags">
+        {% for tag in project.tags %}
+          <a href="{{url_for("public.project_index", search="#"+tag)}}"
+             class="tag">#{{tag}}</a>
+        {% endfor %}
+        </div>
+        {% endif %}
       </div>
       {% endfor %}
     </div>

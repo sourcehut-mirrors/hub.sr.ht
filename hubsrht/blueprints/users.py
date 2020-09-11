@@ -1,4 +1,5 @@
 from sqlalchemy import or_
+from sqlalchemy.sql import operators
 from flask import Blueprint, render_template, request, abort
 from hubsrht.types import User, Project, Visibility, Event, EventType
 from hubsrht.types import SourceRepo, MailingList, Tracker
@@ -59,7 +60,10 @@ def projects_GET(owner):
     if search:
         try:
             projects = search_by(projects, search,
-                    [Project.name, Project.description])
+                    [Project.name, Project.description],
+                    key_fns={"tag": lambda t:
+                        Project.tags.any(t, operator=operators.ilike_op)},
+                    term_map=lambda t: f"tag:{t[1:]}" if t.startswith("#") else t)
         except ValueError as e:
             search_error = str(e)
 

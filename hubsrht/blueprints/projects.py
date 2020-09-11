@@ -121,6 +121,21 @@ def dismiss_checklist_POST(owner, project_name):
         owner=current_user.canonical_name,
         project_name=project.name))
 
+def _verify_tags(valid, raw_tags):
+    raw_tags = raw_tags or ""
+    tags = list(filter(lambda t: t, map(lambda t: t.strip(), raw_tags.split(","))))
+    valid.expect(len(tags) <= 3,
+            f"Too many tags ({len(tags)}, max 3)",
+            field="tags")
+    valid.expect(all(len(t) <= 16 for t in tags),
+            "Tags may be no longer than 16 characters",
+            field="tags")
+    valid.expect(all(re.match(r"^[A-Za-z0-9_][A-Za-z0-9_.-]*$", t) for t in tags),
+            "Tags must start with alphanumerics or underscores " +
+                "and may additionally include dots and dashes",
+            field="tags")
+    return tags
+
 @projects.route("/projects/create")
 @loginrequired
 def create_GET():
@@ -132,6 +147,7 @@ def create_POST():
     valid = Validation(request)
     name = valid.require("name")
     description = valid.require("description")
+    raw_tags = valid.require("tags")
     visibility = valid.require("visibility", cls=Visibility)
     valid.expect(not name or len(name) < 128,
             "Name must be fewer than 128 characters", field="name")
@@ -144,12 +160,14 @@ def create_POST():
     valid.expect(not description or len(description) < 512,
             "Description must be fewer than 512 characters",
             field="description")
+    tags = _verify_tags(valid, raw_tags)
     if not valid.ok:
         return render_template("project-create.html", **valid.kwargs)
 
     project = Project()
     project.name = name
     project.description = description
+    project.tags = tags
     project.visibility = visibility
     project.owner_id = current_user.id
     db.session.add(project)
@@ -173,6 +191,7 @@ def config_POST(owner, project_name):
 
     valid = Validation(request)
     description = valid.require("description")
+    tags = _verify_tags(valid, valid.require("tags"))
     website = valid.optional("website")
     visibility = valid.require("visibility", cls=Visibility)
     valid.expect(not website or valid_url(website),
@@ -182,6 +201,7 @@ def config_POST(owner, project_name):
                 owner=owner, project=project, **valid.kwargs)
 
     project.description = description
+    project.tags = tags
     project.website = website
     project.visibility = visibility
     db.session.commit()

@@ -135,3 +135,16 @@
     margin: 0;
   }
 }
+
+.tags .tag:not(:last-child) {
+  margin-right: 0.5rem;
+}
+
+.event-list .event p {
+  margin-bottom: 0;
+}
+
+h5 .tags {
+  font-weight: normal;
+  font-size: 0.9rem;
+}

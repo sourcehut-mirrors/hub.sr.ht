@@ -34,6 +34,18 @@
               {{valid.summary("description")}}
             </div>
             <div class="form-group">
+              <label for="tags">Tags</label>
+              <input
+                class="form-control {{valid.cls("tags")}}"
+                type="text"
+                id="tags"
+                name="tags"
+                placeholder="Up to three comma-separated topics"
+                value="{{tags or ", ".join(project.tags)}}"
+                required />
+              {{valid.summary("tags")}}
+            </div>
+            <div class="form-group">
               <label for="project-website">Website</label>
               <input
                 class="form-control {{valid.cls("website")}}"
