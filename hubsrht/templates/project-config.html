@@ -41,8 +41,7 @@
                 id="tags"
                 name="tags"
                 placeholder="Up to three comma-separated topics"
-                value="{{tags or ", ".join(project.tags)}}"
-                required />
+                value="{{tags or ", ".join(project.tags)}}" />
               {{valid.summary("tags")}}
             </div>
             <div class="form-group">

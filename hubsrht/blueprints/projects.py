@@ -147,7 +147,7 @@ def create_POST():
     valid = Validation(request)
     name = valid.require("name")
     description = valid.require("description")
-    raw_tags = valid.require("tags")
+    raw_tags = valid.optional("tags")
     visibility = valid.require("visibility", cls=Visibility)
     valid.expect(not name or len(name) < 128,
             "Name must be fewer than 128 characters", field="name")
@@ -191,7 +191,7 @@ def config_POST(owner, project_name):
 
     valid = Validation(request)
     description = valid.require("description")
-    tags = _verify_tags(valid, valid.require("tags"))
+    tags = _verify_tags(valid, valid.optional("tags"))
     website = valid.optional("website")
     visibility = valid.require("visibility", cls=Visibility)
     valid.expect(not website or valid_url(website),
