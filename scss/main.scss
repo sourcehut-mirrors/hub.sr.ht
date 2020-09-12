@@ -136,8 +136,14 @@
   }
 }
 
-.tags .tag:not(:last-child) {
-  margin-right: 0.5rem;
+.tags {
+  a {
+    @extend .text-muted;
+  }
+
+  .tag:not(:last-child) {
+    margin-right: 0.5rem;
+  }
 }
 
 .event-list .event p {
