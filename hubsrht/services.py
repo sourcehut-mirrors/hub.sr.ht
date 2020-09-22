@@ -23,8 +23,10 @@ def format_readme(content, filename="", link_prefix=None):
     if ext in markdown_exts:
         html = markdown(content,
                 link_prefix=link_prefix)
-    else:
+    elif content:
         html = f"<pre>{escape(content)}</pre>"
+    else:
+        html = ""
     return Markup(html)
 
 def try_html_readme(session, prefix, user, repo_name):
