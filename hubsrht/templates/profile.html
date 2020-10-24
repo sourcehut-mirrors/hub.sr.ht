@@ -24,6 +24,21 @@
     {% if user.bio %}
     <p>{{user.bio | md}}</p>
     {% endif %}
+    {%  if current_user and user.id == current_user.id %}
+    <a
+      class="btn btn-primary btn-block"
+      href="{{url_for("projects.create_GET")}}"
+    >
+      Create new project {{icon("caret-right")}}
+    </a>
+    <a
+      style="margin-bottom: 1rem"
+      class="btn btn-white btn-sm btn-block"
+      href="{{get_origin("meta.sr.ht", external=True)}}/profile"
+    >
+      Edit your profile {{icon("caret-right")}}
+    </a>
+    {% endif %}
   </div>
   <div class="col-md-8">
     {% if projects %}
