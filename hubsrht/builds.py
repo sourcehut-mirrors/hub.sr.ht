@@ -78,7 +78,7 @@ def submit_patchset(ml, payload):
 git config --global user.name 'builds.sr.ht'
 git config --global user.email builds@sr.ht
 cd {repo.name}
-curl --no-progress-meter {ml.url()}/patches/{payload["id"]}/mbox >/tmp/{payload["id"]}.patch
+curl -sS {ml.url()}/patches/{payload["id"]}/mbox >/tmp/{payload["id"]}.patch
 git am -3 /tmp/{payload["id"]}.patch"""
         })
         manifest.tasks.insert(0, task)
