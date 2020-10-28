@@ -134,6 +134,8 @@ class GitService(SrhtService):
         if r["data"]["repository"]["multiple"]:
             for ent in r["data"]["repository"]["multiple"]["object"]\
                     ["entries"]["results"]:
+                if not ent["object"]:
+                    continue
                 manifests[ent["name"]] = ent["object"]["text"]
         elif r["data"]["repository"]["single"]:
             manifests[".build.yml"] = r["data"]["repository"]["single"]\
