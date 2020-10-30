@@ -386,16 +386,6 @@ class TodoService(SrhtService):
         except:
             pass # nbd, upstream was presumably deleted
 
-    def create_tracker(self, user, valid):
-        name = valid.require("name")
-        description = valid.optional("description")
-        if not valid.ok:
-            return None
-        return self.post(user, valid, f"{_todosrht}/api/trackers", {
-            "name": name,
-            "description": description,
-        })
-
 class BuildService(SrhtService):
     def submit_build(self, user, manifest, note, tags, execute=True):
         return self.post(user, None, f"{_buildsrht}/api/jobs", {
