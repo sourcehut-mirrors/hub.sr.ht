@@ -1,3 +1,4 @@
+import json
 import os.path
 import requests
 import yaml
@@ -131,7 +132,8 @@ class GitService(SrhtService):
             },
         })
         if not r["data"]["repository"]:
-            raise Exception(f"git.sr.ht did not find repo ID {repo_id} (requesting on behalf of {user.username})")
+            raise Exception(f"git.sr.ht did not find repo ID {repo_id} (requesting on behalf of {user.username})\n" +
+                    json.dumps(r, indent=1))
         manifests = dict()
         if r["data"]["repository"]["multiple"]:
             for ent in r["data"]["repository"]["multiple"]["object"]\
