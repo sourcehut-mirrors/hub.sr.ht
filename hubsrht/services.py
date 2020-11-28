@@ -130,6 +130,8 @@ class GitService(SrhtService):
                 "repoId": repo_id,
             },
         })
+        if not r["data"]["repository"]:
+            raise Exception(f"git.sr.ht did not find repo ID {repo_id} (requesting on behalf of {user.username})")
         manifests = dict()
         if r["data"]["repository"]["multiple"]:
             for ent in r["data"]["repository"]["multiple"]["object"]\
