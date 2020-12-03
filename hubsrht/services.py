@@ -70,49 +70,6 @@ class SrhtService(ABC):
             raise Exception(r.text)
         return r.json()
 
-manifests_query = """
-query Manifests($repoId: Int!) {
-  repository(id: $repoId) {
-    multiple: path(path:".builds") {
-      object {
-        ... on Tree {
-          entries {
-            results {
-              name
-              object { ... on TextBlob { text } }
-            }
-          }
-        }
-      }
-    },
-    single: path(path:".build.yml") {
-      object {
-        ... on TextBlob { text }
-      }
-    }
-  }
-}
-"""
-
-readme_query = """
-query Readme($repoId: Int!) {
-    repository(id: $repoId) {
-        html: readme
-        md: path(path: "README.md") { ...textData }
-        markdown: path(path: "README.markdown") { ...textData }
-        plaintext: path(path: "README") { ...textData }
-    }
-}
-
-fragment textData on TreeEntry {
-    object {
-        ... on TextBlob {
-            text
-        }
-    }
-}
-"""
-
 class GitService(SrhtService):
     def __init__(self):
         super().__init__()
@@ -128,7 +85,24 @@ class GitService(SrhtService):
         return r.json()
 
     def get_readme(self, user, repo_id, repo_url):
-        link_prefix = repo_url + "/blob/HEAD/"
+        readme_query = """
+        query Readme($repoId: Int!) {
+            repository(id: $repoId) {
+                html: readme
+                md: path(path: "README.md") { ...textData }
+                markdown: path(path: "README.markdown") { ...textData }
+                plaintext: path(path: "README") { ...textData }
+            }
+        }
+
+        fragment textData on TreeEntry {
+            object {
+                ... on TextBlob {
+                    text
+                }
+            }
+        }
+        """
         r = self.post(user, None, f"{_gitsrht}/query", {
                 "query": readme_query,
                 "variables": {
@@ -146,6 +120,7 @@ class GitService(SrhtService):
 
         content = repo["md"] or repo["markdown"]
         if content:
+            link_prefix = repo_url + "/blob/HEAD/"
             html = markdown(content["object"]["text"], link_prefix=link_prefix)
             return Markup(html)
 
@@ -157,6 +132,29 @@ class GitService(SrhtService):
         return None
 
     def get_manifests(self, user, repo_id):
+        manifests_query = """
+        query Manifests($repoId: Int!) {
+          repository(id: $repoId) {
+            multiple: path(path:".builds") {
+              object {
+                ... on Tree {
+                  entries {
+                    results {
+                      name
+                      object { ... on TextBlob { text } }
+                    }
+                  }
+                }
+              }
+            },
+            single: path(path:".build.yml") {
+              object {
+                ... on TextBlob { text }
+              }
+            }
+          }
+        }
+        """
         r = self.post(user, None, f"{_gitsrht}/query", {
             "query": manifests_query,
             "variables": {
@@ -181,21 +179,46 @@ class GitService(SrhtService):
         return manifests
 
     def create_repo(self, user, valid, visibility):
+        query = """
+        mutation CreateRepo(
+                $name: String!,
+                $description: String,
+                $visibility: Visibility!) {
+            createRepository(name: $name,
+                    description: $description,
+                    visibility: $visibility) {
+                id, name, description, visibility
+            }
+        }
+        """
         name = valid.require("name")
         description = valid.require("description")
         if not valid.ok:
             return None
-        return self.post(user, valid, f"{_gitsrht}/api/repos", {
-            "name": name,
-            "description": description,
-            "visibility": visibility.value,
+        r = self.post(user, None, f"{_gitsrht}/query", {
+            "query": query,
+            "variables": {
+                "name": name,
+                "visibility": visibility.value.upper(),
+                "description": description,
+            }
         })
+        repo = r["data"]["createRepository"]
+        repo["visibility"] = repo["visibility"].lower()
+        return r["data"]["createRepository"]
 
-    def delete_repo(self, user, repo_name):
-        r = self.session.delete(f"{_gitsrht}/api/repos/{repo_name}",
-                headers=encrypt_request_authorization(user))
-        if r.status_code != 204 and r.status_code != 404:
-            raise Exception(r.text)
+    def delete_repo(self, user, repo_id):
+        query = """
+        mutation DeleteRepo($id: Int!) {
+            deleteRepository(id: $id) { id }
+        }
+        """
+        self.post(user, None, f"{_gitsrht}/query", {
+            "query": query,
+            "variables": {
+                "id": repo_id,
+            },
+        })
 
     def ensure_user_webhooks(self, user):
         config = {
