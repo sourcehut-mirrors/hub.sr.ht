@@ -5,7 +5,7 @@ import yaml
 from abc import ABC
 from flask import url_for
 from jinja2 import Markup, escape
-from srht.api import ensure_webhooks, get_authorization, get_results
+from srht.api import ensure_webhooks, encrypt_request_authorization, get_results
 from srht.markdown import markdown, sanitize
 from srht.config import get_origin
 
@@ -32,7 +32,7 @@ def format_readme(content, filename="", link_prefix=None):
 
 def try_html_readme(session, prefix, user, repo_name):
     r = session.get(f"{prefix}/api/repos/{repo_name}/readme",
-            headers=get_authorization(user))
+            headers=encrypt_request_authorization(user))
     if r.status_code == 200:
         return Markup(sanitize(r.text))
     elif r.status_code == 404:
@@ -46,7 +46,7 @@ class SrhtService(ABC):
 
     def post(self, user, valid, url, payload):
         r = self.session.post(url,
-            headers=get_authorization(user),
+            headers=encrypt_request_authorization(user),
             json=payload)
         if r.status_code == 400:
             if valid:
@@ -59,7 +59,7 @@ class SrhtService(ABC):
 
     def put(self, user, valid, url, payload):
         r = self.session.put(url,
-            headers=get_authorization(user),
+            headers=encrypt_request_authorization(user),
             json=payload)
         if r.status_code == 400:
             if valid:
@@ -94,6 +94,25 @@ query Manifests($repoId: Int!) {
 }
 """
 
+readme_query = """
+query Readme($repoId: Int!) {
+    repository(id: $repoId) {
+        html: readme
+        md: path(path: "README.md") { ...textData }
+        markdown: path(path: "README.markdown") { ...textData }
+        plaintext: path(path: "README") { ...textData }
+    }
+}
+
+fragment textData on TreeEntry {
+    object {
+        ... on TextBlob {
+            text
+        }
+    }
+}
+"""
+
 class GitService(SrhtService):
     def __init__(self):
         super().__init__()
@@ -103,26 +122,39 @@ class GitService(SrhtService):
 
     def get_repo(self, user, repo_name):
         r = self.session.get(f"{_gitsrht}/api/repos/{repo_name}",
-                headers=get_authorization(user))
+                headers=encrypt_request_authorization(user))
         if r.status_code != 200:
             raise Exception(r.text)
         return r.json()
 
-    def get_readme(self, user, repo_name, repo_url):
-        # TODO: Cache?
-        override = try_html_readme(self.session, _gitsrht, user, repo_name)
-        if override is not None:
-            return override
+    def get_readme(self, user, repo_id, repo_url):
         link_prefix = repo_url + "/blob/HEAD/"
-        for readme_name in readme_names:
-            r = self.session.get(f"{_gitsrht}/api/repos/{repo_name}/blob/HEAD/{readme_name}",
-                    headers=get_authorization(user))
-            if r.status_code == 404:
-                continue
-            elif r.status_code != 200:
-                raise Exception(r.text)
-            return format_readme(r.text, readme_name, link_prefix)
-        return format_readme("")
+        r = self.post(user, None, f"{_gitsrht}/query", {
+                "query": readme_query,
+                "variables": {
+                    "repoId": repo_id,
+                },
+            })
+        if not r["data"]["repository"]:
+            raise Exception(f"git.sr.ht returned no repository for ID {repo_id}: " +
+                    json.dumps(r, indent=1))
+        repo = r["data"]["repository"]
+
+        content = repo["html"]
+        if content:
+            return Markup(sanitize(content["object"]["text"]))
+
+        content = repo["md"] or repo["markdown"]
+        if content:
+            html = markdown(content["object"]["text"], link_prefix=link_prefix)
+            return Markup(html)
+
+        content = repo["plaintext"]
+        if content:
+            content = content["object"]["text"]
+            return Markup(f"<pre>{escape(content)}</pre>")
+
+        return None
 
     def get_manifests(self, user, repo_id):
         r = self.post(user, None, f"{_gitsrht}/query", {
@@ -161,7 +193,7 @@ class GitService(SrhtService):
 
     def delete_repo(self, user, repo_name):
         r = self.session.delete(f"{_gitsrht}/api/repos/{repo_name}",
-                headers=get_authorization(user))
+                headers=encrypt_request_authorization(user))
         if r.status_code != 204 and r.status_code != 404:
             raise Exception(r.text)
 
@@ -206,7 +238,7 @@ class HgService(SrhtService):
 
     def get_repo(self, user, repo_name):
         r = self.session.get(f"{_hgsrht}/api/repos/{repo_name}",
-                headers=get_authorization(user))
+                headers=encrypt_request_authorization(user))
         if r.status_code != 200:
             raise Exception(r.text)
         return r.json()
@@ -219,7 +251,7 @@ class HgService(SrhtService):
         link_prefix = repo_url + "/raw/"
         for readme_name in readme_names:
             r = self.session.get(f"{_hgsrht}/api/repos/{repo_name}/raw/{readme_name}",
-                    headers=get_authorization(user))
+                    headers=encrypt_request_authorization(user))
             if r.status_code == 404:
                 continue
             elif r.status_code != 200:
@@ -240,7 +272,7 @@ class HgService(SrhtService):
 
     def delete_repo(self, user, repo_name):
         r = self.session.delete(f"{_hgsrht}/api/repos/{repo_name}",
-                headers=get_authorization(user))
+                headers=encrypt_request_authorization(user))
         if r.status_code != 204 and r.status_code != 404:
             raise Exception(r.text)
 
@@ -264,7 +296,7 @@ class ListService(SrhtService):
 
     def get_list(self, user, list_name):
         r = self.session.get(f"{_listsrht}/api/lists/{list_name}",
-                headers=get_authorization(user))
+                headers=encrypt_request_authorization(user))
         if r.status_code != 200:
             raise Exception(r.json())
         return r.json()
@@ -299,7 +331,7 @@ class ListService(SrhtService):
 
     def delete_list(self, user, list_name):
         r = self.session.delete(f"{_listsrht}/api/lists/{list_name}",
-                headers=get_authorization(user))
+                headers=encrypt_request_authorization(user))
         if r.status_code != 204 and r.status_code != 404:
             raise Exception(r.text)
 
@@ -317,7 +349,7 @@ class TodoService(SrhtService):
 
     def get_tracker(self, user, tracker_name):
         r = self.session.get(f"{_todosrht}/api/trackers/{tracker_name}",
-                headers=get_authorization(user))
+                headers=encrypt_request_authorization(user))
         if r.status_code != 200:
             raise Exception(r.json())
         return r.json()
@@ -334,7 +366,7 @@ class TodoService(SrhtService):
 
     def delete_tracker(self, user, tracker_name):
         r = self.session.delete(f"{_todosrht}/api/trackers/{tracker_name}",
-                headers=get_authorization(user))
+                headers=encrypt_request_authorization(user))
         if r.status_code != 204 and r.status_code != 404:
             raise Exception(r.text)
 
