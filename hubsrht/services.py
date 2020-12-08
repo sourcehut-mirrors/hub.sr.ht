@@ -120,8 +120,9 @@ class GitService(SrhtService):
 
         content = repo["md"] or repo["markdown"]
         if content:
-            link_prefix = repo_url + "/blob/HEAD/"
-            html = markdown(content["object"]["text"], link_prefix=link_prefix)
+            blob_prefix = repo_url + "/blob/HEAD/"
+            rendered_prefix = repo_url + "/tree/HEAD/"
+            html = markdown(content["object"]["text"], link_prefix=[rendered_prefix, blob_prefix])
             return Markup(html)
 
         content = repo["plaintext"]
@@ -271,7 +272,8 @@ class HgService(SrhtService):
         override = try_html_readme(self.session, _hgsrht, user, repo_name)
         if override is not None:
             return override
-        link_prefix = repo_url + "/raw/"
+        blob_prefix = repo_url + "/raw/"
+        rendered_prefix = repo_url + "/browse/"
         for readme_name in readme_names:
             r = self.session.get(f"{_hgsrht}/api/repos/{repo_name}/raw/{readme_name}",
                     headers=encrypt_request_authorization(user))
@@ -279,7 +281,7 @@ class HgService(SrhtService):
                 continue
             elif r.status_code != 200:
                 raise Exception(r.text)
-            return format_readme(r.text, readme_name, link_prefix)
+            return format_readme(r.text, readme_name, link_prefix=[rendered_prefix, blob_prefix])
         return format_readme("")
 
     def create_repo(self, user, valid, visibility):
