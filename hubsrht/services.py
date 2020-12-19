@@ -204,6 +204,8 @@ class GitService(SrhtService):
                 "description": description,
             }
         })
+        if not r["data"]:
+            raise Exception(f"Invalid response from git.sr.ht: {r}")
         repo = r["data"]["createRepository"]
         repo["visibility"] = repo["visibility"].lower()
         return r["data"]["createRepository"]
