@@ -14,6 +14,12 @@ class RepoType(Enum):
 
 class SourceRepo(Base):
     __tablename__ = "source_repo"
+    __table_args__ = (
+        sa.UniqueConstraint(
+            "project_id", "remote_id", "repo_type",
+            name="project_source_repo_unique",
+        ),
+    )
     id = sa.Column(sa.Integer, primary_key=True)
     remote_id = sa.Column(sa.Integer, nullable=False)
     created = sa.Column(sa.DateTime, nullable=False)
