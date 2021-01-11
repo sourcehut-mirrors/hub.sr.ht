@@ -205,7 +205,9 @@ class GitService(SrhtService):
             }
         })
         if not r["data"]:
-            raise Exception(f"Invalid response from git.sr.ht: {r}")
+            for error in r["errors"]:
+                valid.error(error["message"])
+            return None
         repo = r["data"]["createRepository"]
         repo["visibility"] = repo["visibility"].lower()
         return r["data"]["createRepository"]
