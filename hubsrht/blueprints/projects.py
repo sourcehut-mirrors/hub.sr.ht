@@ -1,4 +1,5 @@
 import re
+import string
 from sqlalchemy import or_
 from flask import Blueprint, Response, render_template, request, redirect, url_for, abort
 from flask import session
@@ -123,7 +124,8 @@ def dismiss_checklist_POST(owner, project_name):
 
 def _verify_tags(valid, raw_tags):
     raw_tags = raw_tags or ""
-    tags = list(filter(lambda t: t, map(lambda t: t.strip(), raw_tags.split(","))))
+    tags = list(filter(lambda t: t,
+            map(lambda t: t.strip(string.whitespace + "#"), raw_tags.split(","))))
     valid.expect(len(tags) <= 3,
             f"Too many tags ({len(tags)}, max 3)",
             field="tags")
@@ -162,7 +164,9 @@ def create_POST():
             field="description")
     tags = _verify_tags(valid, raw_tags)
     if not valid.ok:
-        return render_template("project-create.html", **valid.kwargs)
+        kwargs = valid.kwargs
+        kwargs.pop("tags")
+        return render_template("project-create.html", **kwargs, tags=tags)
 
     project = Project()
     project.name = name
