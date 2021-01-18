@@ -385,7 +385,7 @@ class TodoService(SrhtService):
 
     def create_tracker(self, user, valid):
         name = valid.require("name")
-        description = valid.require("description")
+        description = valid.optional("description")
         if not valid.ok:
             return None
         return self.post(user, valid, f"{_todosrht}/api/trackers", {
