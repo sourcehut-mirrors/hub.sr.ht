@@ -19,19 +19,26 @@ projects = Blueprint("projects", __name__)
 
 site_name = cfg("sr.ht", "site-name")
 ext_origin = get_origin("hub.sr.ht", external=True)
-clone_message = lambda owner, project, scm: f"""
+
+def get_clone_message(owner, project, scm, sources):
+    repo_urls = ""
+    for repo in sources:
+        # Python doesn't allow \ in format string blocks ({}) so we add
+        # it here to get a newline before URLs block.
+        repo_urls += f"\n  {repo.url()}{' - ' + repo.description if repo.description else ''}"
+
+    return f"""
 
 You have tried to clone a project from {site_name}, but you probably meant to
 clone a specific {scm} repository for this project instead. A single project on
 {site_name} often has more than one {scm} repository.
 
-You can visit the following URL:
+{"You may want one of the following repositories:" + repo_urls if repo_urls != "" else ""}
+
+To browse the all of the available repositories for this project, visit this URL:
 
   {ext_origin}{url_for("sources.sources_GET",
       owner=owner.canonical_name, project_name=project.name)}
-
-To browse the source repositories for this project.
-
 """
 
 @projects.route("/<owner>/<project_name>/")
@@ -40,7 +47,14 @@ def summary_GET(owner, project_name):
 
     # Mercurial clone
     if request.args.get("cmd") == "capabilities":
-        return Response(clone_message(owner, project, "hg"),
+        sources = (SourceRepo.query
+                .filter(SourceRepo.project_id == project.id)
+                .filter(SourceRepo.repo_type == RepoType.hg)
+                .filter(SourceRepo.visibility == Visibility.public)
+                .order_by(SourceRepo.updated.desc())
+                .limit(5))
+
+        return Response(get_clone_message(owner, project, "hg", sources),
                 mimetype="text/plain")
 
     summary = None
@@ -80,7 +94,15 @@ def summary_GET(owner, project_name):
 def summary_refs(owner, project_name):
     if request.args.get("service") == "git-upload-pack":
         owner, project = get_project(owner, project_name, ProjectAccess.read)
-        msg = clone_message(owner, project, "git")
+
+        sources = (SourceRepo.query
+                .filter(SourceRepo.project_id == project.id)
+                .filter(SourceRepo.repo_type == RepoType.git)
+                .filter(SourceRepo.visibility == Visibility.public)
+                .order_by(SourceRepo.updated.desc())
+                .limit(5))
+
+        msg = get_clone_message(owner, project, "git", sources)
 
         return Response(f"""001e# service=git-upload-pack
 000000400000000000000000000000000000000000000000 HEAD\0agent=hubsrht
