@@ -116,7 +116,7 @@ class GitService(SrhtService):
 
         content = repo["html"]
         if content:
-            return Markup(sanitize(content["object"]["text"]))
+            return Markup(sanitize(content))
 
         content = repo["md"] or repo["markdown"]
         if content:
