@@ -83,6 +83,14 @@ git am -3 /tmp/{payload["id"]}.patch"""
         })
         manifest.tasks.insert(0, task)
 
+        if not manifest.env:
+            manifest.env = {}
+
+        manifest.env.setdefault("BUILD_SUBMITTER", "hub.sr.ht")
+        manifest.env.setdefault("BUILD_REASON", "patchset")
+        manifest.env.setdefault("PATCHSET_ID", payload["id"])
+        manifest.env.setdefault("PATCHSET_URL", f"{ml.url()}/patches/{payload['id']}")
+
         # Add webhook trigger
         root = get_origin("hub.sr.ht", external=True)
         details = fernet.encrypt(json.dumps({
