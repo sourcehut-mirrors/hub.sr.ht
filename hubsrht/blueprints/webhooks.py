@@ -339,6 +339,7 @@ def todo_ticket(tracker_id):
 @webhooks.route("/webhooks/build-complete/<details>", methods=["POST"])
 def build_complete(details):
     payload = verify_request_signature(request)
+    payload = json.loads(payload.decode('utf-8'))
     details = fernet.decrypt(details.encode())
     if not details:
         return "Bad payload", 400
