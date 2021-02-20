@@ -338,7 +338,7 @@ def todo_ticket(tracker_id):
 @csrf_bypass
 @webhooks.route("/webhooks/build-complete/<details>", methods=["POST"])
 def build_complete(details):
-    payload = json.loads(request.data.decode())
+    payload = verify_request_signature(request)
     details = fernet.decrypt(details.encode())
     if not details:
         return "Bad payload", 400
@@ -348,6 +348,8 @@ def build_complete(details):
     if not ml:
         return "Unknown mailing list", 404
     project = ml.project
+    if payload["owner"]["canonical_name"] != details["user"]:
+        return "Discarding webhook from unauthorized build", 401
 
     buildsrht = get_origin("builds.sr.ht", external=True)
     build_url = f"{buildsrht}/{project.owner.canonical_name}/job/{payload['id']}"

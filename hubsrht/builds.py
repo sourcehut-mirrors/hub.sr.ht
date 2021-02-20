@@ -99,6 +99,7 @@ git am -3 /tmp/{payload["id"]}.patch"""
             "patchset_id": payload["id"],
             "key": tool_key,
             "name": key,
+            "user": project.owner.canonical_name,
         }).encode()).decode()
         manifest.triggers.append(Trigger({
             "action": TriggerAction.webhook,
