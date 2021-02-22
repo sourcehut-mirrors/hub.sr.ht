@@ -1,4 +1,5 @@
 from flask import Blueprint, render_template, request, redirect, url_for
+from flask import abort
 from hubsrht.projects import ProjectAccess, get_project
 from hubsrht.services import todo
 from hubsrht.types import Event, EventType, Tracker, Visibility
