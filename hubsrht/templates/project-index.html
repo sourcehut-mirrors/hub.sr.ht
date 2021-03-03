@@ -116,8 +116,7 @@
         {% for tag in tags %}
         <div class="col-md-4">
           <a
-            href="{{url_for("public.project_index",
-                search=((search or "").strip() + " #"+tag[1]).lstrip())}}"
+            href="{{url_for("public.project_index", search="#"+tag[1])}}"
            >#{{tag[1]}}</a>:
           {{tag[0]}} project{% if tag[0] > 1 %}s{% endif %}
         </div>
