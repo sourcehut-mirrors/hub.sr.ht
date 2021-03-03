@@ -1,6 +1,7 @@
 from sqlalchemy.sql import operators
 from flask import Blueprint, render_template, request, session
 from hubsrht.types import Project, Feature, Event, EventType, Visibility, User
+from srht.database import db
 from srht.flask import paginate_query
 from srht.oauth import current_user, loginrequired
 from srht.search import search_by
@@ -72,9 +73,19 @@ def project_index():
             .order_by(Feature.created.desc())
             .limit(5)).all()
 
+    tags = db.engine.execute("""
+        SELECT count(*) count, unnest(tags) tag
+        FROM project
+        GROUP BY tag
+        ORDER BY count DESC
+        LIMIT 12;
+    """)
+    tags = [(row[0], row[1]) for row in tags]
+
     return render_template("project-index.html", projects=projects,
             search=search, features=features, sort=sort, **pagination,
-            search_keys=["sort"], search_error=search_error)
+            search_keys=["sort"], search_error=search_error,
+            tags=tags)
 
 @public.route("/projects/featured")
 def featured_projects():

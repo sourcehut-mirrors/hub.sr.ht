@@ -111,6 +111,18 @@
           class="btn btn-default btn-block"
         >More featured projects {{icon('caret-right')}}</a>
       </div>
+      <h3>Popular tags</h3>
+      <div class="row">
+        {% for tag in tags %}
+        <div class="col-md-4">
+          <a
+            href="{{url_for("public.project_index",
+                search=((search or "").strip() + " #"+tag[1]).lstrip())}}"
+           >#{{tag[1]}}</a>:
+          {{tag[0]}} project{% if tag[0] > 1 %}s{% endif %}
+        </div>
+        {% endfor %}
+      </div>
     </div>
   </div>
 </div>
