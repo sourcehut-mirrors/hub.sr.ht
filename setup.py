@@ -30,7 +30,7 @@ setup(
   author = 'Drew DeVault',
   author_email = 'sir@cmpwn.com',
   url = 'https://git.sr.ht/~sircmpwn/hub.sr.ht',
-  install_requires = ['srht'],
+  install_requires = ['srht', 'pyyaml'],
   license = 'AGPL-3.0',
   package_data={
       'hubsrht': [
