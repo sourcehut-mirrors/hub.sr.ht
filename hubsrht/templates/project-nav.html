@@ -3,7 +3,7 @@
     href="{{url_for("users.summary_GET", username=owner.username)}}"
   >{{owner.canonical_name}}</a>/<wbr>{{project.name}}
 </h2>
-{% macro link(path, title, alternates, cls="") %}
+{% macro link(path, title, alternates=[], cls="") %}
 <a
   class="nav-link {% if view == title or view in alternates %}active{% endif %} {{cls}}"
   href="{{ path }}">{{ title }}</a>
