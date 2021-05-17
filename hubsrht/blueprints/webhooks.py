@@ -1,4 +1,5 @@
 import email
+import html
 import json
 from datetime import datetime
 from flask import Blueprint, request, current_app
@@ -88,7 +89,7 @@ def git_repo(repo_id):
         event.external_source = "git.sr.ht"
         event.external_summary = (
             f"<a href='{commit_url}'>{commit_sha}</a> " +
-            f"<code>{commit_message}</code>")
+            f"<code>{html.escape(commit_message)}</code>")
         event.external_details = (
             f"<a href='{pusher_url}'>{pusher_name}</a> pushed to " +
             f"<a href='{repo.url()}'>{repo_name}</a> git")
@@ -184,7 +185,7 @@ def mailing_list(list_id):
 
         event.external_source = "todo.sr.ht"
         event.external_summary = (
-            f"<a href='{archive_url}'>{subject}</a>")
+            f"<a href='{archive_url}'>{html.escape(subject)}</a>")
         event.external_details = (
             f"{sender_url} via <a href='{ml.url()}'>{ml.name}</a>")
 
@@ -274,7 +275,7 @@ def todo_tracker(tracker_id):
         event.external_source = "todo.sr.ht"
         event.external_summary = (
             f"<a href='{ticket_url}'>#{ticket_id}</a> " +
-            f"{ticket_subject}")
+            f"{html.escape(ticket_subject)}")
         event.external_details = (
             f"{submitter_url} filed ticket on " +
             f"<a href='{tracker.url()}'>{tracker.name}</a> todo")
@@ -324,7 +325,7 @@ def todo_ticket(tracker_id):
         event.external_source = "todo.sr.ht"
         event.external_summary = (
             f"<a href='{ticket_url}'>#{ticket_id}</a> " +
-            f"{ticket_subject}")
+            f"{html.escape(ticket_subject)}")
         event.external_details = (
             f"{participant_url} commented on " +
             f"<a href='{tracker.url()}'>{tracker.name}</a> todo")
