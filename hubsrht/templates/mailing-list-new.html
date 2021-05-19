@@ -95,11 +95,8 @@
           class="form-control {{valid.cls("description")}}"
           rows="5"
           aria-describedby="description-help-text"
-          placeholder="Introduce this mailing list to users and explain the posting rules."
+          placeholder="Introduce this mailing list to users and explain the posting rules. Markdown supported"
         >{{ description or "" }}</textarea>
-        <small id="description-help-text" class="form-text text-muted pull-left">
-          Markdown supported
-        </small>
         {{valid.summary("description")}}
       </div>
     </div>
