@@ -177,6 +177,8 @@ def create_POST():
             "Name must be fewer than 128 characters", field="name")
     valid.expect(not name or re.match(r'^[A-Za-z._-][A-Za-z0-9._-]*$', name),
             "Name must match [A-Za-z._-][A-Za-z0-9._-]*", field="name")
+    valid.expect(not name or name not in [".", ".."],
+            "Name cannot be '.' or '..'", field="name")
     valid.expect(not name or Project.query
             .filter(Project.name == name)
             .filter(Project.owner_id == current_user.id).count() == 0,
