@@ -175,12 +175,14 @@ def create_POST():
     visibility = valid.require("visibility", cls=Visibility)
     valid.expect(not name or len(name) < 128,
             "Name must be fewer than 128 characters", field="name")
-    valid.expect(not name or re.match(r'^[A-Za-z._-][A-Za-z0-9._-]*$', name),
-            "Name must match [A-Za-z._-][A-Za-z0-9._-]*", field="name")
+    valid.expect(not name or re.match(r'^[A-Za-z0-9._-]+$', name),
+            "Name must match [A-Za-z0-9._-]+", field="name")
     valid.expect(not name or name not in [".", ".."],
             "Name cannot be '.' or '..'", field="name")
+    valid.expect(not name or name not in [".git", ".hg"],
+            "Name must not be '.git' or '.hg'", field="name")
     valid.expect(not name or Project.query
-            .filter(Project.name == name)
+            .filter(Project.name.ilike(name.replace('_', '\\_')))
             .filter(Project.owner_id == current_user.id).count() == 0,
             "Name must be unique among your projects", field="name")
     valid.expect(not description or len(description) < 512,
