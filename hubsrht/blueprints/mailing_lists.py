@@ -143,18 +143,22 @@ def new_POST(owner, project_name):
         if not valid.ok:
             mls = lists.get_lists(owner)
             mls = sorted(mls, key=lambda r: r["updated"], reverse=True)
+            existing = [l.remote_id for l in (MailingList.query
+                    .filter(MailingList.project_id == project.id)).all()]
             return render_template("mailing-list-new.html",
                     view="new-resource", owner=owner, project=project,
-                    lists=mls, **valid.kwargs)
+                    lists=mls, existing=existing **valid.kwargs)
         return lists_from_template(owner, project, template)
     elif "create" in valid:
         mailing_list = lists.create_list(owner, valid)
         if not valid.ok:
             mls = lists.get_lists(owner)
             mls = sorted(mls, key=lambda r: r["updated"], reverse=True)
+            existing = [l.remote_id for l in (MailingList.query
+                    .filter(MailingList.project_id == project.id)).all()]
             return render_template("mailing-list-new.html",
                     view="new-resource", owner=owner, project=project,
-                    lists=mls, **valid.kwargs)
+                    lists=mls, existing=existing, **valid.kwargs)
     else:
         list_name = None
         for field in valid.source:
@@ -167,9 +171,11 @@ def new_POST(owner, project_name):
             # TODO: Search properly
             mls = filter(lambda r: search.lower() in r["name"].lower(), mls)
             mls = sorted(mls, key=lambda r: r["updated"], reverse=True)
+            existing = [l.remote_id for l in (MailingList.query
+                    .filter(MailingList.project_id == project.id)).all()]
             return render_template("mailing-list-new.html",
                     view="new-resource", owner=owner, project=project,
-                    lists=mls, search=search)
+                    lists=mls, existing=existing, search=search)
         mailing_list = lists.get_list(owner, list_name)
 
     ml = MailingList()
