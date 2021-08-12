@@ -75,10 +75,13 @@ def git_new_POST(owner, project_name):
         git_repo = git.create_repo(owner, valid, project.visibility)
         if not valid.ok:
             repos = git.get_repos(owner)
+            existing = [r.remote_id for r in (SourceRepo.query
+                    .filter(SourceRepo.project_id == project.id)
+                    .filter(SourceRepo.repo_type == RepoType.git)).all()]
             return render_template("sources-select.html",
                     view="new-resource", vcs="git",
                     owner=owner, project=project, repos=repos,
-                    existing=[], **valid.kwargs)
+                    existing=existing, **valid.kwargs)
     else:
         repo_name = None
         for field in valid.source:
@@ -92,11 +95,13 @@ def git_new_POST(owner, project_name):
             # TODO: Search properly
             repos = filter(lambda r: search.lower() in r["name"].lower(), repos)
             repos = sorted(repos, key=lambda r: r["updated"], reverse=True)
-            # TODO: Fetch existing repos for this project
+            existing = [r.remote_id for r in (SourceRepo.query
+                    .filter(SourceRepo.project_id == project.id)
+                    .filter(SourceRepo.repo_type == RepoType.git)).all()]
             return render_template("sources-select.html",
                     view="new-resource", vcs="git",
                     owner=owner, project=project, repos=repos,
-                    existing=[], search=search)
+                    existing=existing, search=search)
 
         git_repo = git.get_repo(owner, repo_name)
 
@@ -135,10 +140,13 @@ def hg_new_POST(owner, project_name):
         hg_repo = hg.create_repo(owner, valid, project.visibility)
         if not valid.ok:
             repos = hg.get_repos(owner)
+            existing = [r.remote_id for r in (SourceRepo.query
+                    .filter(SourceRepo.project_id == project.id)
+                    .filter(SourceRepo.repo_type == RepoType.hg)).all()]
             return render_template("sources-select.html",
                     view="new-resource", vcs="hg",
                     owner=owner, project=project, repos=repos,
-                    existing=[], **valid.kwargs)
+                    existing=existing, **valid.kwargs)
     else:
         repo_name = None
         for field in valid.source:
@@ -152,11 +160,13 @@ def hg_new_POST(owner, project_name):
             # TODO: Search properly
             repos = filter(lambda r: search.lower() in r["name"].lower(), repos)
             repos = sorted(repos, key=lambda r: r["updated"], reverse=True)
-            # TODO: Fetch existing repos for this project
+            existing = [r.remote_id for r in (SourceRepo.query
+                    .filter(SourceRepo.project_id == project.id)
+                    .filter(SourceRepo.repo_type == RepoType.hg)).all()]
             return render_template("sources-select.html",
                     view="new-resource", vcs="hg",
                     owner=owner, project=project, repos=repos,
-                    existing=[], search=search)
+                    existing=existing, search=search)
 
         hg_repo = hg.get_repo(owner, repo_name)
 
