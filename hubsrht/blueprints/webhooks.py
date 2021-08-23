@@ -47,6 +47,7 @@ def git_user(user_id):
         repos = (SourceRepo.query
                 .filter(SourceRepo.remote_id == payload["id"])
                 .filter(SourceRepo.repo_type == RepoType.git))
+        summary = ""
         for repo in repos:
             if repo.project.summary_repo_id == repo.id:
                 repo.project.summary_repo = None
