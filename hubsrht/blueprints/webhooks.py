@@ -31,30 +31,31 @@ def git_user(user_id):
         return "I don't recognize this user.", 404
 
     if event == "repo:update":
-        repo = (SourceRepo.query
+        repos = (SourceRepo.query
                 .filter(SourceRepo.remote_id == payload["id"])
-                .filter(SourceRepo.repo_type == RepoType.git)).one_or_none()
-        if not repo:
-            return "I don't recognize this git repo.", 404
-        repo.name = payload["name"]
-        repo.description = payload["description"]
-        repo.visibility = Visibility(payload["visibility"])
-        repo.project.updated = datetime.utcnow()
-        db.session.commit()
-        return f"Updated local:{repo.id}/remote:{repo.remote_id}. Thanks!", 200
-    elif event == "repo:delete":
-        repo = (SourceRepo.query
-                .filter(SourceRepo.remote_id == payload["id"])
-                .filter(SourceRepo.repo_type == RepoType.git)).one_or_none()
-        if not repo:
-            return "I don't recognize this git repo.", 404
-        if repo.project.summary_repo_id == repo.id:
-            repo.project.summary_repo = None
+                .filter(SourceRepo.repo_type == RepoType.git))
+        summary = ""
+        for repo in repos:
+            repo.name = payload["name"]
+            repo.description = payload["description"]
+            repo.visibility = Visibility(payload["visibility"])
+            repo.project.updated = datetime.utcnow()
             db.session.commit()
-        db.session.delete(repo)
-        repo.project.updated = datetime.utcnow()
-        db.session.commit()
-        return f"Deleted local:{repo.id}/remote:{repo.remote_id}. Thanks!", 200
+            summary += f"Updated local:{repo.id}/remote:{repo.remote_id}. Thanks!\n"
+        return summary, 200
+    elif event == "repo:delete":
+        repos = (SourceRepo.query
+                .filter(SourceRepo.remote_id == payload["id"])
+                .filter(SourceRepo.repo_type == RepoType.git))
+        for repo in repos:
+            if repo.project.summary_repo_id == repo.id:
+                repo.project.summary_repo = None
+                db.session.commit()
+            db.session.delete(repo)
+            repo.project.updated = datetime.utcnow()
+            db.session.commit()
+            summary += f"Deleted local:{repo.id}/remote:{repo.remote_id}. Thanks!\n"
+        return summary, 200
     else:
         raise NotImplementedError()
 
