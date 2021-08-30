@@ -214,31 +214,28 @@ def todo_user(user_id):
     if not user:
         return "I don't recognize this tracker.", 404
 
+    summary = ""
     if event == "tracker:update":
-        tracker = (Tracker.query
-                .filter(Tracker.remote_id == payload["id"])
-                .one_or_none())
-        if not tracker:
-            return "I don't recognize this tracker.", 404
-        tracker.name = payload["name"]
-        tracker.description = payload["description"]
-        if any(payload["default_permissions"]["anonymous"]):
-            tracker.visibility = Visibility.public
-        else:
-            tracker.visibility = Visibility.unlisted
-        tracker.project.updated = datetime.utcnow()
+        trackers = Tracker.query.filter(Tracker.remote_id == payload["id"])
+        for tracker in trackers:
+            tracker.name = payload["name"]
+            tracker.description = payload["description"]
+            if any(payload["default_permissions"]["anonymous"]):
+                tracker.visibility = Visibility.public
+            else:
+                tracker.visibility = Visibility.unlisted
+            tracker.project.updated = datetime.utcnow()
+            summary += f"Updated local:{tracker.id}/remote:{tracker.remote_id}\n"
         db.session.commit()
-        return f"Updated local:{tracker.id}/remote:{tracker.remote_id}. Thanks!", 200
+        return summary, 200
     elif event == "tracker:delete":
-        tracker = (Tracker.query
-                .filter(Tracker.remote_id == payload["id"])
-                .one_or_none())
-        if not tracker:
-            return "I don't recognize this tracker.", 404
-        tracker.project.updated = datetime.utcnow()
-        db.session.delete(tracker)
-        db.session.commit()
-        return f"Deleted local:{tracker.id}/remote:{tracker.remote_id}. Thanks!", 200
+        trackers = Tracker.query.filter(Tracker.remote_id == payload["id"])
+        for tracker in trackers:
+            tracker.project.updated = datetime.utcnow()
+            db.session.delete(tracker)
+            db.session.commit()
+            summary += f"Deleted local:{tracker.id}/remote:{tracker.remote_id}\n"
+        return summary, 200
     else:
         raise NotImplementedError()
 
