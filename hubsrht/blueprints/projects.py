@@ -35,7 +35,7 @@ clone a specific {scm} repository for this project instead. A single project on
 
 {"You may want one of the following repositories:" + repo_urls if repo_urls != "" else ""}
 
-To browse the all of the available repositories for this project, visit this URL:
+To browse all of the available repositories for this project, visit this URL:
 
   {ext_origin}{url_for("sources.sources_GET",
       owner=owner.canonical_name, project_name=project.name)}
