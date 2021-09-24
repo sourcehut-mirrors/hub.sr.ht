@@ -204,7 +204,7 @@ class GitService(SrhtService):
                 "description": description,
             }
         })
-        if not r["data"]:
+        if not r["data"] or not r["data"]["createRepository"]:
             for error in r["errors"]:
                 valid.error(error["message"])
             return None
