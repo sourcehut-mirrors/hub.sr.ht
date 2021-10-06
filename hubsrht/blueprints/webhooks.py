@@ -220,7 +220,7 @@ def todo_user(user_id):
         for tracker in trackers:
             tracker.name = payload["name"]
             tracker.description = payload["description"]
-            if any(payload["default_permissions"]["anonymous"]):
+            if any(payload["default_access"]):
                 tracker.visibility = Visibility.public
             else:
                 tracker.visibility = Visibility.unlisted

@@ -89,7 +89,7 @@ def new_POST(owner, project_name):
     tracker.owner_id = owner.id
     tracker.name = remote_tracker["name"]
     tracker.description = remote_tracker["description"]
-    if any(remote_tracker["default_permissions"]["anonymous"]):
+    if any(remote_tracker["default_access"]:
         tracker.visibility = Visibility.public
     else:
         tracker.visibility = Visibility.unlisted
