@@ -52,7 +52,7 @@ def new_POST(owner, project_name):
     owner, project = get_project(owner, project_name, ProjectAccess.write)
     valid = Validation(request)
     if "create" in valid:
-        remote_tracker = todo.create_tracker(owner, valid)
+        remote_tracker = todo.create_tracker(owner, valid, project.visibility)
         trackers = todo.get_trackers(owner)
         trackers = sorted(trackers, key=lambda r: r["updated"], reverse=True)
         if not valid.ok:
