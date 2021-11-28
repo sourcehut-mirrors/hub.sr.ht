@@ -1,10 +1,12 @@
 import email
 import html
 import json
+import re
 from datetime import datetime
 from flask import Blueprint, request, current_app
 from hubsrht.builds import submit_patchset
-from hubsrht.services import todo, lists
+from hubsrht.services import git, todo, lists
+from hubsrht.trailers import commit_trailers
 from hubsrht.types import Event, EventType, MailingList, SourceRepo, RepoType
 from hubsrht.types import Tracker, User, Visibility
 from srht.config import get_origin
@@ -99,9 +101,63 @@ def git_repo(repo_id):
         repo.project.updated = datetime.utcnow()
         db.session.add(event)
         db.session.commit()
+
+        for ref in payload["refs"]:
+            old = (ref["old"] or {}).get("id")
+            new = (ref["new"] or {}).get("id")
+            for commit in reversed(git.log(pusher, repo, old, new)):
+                for trailer, value in commit_trailers(commit["message"]):
+                    _handle_commit_trailer(trailer, value, pusher, repo, commit)
+
         return "Thanks!"
     else:
         raise NotImplementedError()
+
+_ticket_url_re = re.compile(
+    rf"""
+    ^
+    {re.escape(_todosrht)}
+    /(?P<owner>~[a-z_][a-z0-9_-]+)
+    /(?P<tracker>[\w.-]+)
+    /(?P<ticket>\d+)
+    $
+    """,
+    re.VERBOSE,
+)
+
+def _handle_commit_trailer(trailer, value, pusher, repo, commit):
+    if trailer == "Fixes":
+        resolution = "fixed"
+    elif trailer == "Implements":
+        resolution = "implemented"
+    elif trailer == "References":
+        resolution = None
+    else:
+        return
+
+    match = _ticket_url_re.match(value.strip())
+    if not match:
+        return
+
+    commit_message = html.escape(commit["message"].split("\n")[0])
+    commit_author = html.escape(commit["author"]["name"].strip())
+    commit_sha = commit["id"][:7]
+    commit_url = repo.url() + f"/commit/{commit_sha}"
+    comment = (
+        f"<i>{commit_author} referenced this ticket in commit " +
+        f"<a href='{commit_url}' title='{commit_message}'>{commit_sha}</a>.</i>")
+    try:
+        todo.update_ticket(
+            user=pusher,
+            owner=match["owner"],
+            tracker=match["tracker"],
+            ticket=int(match["ticket"]),
+            comment=" ".join(comment.split()).strip(),
+            resolution=resolution,
+        )
+    except Exception:
+        # invalid ticket or pusher does not have triage access, ignore
+        pass
 
 @csrf_bypass
 @webhooks.route("/webhooks/hg-user/<int:user_id>", methods=["POST"])

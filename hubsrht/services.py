@@ -179,6 +179,37 @@ class GitService(SrhtService):
             return None
         return manifests
 
+    def log(self, user, repo, old, new):
+        query = """
+        query Log($owner: String!, $repo: String!, $from: String!) {
+            repositoryByOwner(owner: $owner, repo: $repo) {
+                log(from: $from) {
+                    results {
+                        id
+                        message
+                        author {
+                            name
+                        }
+                    }
+                }
+            }
+        }
+        """
+        r = self.post(user, None, f"{_gitsrht}/query", {
+            "query": query,
+            "variables": {
+                "owner": repo.owner.canonical_name,
+                "repo": repo.name,
+                "from": new,
+            }
+        })
+        commits = []
+        for c in r["data"]["repositoryByOwner"]["log"]["results"]:
+            if c["id"] == old:
+                break
+            commits.append(c)
+        return commits
+
     def create_repo(self, user, valid, visibility):
         query = """
         mutation CreateRepo(
@@ -451,6 +482,14 @@ class TodoService(SrhtService):
             ensure_webhooks(owner, url, config)
         except:
             pass # nbd, upstream was presumably deleted
+
+    def update_ticket(self, user, owner, tracker, ticket, comment, resolution=None):
+        url = f"{_todosrht}/api/user/{owner}/trackers/{tracker}/tickets/{ticket}"
+        payload = {"comment": comment}
+        if resolution is not None:
+            payload["resolution"] = resolution
+            payload["status"] = "resolved"
+        self.put(user, None, url, payload)
 
 class BuildService(SrhtService):
     def submit_build(self, user, manifest, note, tags, execute=True):
