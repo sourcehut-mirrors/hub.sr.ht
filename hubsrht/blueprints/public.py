@@ -73,19 +73,9 @@ def project_index():
             .order_by(Feature.created.desc())
             .limit(5)).all()
 
-    tags = db.engine.execute("""
-        SELECT count(*) count, unnest(tags) tag
-        FROM project
-        GROUP BY tag
-        ORDER BY count DESC
-        LIMIT 12;
-    """)
-    tags = [(row[0], row[1]) for row in tags]
-
     return render_template("project-index.html", projects=projects,
             search=search, features=features, sort=sort, **pagination,
-            search_keys=["sort"], search_error=search_error,
-            tags=tags)
+            search_keys=["sort"], search_error=search_error)
 
 @public.route("/projects/featured")
 def featured_projects():
