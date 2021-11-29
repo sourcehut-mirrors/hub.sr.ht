@@ -143,16 +143,18 @@ def _handle_commit_trailer(trailer, value, pusher, repo, commit):
     commit_author = html.escape(commit["author"]["name"].strip())
     commit_sha = commit["id"][:7]
     commit_url = repo.url() + f"/commit/{commit_sha}"
-    comment = (
-        f"<i>{commit_author} referenced this ticket in commit " +
-        f"<a href='{commit_url}' title='{commit_message}'>{commit_sha}</a>.</i>")
+    comment = f"""\
+*{commit_author} referenced this ticket in commit [{commit_sha}].*
+
+[{commit_sha}]: {commit_url} "{commit_message}"\
+"""
     try:
         todo.update_ticket(
             user=pusher,
             owner=match["owner"],
             tracker=match["tracker"],
             ticket=int(match["ticket"]),
-            comment=" ".join(comment.split()).strip(),
+            comment=comment,
             resolution=resolution,
         )
     except Exception:
