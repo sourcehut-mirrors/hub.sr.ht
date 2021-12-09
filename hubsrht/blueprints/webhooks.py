@@ -123,9 +123,12 @@ _ticket_url_re = re.compile(
     $
     """,
     re.VERBOSE,
-)
+) if _todosrht else None
 
 def _handle_commit_trailer(trailer, value, pusher, repo, commit):
+    if not _todosrht:
+        return
+
     if trailer == "Fixes":
         resolution = "fixed"
     elif trailer == "Implements":
