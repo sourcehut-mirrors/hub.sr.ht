@@ -496,6 +496,39 @@ class TodoService(SrhtService):
         except:
             pass # nbd, upstream was presumably deleted
 
+    def get_ticket_comments(self, user, owner, tracker, ticket):
+        query = """
+        query TicketComments($owner: String!, $tracker: String!, $ticket: Int!) {
+          trackerByOwner(owner: $owner, tracker: $tracker) {
+            ticket(id: $ticket) {
+              events {
+                results {
+                  changes {
+                    ... on Comment {
+                      text
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+        """
+        r = self.post(user, None, f"{_todosrht}/query", {
+            "query": query,
+            "variables": {
+                "owner": owner,
+                "tracker": tracker,
+                "ticket": ticket,
+            }
+        })
+        comments = []
+        for e in r["data"]["trackerByOwner"]["ticket"]["events"]["results"]:
+            for c in e["changes"]:
+                if "text" in c:
+                    comments.append(c["text"])
+        return comments
+
     def update_ticket(self, user, owner, tracker, ticket, comment, resolution=None):
         url = f"{_todosrht}/api/user/{owner}/trackers/{tracker}/tickets/{ticket}"
         payload = {"comment": comment}

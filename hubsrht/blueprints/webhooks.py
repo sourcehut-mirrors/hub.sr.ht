@@ -152,6 +152,15 @@ def _handle_commit_trailer(trailer, value, pusher, repo, commit):
 [{commit_sha}]: {commit_url} "{commit_message}"\
 """
     try:
+        existing_comments = todo.get_ticket_comments(
+            user=pusher,
+            owner=match["owner"],
+            tracker=match["tracker"],
+            ticket=int(match["ticket"]),
+        )
+        if comment in existing_comments:
+            # avoid duplicate comments
+            return
         todo.update_ticket(
             user=pusher,
             owner=match["owner"],
