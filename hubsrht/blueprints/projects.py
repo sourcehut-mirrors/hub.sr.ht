@@ -63,7 +63,7 @@ def summary_GET(owner, project_name):
         repo = project.summary_repo
         try:
             if repo.repo_type == RepoType.git:
-                summary = git.get_readme(owner, repo.remote_id, repo.url())
+                summary = git.get_readme(owner, repo.name, repo.url())
             elif repo.repo_type == RepoType.hg:
                 summary = hg.get_readme(owner, repo.name, repo.url())
             else:

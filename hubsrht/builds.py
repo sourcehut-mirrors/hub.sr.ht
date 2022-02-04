@@ -35,7 +35,7 @@ def submit_patchset(ml, payload):
     if repo.repo_type != RepoType.git:
         # TODO: support for hg.sr.ht
         return None
-    manifests = git.get_manifests(repo.owner, repo.remote_id)
+    manifests = git.get_manifests(repo.owner, repo.name)
     if not manifests:
         return None
     if len(manifests) > 4:

@@ -84,14 +84,16 @@ class GitService(SrhtService):
             raise Exception(r.text)
         return r.json()
 
-    def get_readme(self, user, repo_id, repo_url):
+    def get_readme(self, user, repo_name, repo_url):
         readme_query = """
-        query Readme($repoId: Int!) {
-            repository(id: $repoId) {
-                html: readme
-                md: path(path: "README.md") { ...textData }
-                markdown: path(path: "README.markdown") { ...textData }
-                plaintext: path(path: "README") { ...textData }
+        query Readme($username: String!, $repoName: String!) {
+            user(username: $username) {
+                repository(name: $repoName) {
+                    html: readme
+                    md: path(path: "README.md") { ...textData }
+                    markdown: path(path: "README.markdown") { ...textData }
+                    plaintext: path(path: "README") { ...textData }
+                }
             }
         }
 
@@ -106,13 +108,14 @@ class GitService(SrhtService):
         r = self.post(user, None, f"{_gitsrht}/query", {
                 "query": readme_query,
                 "variables": {
-                    "repoId": repo_id,
+                    "username": user.username,
+                    "repoName": repo_name,
                 },
             })
-        if not r["data"]["repository"]:
-            raise Exception(f"git.sr.ht returned no repository for ID {repo_id}: " +
+        if not r["data"]["user"]["repository"]:
+            raise Exception("git.sr.ht returned no repository: " +
                     json.dumps(r, indent=1))
-        repo = r["data"]["repository"]
+        repo = r["data"]["user"]["repository"]
 
         content = repo["html"]
         if content:
@@ -132,25 +135,27 @@ class GitService(SrhtService):
 
         return None
 
-    def get_manifests(self, user, repo_id):
+    def get_manifests(self, user, repo_name):
         manifests_query = """
-        query Manifests($repoId: Int!) {
-          repository(id: $repoId) {
-            multiple: path(path:".builds") {
-              object {
-                ... on Tree {
-                  entries {
-                    results {
-                      name
-                      object { ... on TextBlob { text } }
+        query Manifests($username: String!, $repoName: String!) {
+          user(username: $username) {
+            repository(name: $repoName) {
+              multiple: path(path:".builds") {
+                object {
+                  ... on Tree {
+                    entries {
+                      results {
+                        name
+                        object { ... on TextBlob { text } }
+                      }
                     }
                   }
                 }
-              }
-            },
-            single: path(path:".build.yml") {
-              object {
-                ... on TextBlob { text }
+              },
+              single: path(path:".build.yml") {
+                object {
+                  ... on TextBlob { text }
+                }
               }
             }
           }
@@ -159,21 +164,22 @@ class GitService(SrhtService):
         r = self.post(user, None, f"{_gitsrht}/query", {
             "query": manifests_query,
             "variables": {
-                "repoId": repo_id,
+                "username": user.username,
+                "repoName": repo_name,
             },
         })
-        if not r["data"]["repository"]:
-            raise Exception(f"git.sr.ht did not find repo ID {repo_id} (requesting on behalf of {user.username})\n" +
+        if not r["data"]["user"]["repository"]:
+            raise Exception(f"git.sr.ht did not find repo {repo_name} (requesting on behalf of {user.username})\n" +
                     json.dumps(r, indent=1))
         manifests = dict()
-        if r["data"]["repository"]["multiple"]:
-            for ent in r["data"]["repository"]["multiple"]["object"]\
+        if r["data"]["user"]["repository"]["multiple"]:
+            for ent in r["data"]["user"]["repository"]["multiple"]["object"]\
                     ["entries"]["results"]:
                 if not ent["object"]:
                     continue
                 manifests[ent["name"]] = ent["object"]["text"]
-        elif r["data"]["repository"]["single"]:
-            manifests[".build.yml"] = r["data"]["repository"]["single"]\
+        elif r["data"]["user"]["repository"]["single"]:
+            manifests[".build.yml"] = r["data"]["user"]["repository"]["single"]\
                     ["object"]["text"]
         else:
             return None
