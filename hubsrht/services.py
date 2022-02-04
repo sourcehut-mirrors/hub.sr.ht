@@ -7,13 +7,18 @@ from flask import url_for
 from jinja2 import Markup, escape
 from srht.api import ensure_webhooks, encrypt_request_authorization, get_results
 from srht.markdown import markdown, sanitize
-from srht.config import get_origin
+from srht.config import get_origin, cfg
 
 _gitsrht = get_origin("git.sr.ht", external=True, default=None)
+_gitsrht_api = cfg("git.sr.ht", "api-origin", default=None)
 _hgsrht = get_origin("hg.sr.ht", external=True, default=None)
+_hgsrht_api = cfg("hg.sr.ht", "api-origin", default=None)
 _listsrht = get_origin("lists.sr.ht", external=True, default=None)
+_listssrht_api = cfg("lists.sr.ht", "api-origin", default=None)
 _todosrht = get_origin("todo.sr.ht", external=True, default=None)
+_todosrht_api = cfg("todo.sr.ht", "api-origin", default=None)
 _buildsrht = get_origin("builds.sr.ht", default=None)
+_buildsrht_api = cfg("builds.sr.ht", "api-origin", default=None)
 origin = get_origin("hub.sr.ht")
 
 readme_names = ["README.md", "README.markdown", "README"]
@@ -105,7 +110,7 @@ class GitService(SrhtService):
             }
         }
         """
-        r = self.post(user, None, f"{_gitsrht}/query", {
+        r = self.post(user, None, f"{_gitsrht_api}/query", {
                 "query": readme_query,
                 "variables": {
                     "username": user.username,
@@ -161,7 +166,7 @@ class GitService(SrhtService):
           }
         }
         """
-        r = self.post(user, None, f"{_gitsrht}/query", {
+        r = self.post(user, None, f"{_gitsrht_api}/query", {
             "query": manifests_query,
             "variables": {
                 "username": user.username,
@@ -233,7 +238,7 @@ class GitService(SrhtService):
         description = valid.require("description")
         if not valid.ok:
             return None
-        r = self.post(user, None, f"{_gitsrht}/query", {
+        r = self.post(user, None, f"{_gitsrht_api}/query", {
             "query": query,
             "variables": {
                 "name": name,
@@ -255,7 +260,7 @@ class GitService(SrhtService):
             deleteRepository(id: $id) { id }
         }
         """
-        self.post(user, None, f"{_gitsrht}/query", {
+        self.post(user, None, f"{_gitsrht_api}/query", {
             "query": query,
             "variables": {
                 "id": repo_id,
