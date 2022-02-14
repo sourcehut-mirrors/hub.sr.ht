@@ -211,7 +211,7 @@ class GitService(SrhtService):
         r = self.post(user, None, f"{_gitsrht_api}/query", {
             "query": query,
             "variables": {
-                "username": repo.owner.canonical_name,
+                "username": repo.owner.username,
                 "repo": repo.name,
                 "from": new,
             }
