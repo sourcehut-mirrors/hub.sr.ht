@@ -68,7 +68,8 @@ def summary_GET(owner, project_name):
                 summary = hg.get_readme(owner, repo.name, repo.url())
             else:
                 assert False
-        except:
+        except Exception as ex:
+            print(ex)
             summary = None
             summary_error = True
 
