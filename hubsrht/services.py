@@ -192,14 +192,16 @@ class GitService(SrhtService):
 
     def log(self, user, repo, old, new):
         query = """
-        query Log($owner: String!, $repo: String!, $from: String!) {
-            repositoryByOwner(owner: $owner, repo: $repo) {
-                log(from: $from) {
-                    results {
-                        id
-                        message
-                        author {
-                            name
+        query Log($username: String!, $repo: String!, $from: String!) {
+            user(username: $username) {
+                repository(name: $repo) {
+                    log(from: $from) {
+                        results {
+                            id
+                            message
+                            author {
+                                name
+                            }
                         }
                     }
                 }
@@ -209,13 +211,13 @@ class GitService(SrhtService):
         r = self.post(user, None, f"{_gitsrht}/query", {
             "query": query,
             "variables": {
-                "owner": repo.owner.canonical_name,
+                "username": repo.owner.canonical_name,
                 "repo": repo.name,
                 "from": new,
             }
         })
         commits = []
-        for c in r["data"]["repositoryByOwner"]["log"]["results"]:
+        for c in r["data"]["user"]["repository"]["log"]["results"]:
             if c["id"] == old:
                 break
             commits.append(c)
