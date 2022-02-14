@@ -10,15 +10,15 @@ from srht.markdown import markdown, sanitize
 from srht.config import get_origin, cfg
 
 _gitsrht = get_origin("git.sr.ht", external=True, default=None)
-_gitsrht_api = cfg("git.sr.ht", "api-origin", default=None)
+_gitsrht_api = cfg("git.sr.ht", "api-origin", default=None) or _gitsrht
 _hgsrht = get_origin("hg.sr.ht", external=True, default=None)
-_hgsrht_api = cfg("hg.sr.ht", "api-origin", default=None)
+_hgsrht_api = cfg("hg.sr.ht", "api-origin", default=None) or _hgsrht
 _listsrht = get_origin("lists.sr.ht", external=True, default=None)
-_listssrht_api = cfg("lists.sr.ht", "api-origin", default=None)
+_listsrht_api = cfg("lists.sr.ht", "api-origin", default=None) or _listsrht
 _todosrht = get_origin("todo.sr.ht", external=True, default=None)
-_todosrht_api = cfg("todo.sr.ht", "api-origin", default=None)
+_todosrht_api = cfg("todo.sr.ht", "api-origin", default=None) or _todosrht
 _buildsrht = get_origin("builds.sr.ht", default=None)
-_buildsrht_api = cfg("builds.sr.ht", "api-origin", default=None)
+_buildsrht_api = cfg("builds.sr.ht", "api-origin", default=None) or _buildsrht
 origin = get_origin("hub.sr.ht")
 
 readme_names = ["README.md", "README.markdown", "README"]
