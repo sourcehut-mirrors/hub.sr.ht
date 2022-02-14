@@ -208,7 +208,7 @@ class GitService(SrhtService):
             }
         }
         """
-        r = self.post(user, None, f"{_gitsrht}/query", {
+        r = self.post(user, None, f"{_gitsrht_api}/query", {
             "query": query,
             "variables": {
                 "username": repo.owner.canonical_name,
