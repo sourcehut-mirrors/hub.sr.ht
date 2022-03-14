@@ -95,6 +95,11 @@ Mailing list for end-user discussion and questions related to the
         list_name = list_name.lower() # Per lists.sr.ht naming rules
         try:
             mailing_list = lists.get_list(owner, list_name)
+            in_project = [l.remote_id for l in (MailingList.query
+                    .filter(MailingList.project_id == project.id)
+                    .filter(MailingList.name == list_name)).all()]
+            if in_project:
+                continue
         except:
             valid = Validation({
                 "name": list_name,
