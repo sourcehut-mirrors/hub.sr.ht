@@ -105,6 +105,8 @@ def git_repo(repo_id):
         for ref in payload["refs"]:
             old = (ref["old"] or {}).get("id")
             new = (ref["new"] or {}).get("id")
+            if not old or not new:
+                continue # New ref, or ref deleted
             for commit in reversed(git.log(pusher, repo, old, new)):
                 for trailer, value in commit_trailers(commit["message"]):
                     _handle_commit_trailer(trailer, value, pusher, repo, commit)
