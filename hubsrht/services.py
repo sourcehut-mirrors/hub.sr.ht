@@ -4,7 +4,7 @@ import requests
 import yaml
 from abc import ABC
 from flask import url_for
-from jinja2 import Markup, escape
+from markupsafe import Markup, escape
 from srht.api import ensure_webhooks, encrypt_request_authorization, get_results
 from srht.markdown import markdown, sanitize
 from srht.config import get_origin, cfg
