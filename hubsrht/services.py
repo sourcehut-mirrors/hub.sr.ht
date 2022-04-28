@@ -498,14 +498,16 @@ class TodoService(SrhtService):
 
     def get_ticket_comments(self, user, owner, tracker, ticket):
         query = """
-        query TicketComments($owner: String!, $tracker: String!, $ticket: Int!) {
-          trackerByOwner(owner: $owner, tracker: $tracker) {
-            ticket(id: $ticket) {
-              events {
-                results {
-                  changes {
-                    ... on Comment {
-                      text
+        query TicketComments($username: String!, $tracker: String!, $ticket: Int!) {
+          user(username: $username) {
+            tracker(name: $tracker) {
+              ticket(id: $ticket) {
+                events {
+                  results {
+                    changes {
+                      ... on Comment {
+                        text
+                      }
                     }
                   }
                 }
@@ -514,16 +516,16 @@ class TodoService(SrhtService):
           }
         }
         """
-        r = self.post(user, None, f"{_todosrht}/query", {
+        r = self.post(user, None, f"{_todosrht_api}/query", {
             "query": query,
             "variables": {
-                "owner": owner,
+                "username": owner[1:],
                 "tracker": tracker,
                 "ticket": ticket,
             }
         })
         comments = []
-        for e in r["data"]["trackerByOwner"]["ticket"]["events"]["results"]:
+        for e in r["data"]["user"]["tracker"]["ticket"]["events"]["results"]:
             for c in e["changes"]:
                 if "text" in c:
                     comments.append(c["text"])
