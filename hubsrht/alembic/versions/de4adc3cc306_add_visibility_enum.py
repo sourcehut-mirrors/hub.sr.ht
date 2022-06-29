@@ -28,6 +28,27 @@ def upgrade():
     ALTER COLUMN visibility TYPE visibility USING upper(visibility)::visibility;
     ALTER TABLE project
     ALTER COLUMN visibility SET DEFAULT 'UNLISTED'::visibility;
+
+    ALTER TABLE tracker
+    ALTER COLUMN visibility DROP DEFAULT;
+    ALTER TABLE tracker
+    ALTER COLUMN visibility TYPE visibility USING upper(visibility)::visibility;
+    ALTER TABLE tracker
+    ALTER COLUMN visibility SET DEFAULT 'UNLISTED'::visibility;
+
+    ALTER TABLE source_repo
+    ALTER COLUMN visibility DROP DEFAULT;
+    ALTER TABLE source_repo
+    ALTER COLUMN visibility TYPE visibility USING upper(visibility)::visibility;
+    ALTER TABLE source_repo
+    ALTER COLUMN visibility SET DEFAULT 'UNLISTED'::visibility;
+
+    ALTER TABLE mailing_list
+    ALTER COLUMN visibility DROP DEFAULT;
+    ALTER TABLE mailing_list
+    ALTER COLUMN visibility TYPE visibility USING upper(visibility)::visibility;
+    ALTER TABLE mailing_list
+    ALTER COLUMN visibility SET DEFAULT 'UNLISTED'::visibility;
     """)
 
 
@@ -37,5 +58,21 @@ def downgrade():
     ALTER COLUMN visibility TYPE varchar USING lower(visibility::varchar);
     ALTER TABLE project
     ALTER COLUMN visibility SET DEFAULT 'unlisted';
+
+    ALTER TABLE source_repo
+    ALTER COLUMN visibility TYPE varchar USING lower(visibility::varchar);
+    ALTER TABLE source_repo
+    ALTER COLUMN visibility SET DEFAULT 'unlisted';
+
+    ALTER TABLE tracker
+    ALTER COLUMN visibility TYPE varchar USING lower(visibility::varchar);
+    ALTER TABLE tracker
+    ALTER COLUMN visibility SET DEFAULT 'unlisted';
+
+    ALTER TABLE mailing_list
+    ALTER COLUMN visibility TYPE varchar USING lower(visibility::varchar);
+    ALTER TABLE mailing_list
+    ALTER COLUMN visibility SET DEFAULT 'unlisted';
+
     DROP TYPE visibility;
     """)
