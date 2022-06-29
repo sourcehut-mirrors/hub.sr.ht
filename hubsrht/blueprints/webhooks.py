@@ -40,7 +40,7 @@ def git_user(user_id):
         for repo in repos:
             repo.name = payload["name"]
             repo.description = payload["description"]
-            repo.visibility = Visibility(payload["visibility"])
+            repo.visibility = Visibility(payload["visibility"].upper())
             repo.project.updated = datetime.utcnow()
             db.session.commit()
             summary += f"Updated local:{repo.id}/remote:{repo.remote_id}. Thanks!\n"
@@ -194,7 +194,7 @@ def hg_user(user_id):
         repo.name = payload["name"]
         repo.description = payload["description"]
         repo.project.updated = datetime.utcnow()
-        repo.visibility = Visibility(payload["visibility"])
+        repo.visibility = Visibility(payload["visibility"].upper())
         db.session.commit()
         return f"Updated local:{repo.id}/remote:{repo.remote_id}. Thanks!", 200
     elif event == "repo:delete":
