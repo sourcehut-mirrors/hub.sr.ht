@@ -76,8 +76,8 @@
             class="form-check-input"
             type="radio"
             name="visibility"
-            value="public"
-            {% if not visibility or visibility == "public" %}
+            value="PUBLIC"
+            {% if not visibility or visibility == "PUBLIC" %}
             checked
             {% endif %}
             > Public
@@ -95,8 +95,8 @@
             class="form-check-input"
             type="radio"
             name="visibility"
-            value="unlisted"
-            {% if visibility and visibility == "unlisted" %}
+            value="UNLISTED"
+            {% if visibility and visibility == "UNLISTED" %}
             checked
             {% endif %}
             > Unlisted
@@ -114,8 +114,8 @@
             class="form-check-input"
             type="radio"
             name="visibility"
-            value="private"
-            {% if visibility and visibility == "private" %}
+            value="PRIVATE"
+            {% if visibility and visibility == "PRIVATE" %}
             checked
             {% endif %}
             > Private

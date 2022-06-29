@@ -72,10 +72,10 @@
                     class="form-check-input"
                     type="radio"
                     name="visibility"
-                    {% if (visibility and visibility == "public") or project.visibility.value == "public" %}
+                    {% if (visibility and visibility == "PUBLIC") or project.visibility.value == "PUBLIC" %}
                     checked
                     {% endif %}
-                    value="public"> Public
+                    value="PUBLIC"> Public
                   <small id="visibility-public-help" class="form-text text-muted">
                     Shown on your profile and listed in the public project index
                   </small>
@@ -90,10 +90,10 @@
                     class="form-check-input"
                     type="radio"
                     name="visibility"
-                    {% if (visibility and visibility == "unlisted") or project.visibility.value == "unlisted" %}
+                    {% if (visibility and visibility == "UNLISTED") or project.visibility.value == "UNLISTED" %}
                     checked
                     {% endif %}
-                    value="unlisted"> Unlisted
+                    value="UNLISTED"> Unlisted
                   <small id="visibility-unlisted-help" class="form-text text-muted">
                     Visible to anyone who knows the URL, but not shown on your profile
                   </small>
@@ -108,10 +108,10 @@
                     class="form-check-input"
                     type="radio"
                     name="visibility"
-                    {% if (visibility and visibility == "private") or project.visibility.value == "private" %}
+                    {% if (visibility and visibility == "PRIVATE") or project.visibility.value == "PRIVATE" %}
                     checked
                     {% endif %}
-                    value="private"> Private
+                    value="PRIVATE"> Private
                   <small id="visibility-unlisted-help" class="form-text text-muted">
                     Only visible to you and your collaborators
                   </small>

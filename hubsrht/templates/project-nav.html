@@ -9,18 +9,18 @@
   href="{{ path }}">{{ title }}</a>
 {% endmacro %}
 <ul class="nav nav-tabs">
-  {% if project.visibility.value != "public" %}
+  {% if project.visibility.value != "PUBLIC" %}
   <li
     class="nav-item nav-text vis-{{project.visibility.value.lower()}}"
-    {% if project.visibility.value == "unlisted" %}
+    {% if project.visibility.value == "UNLISTED" %}
     title="This project is only visible to those who know the URL."
-    {% elif project.visibility.value == "private" %}
+    {% elif project.visibility.value == "PRIVATE" %}
     title="This project is only visible to those who were invited to view it."
     {% endif %}
   >
-    {% if project.visibility.value == "unlisted" %}
+    {% if project.visibility.value == "UNLISTED" %}
     Unlisted
-    {% elif project.visibility.value == "private" %}
+    {% elif project.visibility.value == "PRIVATE" %}
     Private
     {% endif %}
   </li>

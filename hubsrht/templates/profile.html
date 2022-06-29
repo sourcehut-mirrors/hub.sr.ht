@@ -60,8 +60,8 @@
           {% for project in projects %}
           <div class="event">
             <h4>
-              {% if project.visibility.value != 'public' %}
-              <small class="text-muted pull-right">{{project.visibility.value}}</small>
+              {% if project.visibility.value != 'PUBLIC' %}
+              <small class="text-muted pull-right">{{project.visibility.value.lower()}}</small>
               {% endif %}
               <a href="{{url_for("projects.summary_GET",
                 owner=project.owner.canonical_name,

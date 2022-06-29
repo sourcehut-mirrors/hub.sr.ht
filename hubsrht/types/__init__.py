@@ -6,9 +6,9 @@ class User(Base, ExternalUserMixin):
     pass
 
 class Visibility(Enum):
-    public = "public"
-    unlisted = "unlisted"
-    private = "private"
+    public = "PUBLIC"
+    private = "PRIVATE"
+    unlisted = "UNLISTED"
 
 from hubsrht.types.event import Event, EventType
 from hubsrht.types.feature import Feature
