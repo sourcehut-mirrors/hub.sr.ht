@@ -112,7 +112,7 @@ def git_new_POST(owner, project_name):
     repo.name = git_repo["name"]
     repo.description = git_repo["description"]
     repo.repo_type = RepoType.git
-    repo.visibility = Visibility(git_repo["visibility"])
+    repo.visibility = Visibility(git_repo["visibility"].upper())
     db.session.add(repo)
     db.session.flush()
 
@@ -177,7 +177,7 @@ def hg_new_POST(owner, project_name):
     repo.name = hg_repo["name"]
     repo.description = hg_repo["description"]
     repo.repo_type = RepoType.hg
-    repo.visibility = Visibility(hg_repo["visibility"])
+    repo.visibility = Visibility(hg_repo["visibility"].upper())
     db.session.add(repo)
     db.session.flush()
 
