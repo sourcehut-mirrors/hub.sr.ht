@@ -1,5 +1,6 @@
 import sqlalchemy as sa
 import sqlalchemy_utils as sau
+from sqlalchemy.dialects import postgresql
 from hubsrht.types import Visibility
 from srht.config import get_origin
 from srht.database import Base
@@ -27,8 +28,8 @@ class MailingList(Base):
 
     name = sa.Column(sa.Unicode(128), nullable=False)
     description = sa.Column(sa.Unicode)
-    visibility = sa.Column(sau.ChoiceType(Visibility, impl=sa.String()),
-            nullable=False, server_default="unlisted")
+    visibility = sa.Column(postgresql.ENUM(Visibility),
+            nullable=False, server_default="UNLISTED")
 
     def url(self):
         return f"{_listsrht}/{self.owner.canonical_name}/{self.name}"

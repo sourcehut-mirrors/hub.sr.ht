@@ -42,16 +42,16 @@ def upgrade():
         for ml in session.query(MailingList).all():
             m = lists.get_list(ml.owner, ml.name)
             if any(m["permissions"]["nonsubscriber"]):
-                ml.visibility = Visibility.public
+                ml.visibility = Visibility.PUBLIC
             else:
-                ml.visibility = Visibility.unlisted
+                ml.visibility = Visibility.UNLISTED
 
         for tracker in session.query(Tracker).all():
             t = todo.get_tracker(tracker.owner, tracker.name)
             if any(t["default_permissions"]["anonymous"]):
-                tracker.visibility = Visibility.public
+                tracker.visibility = Visibility.PUBLIC
             else:
-                tracker.visibility = Visibility.unlisted
+                tracker.visibility = Visibility.UNLISTED
 
         session.commit()
 

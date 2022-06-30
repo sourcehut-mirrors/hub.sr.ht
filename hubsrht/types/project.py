@@ -1,5 +1,6 @@
 import sqlalchemy as sa
 import sqlalchemy_utils as sau
+from sqlalchemy.dialects import postgresql
 from hubsrht.types import Visibility
 from srht.database import Base
 
@@ -20,8 +21,8 @@ class Project(Base):
     tags = sa.Column(sa.ARRAY(sa.String(16), dimensions=1),
             nullable=False, server_default="{}")
     website = sa.Column(sa.Unicode)
-    visibility = sa.Column(sau.ChoiceType(Visibility, impl=sa.String()),
-            nullable=False, server_default="unlisted")
+    visibility = sa.Column(postgresql.ENUM(Visibility),
+            nullable=False, server_default="UNLISTED")
 
     checklist_complete = sa.Column(sa.Boolean,
             nullable=False, server_default='f')

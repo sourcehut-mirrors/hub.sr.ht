@@ -50,7 +50,7 @@ def summary_GET(owner, project_name):
         sources = (SourceRepo.query
                 .filter(SourceRepo.project_id == project.id)
                 .filter(SourceRepo.repo_type == RepoType.hg)
-                .filter(SourceRepo.visibility == Visibility.public)
+                .filter(SourceRepo.visibility == Visibility.PUBLIC)
                 .order_by(SourceRepo.updated.desc())
                 .limit(5))
 
@@ -81,9 +81,9 @@ def summary_GET(owner, project_name):
             .outerjoin(SourceRepo)
             .outerjoin(MailingList)
             .outerjoin(Tracker)
-            .filter(or_(Event.source_repo == None, SourceRepo.visibility == Visibility.public),
-                or_(Event.mailing_list == None, MailingList.visibility == Visibility.public),
-                or_(Event.tracker == None, Tracker.visibility == Visibility.public)))
+            .filter(or_(Event.source_repo == None, SourceRepo.visibility == Visibility.PUBLIC),
+                or_(Event.mailing_list == None, MailingList.visibility == Visibility.PUBLIC),
+                or_(Event.tracker == None, Tracker.visibility == Visibility.PUBLIC)))
     events = events.limit(2).all()
 
     return render_template("project-summary.html", view="summary",
@@ -99,7 +99,7 @@ def summary_refs(owner, project_name):
         sources = (SourceRepo.query
                 .filter(SourceRepo.project_id == project.id)
                 .filter(SourceRepo.repo_type == RepoType.git)
-                .filter(SourceRepo.visibility == Visibility.public)
+                .filter(SourceRepo.visibility == Visibility.PUBLIC)
                 .order_by(SourceRepo.updated.desc())
                 .limit(5))
 
@@ -125,9 +125,9 @@ def feed_GET(owner, project_name):
             .outerjoin(SourceRepo)
             .outerjoin(MailingList)
             .outerjoin(Tracker)
-            .filter(or_(Event.source_repo == None, SourceRepo.visibility == Visibility.public),
-                or_(Event.mailing_list == None, MailingList.visibility == Visibility.public),
-                or_(Event.tracker == None, Tracker.visibility == Visibility.public)))
+            .filter(or_(Event.source_repo == None, SourceRepo.visibility == Visibility.PUBLIC),
+                or_(Event.mailing_list == None, MailingList.visibility == Visibility.PUBLIC),
+                or_(Event.tracker == None, Tracker.visibility == Visibility.PUBLIC)))
 
     events, pagination = paginate_query(events)
 

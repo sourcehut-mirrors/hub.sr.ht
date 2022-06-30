@@ -19,7 +19,7 @@ def sources_GET(owner, project_name):
             .filter(SourceRepo.project_id == project.id)
             .order_by(SourceRepo.updated.desc()))
     if not current_user or current_user.id != owner.id:
-        sources = sources.filter(SourceRepo.visibility == Visibility.public)
+        sources = sources.filter(SourceRepo.visibility == Visibility.PUBLIC)
 
     terms = request.args.get("search")
     search_error = None

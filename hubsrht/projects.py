@@ -22,8 +22,8 @@ def get_project(owner, project_name, access, user=current_user):
     if access == ProjectAccess.write:
         abort(401)
     # TODO: ACLs
-    if project.visibility in (Visibility.public, Visibility.unlisted):
+    if project.visibility in (Visibility.PUBLIC, Visibility.UNLISTED):
         return project.owner, project
-    elif project.visibility == Visibility.private:
+    elif project.visibility == Visibility.PRIVATE:
         abort(401)
     assert False

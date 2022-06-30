@@ -18,7 +18,7 @@ def trackers_GET(owner, project_name):
             .filter(Tracker.project_id == project.id)
             .order_by(Tracker.updated.desc()))
     if not current_user or current_user.id != owner.id:
-        trackers = trackers.filter(Tracker.visibility == Visibility.public)
+        trackers = trackers.filter(Tracker.visibility == Visibility.PUBLIC)
 
     terms = request.args.get("search")
     search_error = None
@@ -90,9 +90,9 @@ def new_POST(owner, project_name):
     tracker.name = remote_tracker["name"]
     tracker.description = remote_tracker["description"]
     if any(remote_tracker["default_access"]):
-        tracker.visibility = Visibility.public
+        tracker.visibility = Visibility.PUBLIC
     else:
-        tracker.visibility = Visibility.unlisted
+        tracker.visibility = Visibility.UNLISTED
     db.session.add(tracker)
     db.session.flush()
 

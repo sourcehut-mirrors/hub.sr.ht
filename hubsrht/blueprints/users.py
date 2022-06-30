@@ -23,17 +23,17 @@ def summary_GET(username):
 
     if not current_user or current_user.id != user.id:
         # TODO: ACLs
-        projects = projects.filter(Project.visibility == Visibility.public)
+        projects = projects.filter(Project.visibility == Visibility.PUBLIC)
         events = (events
                 .join(Project, Event.project_id == Project.id)
-                .filter(Project.visibility == Visibility.public))
+                .filter(Project.visibility == Visibility.PUBLIC))
         events = (events
             .outerjoin(SourceRepo, Event.source_repo_id == SourceRepo.id)
             .outerjoin(MailingList, Event.source_repo_id == MailingList.id)
             .outerjoin(Tracker, Event.source_repo_id == Tracker.id)
-            .filter(or_(Event.source_repo == None, SourceRepo.visibility == Visibility.public),
-                or_(Event.mailing_list == None, MailingList.visibility == Visibility.public),
-                or_(Event.tracker == None, Tracker.visibility == Visibility.public)))
+            .filter(or_(Event.source_repo == None, SourceRepo.visibility == Visibility.PUBLIC),
+                or_(Event.mailing_list == None, MailingList.visibility == Visibility.PUBLIC),
+                or_(Event.tracker == None, Tracker.visibility == Visibility.PUBLIC)))
 
     projects = projects.limit(5).all()
     events, pagination = paginate_query(events)
@@ -53,7 +53,7 @@ def projects_GET(owner):
         .filter(Project.owner_id == owner.id))
     if not current_user or current_user.id != owner.id:
         # TODO: ACLs
-        projects = projects.filter(Project.visibility == Visibility.public)
+        projects = projects.filter(Project.visibility == Visibility.PUBLIC)
 
     search = request.args.get("search")
     search_error = None

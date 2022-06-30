@@ -29,7 +29,7 @@ def index():
     features = (Feature.query
             .join(Project, Feature.project_id == Project.id)
             .join(User, Project.owner_id == User.id)
-            .filter(Project.visibility == Visibility.public)
+            .filter(Project.visibility == Visibility.PUBLIC)
             .order_by(Feature.created.desc())
             .limit(6)).all()
     return render_template("index.html", features=features)
@@ -42,7 +42,7 @@ def getting_started():
 
 @public.route("/projects")
 def project_index():
-    projects = Project.query.filter(Project.visibility == Visibility.public)
+    projects = Project.query.filter(Project.visibility == Visibility.PUBLIC)
 
     search = request.args.get("search")
     search_error = None
@@ -69,7 +69,7 @@ def project_index():
     features = (Feature.query
             .join(Project, Feature.project_id == Project.id)
             .join(User, Project.owner_id == User.id)
-            .filter(Project.visibility == Visibility.public)
+            .filter(Project.visibility == Visibility.PUBLIC)
             .order_by(Feature.created.desc())
             .limit(5)).all()
 
@@ -82,7 +82,7 @@ def featured_projects():
     features = (Feature.query
             .join(Project, Feature.project_id == Project.id)
             .join(User, Project.owner_id == User.id)
-            .filter(Project.visibility == Visibility.public)
+            .filter(Project.visibility == Visibility.PUBLIC)
             .order_by(Feature.created.desc()))
     features, pagination = paginate_query(features)
     return render_template("featured-projects.html",

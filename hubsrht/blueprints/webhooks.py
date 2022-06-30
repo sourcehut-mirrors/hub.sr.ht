@@ -226,9 +226,9 @@ def mailing_list(list_id):
         ml.name = payload["name"]
         ml.description = payload["description"]
         if any(payload["permissions"]["nonsubscriber"]):
-            ml.visibility = Visibility.public
+            ml.visibility = Visibility.PUBLIC
         else:
-            ml.visibility = Visibility.unlisted
+            ml.visibility = Visibility.UNLISTED
         ml.project.updated = datetime.utcnow()
         db.session.commit()
         return f"Updated local:{ml.id}/remote:{ml.remote_id}. Thanks!", 200
@@ -293,9 +293,9 @@ def todo_user(user_id):
             tracker.name = payload["name"]
             tracker.description = payload["description"]
             if any(payload["default_access"]):
-                tracker.visibility = Visibility.public
+                tracker.visibility = Visibility.PUBLIC
             else:
-                tracker.visibility = Visibility.unlisted
+                tracker.visibility = Visibility.UNLISTED
             tracker.project.updated = datetime.utcnow()
             summary += f"Updated local:{tracker.id}/remote:{tracker.remote_id}\n"
         db.session.commit()

@@ -21,7 +21,7 @@ def lists_GET(owner, project_name):
             .order_by(MailingList.updated.desc()))
     if not current_user or current_user.id != owner.id:
         mailing_lists = mailing_lists.filter(
-                MailingList.visibility == Visibility.public)
+                MailingList.visibility == Visibility.PUBLIC)
 
     terms = request.args.get("search")
     search_error = None
@@ -116,9 +116,9 @@ Mailing list for end-user discussion and questions related to the
         ml.name = mailing_list["name"]
         ml.description = mailing_list["description"]
         if any(mailing_list["permissions"]["nonsubscriber"]):
-            ml.visibility = Visibility.public
+            ml.visibility = Visibility.PUBLIC
         else:
-            ml.visibility = Visibility.unlisted
+            ml.visibility = Visibility.UNLISTED
         db.session.add(ml)
         db.session.flush()
 
@@ -190,9 +190,9 @@ def new_POST(owner, project_name):
     ml.name = mailing_list["name"]
     ml.description = mailing_list["description"]
     if any(mailing_list["permissions"]["nonsubscriber"]):
-        ml.visibility = Visibility.public
+        ml.visibility = Visibility.PUBLIC
     else:
-        ml.visibility = Visibility.unlisted
+        ml.visibility = Visibility.UNLISTED
     db.session.add(ml)
     db.session.flush()
 

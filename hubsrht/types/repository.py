@@ -1,5 +1,6 @@
 import sqlalchemy as sa
 import sqlalchemy_utils as sau
+from sqlalchemy.dialects import postgresql
 from hubsrht.types import Visibility
 from srht.database import Base
 from enum import Enum
@@ -20,5 +21,5 @@ class Repository(Base):
 
     name = sa.Column(sa.Unicode(128), nullable=False)
     description = sa.Column(sa.Unicode(512), nullable=False)
-    visibility = sa.Column(sau.ChoiceType(Visibility, impl=sa.String()),
-            nullable=False, server_default="unlisted")
+    visibility = sa.Column(postgresql.ENUM(Visibility),
+            nullable=False, server_default="UNLISTED")
