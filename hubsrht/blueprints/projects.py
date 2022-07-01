@@ -183,7 +183,7 @@ def create_POST():
     valid.expect(not name or name not in [".git", ".hg"],
             "Name must not be '.git' or '.hg'", field="name")
     valid.expect(not name or Project.query
-            .filter(Project.name.ilike(name.replace('_', '\\_')))
+            .filter(Project.name == name)
             .filter(Project.owner_id == current_user.id).count() == 0,
             "Name must be unique among your projects", field="name")
     valid.expect(not description or len(description) < 512,

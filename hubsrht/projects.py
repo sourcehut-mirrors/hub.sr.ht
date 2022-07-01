@@ -13,7 +13,7 @@ def get_project(owner, project_name, access, user=current_user):
     project = (Project.query
             .join(User, Project.owner_id == User.id)
             .filter(User.username == owner)
-            .filter(Project.name.ilike(project_name.replace('_', '\\_')))
+            .filter(Project.name == project_name)
         ).one_or_none()
     if not project:
         abort(404)
