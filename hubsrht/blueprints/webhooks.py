@@ -131,7 +131,9 @@ def _handle_commit_trailer(trailer, value, pusher, repo, commit):
     if not _todosrht:
         return
 
-    if trailer == "Fixes":
+    if trailer == "Closes":
+        resolution = "closed"
+    elif trailer == "Fixes":
         resolution = "fixed"
     elif trailer == "Implements":
         resolution = "implemented"
