@@ -10,6 +10,8 @@ class ProjectAccess(Enum):
 def get_project(owner, project_name, access, user=current_user):
     if owner.startswith("~"):
         owner = owner[1:]
+    else:
+        abort(404)
     project = (Project.query
             .join(User, Project.owner_id == User.id)
             .filter(User.username == owner)
