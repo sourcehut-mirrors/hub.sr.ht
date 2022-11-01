@@ -13,3 +13,7 @@ pip-selfcheck.json
 .sass-cache/
 overrides/
 .pgp
+build
+api/api
+*_gen.go
+api/graph/api/generated.go
