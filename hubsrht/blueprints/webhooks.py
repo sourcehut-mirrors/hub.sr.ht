@@ -429,8 +429,8 @@ def build_complete(details):
     buildsrht = get_origin("builds.sr.ht", external=True)
     build_url = f"{buildsrht}/{project.owner.canonical_name}/job/{payload['id']}"
 
-    lists.patchset_set_tool(ml.owner, ml.name, details["patchset_id"],
-            details['key'], payload["status"],
-            f"[#{payload['id']}]({build_url}) {details['name']} {payload['status']}")
+    tool_details = f"[#{payload['id']}]({build_url}) {details['name']} {payload['status']}"
+    lists.patchset_update_tool(ml.owner, details["tool_id"],
+            payload["status"], tool_details)
 
     return "Thanks!"

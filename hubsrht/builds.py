@@ -63,9 +63,8 @@ def submit_patchset(ml, payload):
 [1]: mailto:{submitter[1]}"""
 
     for key, value in manifests.items():
-        tool_key = f"hub.sr.ht:builds.sr.ht:{key}"
-        lists.patchset_set_tool(ml.owner, ml.name, payload["id"],
-                tool_key, "pending", f"build pending: {key}")
+        tool_id = lists.patchset_create_tool(ml.owner, payload["id"],
+                "PENDING", f"build pending: {key}")
 
         try:
             manifest = Manifest(yaml.safe_load(value))
@@ -97,7 +96,7 @@ git am -3 /tmp/{payload["id"]}.patch"""
         details = fernet.encrypt(json.dumps({
             "mailing_list": ml.id,
             "patchset_id": payload["id"],
-            "key": tool_key,
+            "tool_id": tool_id,
             "name": key,
             "user": project.owner.canonical_name,
         }).encode()).decode()
@@ -111,8 +110,8 @@ git am -3 /tmp/{payload["id"]}.patch"""
             tags=[repo.name, "patches", key], execute=False)
         ids.append(b["id"])
         build_url = f"{buildsrht}/{project.owner.canonical_name}/job/{b['id']}"
-        lists.patchset_set_tool(ml.owner, ml.name, payload["id"],
-                tool_key, "waiting", f"[#{b['id']}]({build_url}) running {key}")
+        lists.patchset_update_tool(ml.owner, tool_id, "WAITING",
+                   f"[#{b['id']}]({build_url}) running {key}")
 
     trigger = Trigger({
         "action": TriggerAction.email,

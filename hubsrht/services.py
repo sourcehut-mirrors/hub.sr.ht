@@ -408,13 +408,45 @@ class ListService(SrhtService):
         if r.status_code != 204 and r.status_code != 404:
             raise Exception(r.text)
 
-    def patchset_set_tool(self, user, list_name, patchset_id, key, icon, details):
-        return self.put(user, None,
-            f"{_listsrht}/api/lists/{list_name}/patchsets/{patchset_id}/tools", {
-                "key": key,
+    def patchset_create_tool(self, user, patchset_id, icon, details):
+        query = """
+        mutation CreateTool($id: Int!, $details: String!, $icon: ToolIcon!) {
+            createTool(patchsetID: $id, details: $details, icon: $icon) {
+                id
+            }
+        }
+        """
+        r = self.post(user, None, f"{_listsrht_api}/query", {
+            "query": query,
+            "variables": {
+                "id": patchset_id,
                 "icon": icon,
                 "details": details,
-            })
+            },
+        })
+        if not r["data"] or not r["data"]["createTool"]:
+            return None
+        return r["data"]["createTool"]["id"]
+
+    def patchset_update_tool(self, user, tool_id, icon, details):
+        query = """
+        mutation UpdateTool($id: Int!, $details: String!, $icon: ToolIcon!) {
+            updateTool(id: $id, details: $details, icon: $icon) {
+                id
+            }
+        }
+        """
+        r = self.post(user, None, f"{_listsrht_api}/query", {
+            "query": query,
+            "variables": {
+                "id": tool_id,
+                "icon": icon,
+                "details": details,
+            },
+        })
+        if not r["data"] or not r["data"]["updateTool"]:
+            return None
+        return r["data"]["updateTool"]["id"]
 
 class TodoService(SrhtService):
     def get_trackers(self, user):
