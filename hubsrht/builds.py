@@ -9,7 +9,7 @@ from sqlalchemy import func
 from srht.config import get_origin
 from srht.crypto import fernet
 
-def submit_patchset(ml, payload):
+def submit_patchset(ml, payload, valid=None):
     buildsrht = get_origin("builds.sr.ht", external=True, default=None)
     if not buildsrht:
         return None
@@ -107,7 +107,7 @@ git am -3 /tmp/{payload["id"]}.patch"""
         }))
 
         b = builds.submit_build(project.owner, manifest, build_note,
-            tags=[repo.name, "patches", key], execute=False)
+            tags=[repo.name, "patches", key], execute=False, valid=valid)
         ids.append(b["id"])
         build_url = f"{buildsrht}/{project.owner.canonical_name}/job/{b['id']}"
         lists.patchset_update_tool(ml.owner, tool_id, "WAITING",
@@ -120,5 +120,5 @@ git am -3 /tmp/{payload["id"]}.patch"""
     trigger.attrs["to"] = email.utils.formataddr(submitter)
     trigger.attrs["cc"] = ml.posting_addr()
     trigger.attrs["in_reply_to"] = payload["message_id"]
-    builds.create_group(project.owner, ids, build_note, [trigger.to_dict()])
+    builds.create_group(project.owner, ids, build_note, [trigger.to_dict()], valid=valid)
     return ids

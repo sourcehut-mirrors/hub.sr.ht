@@ -13,6 +13,7 @@ from srht.config import get_origin
 from srht.crypto import fernet, verify_request_signature
 from srht.database import db
 from srht.flask import csrf_bypass
+from srht.validation import Validation
 from urllib.parse import quote
 
 webhooks = Blueprint("webhooks", __name__)
@@ -269,7 +270,11 @@ def mailing_list(list_id):
         db.session.commit()
         return "Thanks!"
     elif event == "patchset:received":
-        build_ids = submit_patchset(ml, payload)
+        valid = Validation(request)
+        build_ids = submit_patchset(ml, payload, valid)
+        if not valid.ok:
+            emsg = f"{valid.errors[0].field}: {valid.errors[0].message}"
+            return f"Error submitting builds: {emsg}", 400
         if build_ids:
             return f"Submitted builds #{build_ids}. Thanks!"
         else:
