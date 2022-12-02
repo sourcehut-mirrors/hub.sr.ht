@@ -436,6 +436,6 @@ def build_complete(details):
 
     tool_details = f"[#{payload['id']}]({build_url}) {details['name']} {payload['status']}"
     lists.patchset_update_tool(ml.owner, details["tool_id"],
-            payload["status"], tool_details)
+            payload["status"].upper(), tool_details)
 
     return "Thanks!"
