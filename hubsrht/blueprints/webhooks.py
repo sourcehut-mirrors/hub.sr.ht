@@ -95,9 +95,12 @@ def git_repo(repo_id):
         event.external_summary = (
             f"<a href='{commit_url}'>{commit_sha}</a> " +
             f"<code>{html.escape(commit_message)}</code>")
+        event.external_summary_plain = f"{commit_sha} - {commit_message}"
         event.external_details = (
             f"<a href='{pusher_url}'>{pusher_name}</a> pushed to " +
             f"<a href='{repo.url()}'>{repo_name}</a> git")
+        event.external_details_plain = f"{pusher_name} pushed to {repo_name} git"
+        event.external_url = commit_url
 
         repo.project.updated = datetime.utcnow()
         db.session.add(event)
@@ -243,15 +246,18 @@ def mailing_list(list_id):
     elif event == "post:received":
         event = Event()
         sender = payload["sender"]
+        sender_name = "Unknown"
         if sender:
             sender = current_app.oauth_service.lookup_user(sender['name'])
             event.user_id = sender.id
+            sender_name = sender.canonical_name
             sender_url = f"<a href='{_listssrht}/{sender.canonical_name}'>{sender.canonical_name}</a>"
         else:
             msg = email.message_from_string(payload["envelope"],
                     policy=email.policy.SMTP)
             sender = email.utils.parseaddr(msg['From'])
-            sender_url = sender[0] if sender[0] else sender[1]
+            sender_name = sender[0] if sender[0] else sender[1]
+            sender_url = sender_name
 
         event.event_type = EventType.external_event
         event.mailing_list_id = ml.id
@@ -263,8 +269,11 @@ def mailing_list(list_id):
         event.external_source = "todo.sr.ht"
         event.external_summary = (
             f"<a href='{archive_url}'>{html.escape(subject)}</a>")
+        event.external_summary_plain = subject
         event.external_details = (
             f"{sender_url} via <a href='{ml.url()}'>{ml.name}</a>")
+        event.external_details_plain = f"{sender_name} via {ml.name}"
+        event.external_url = archive_url
 
         db.session.add(event)
         db.session.commit()
@@ -354,9 +363,12 @@ def todo_tracker(tracker_id):
         event.external_summary = (
             f"<a href='{ticket_url}'>#{ticket_id}</a> " +
             f"{html.escape(ticket_subject)}")
+        event.external_summary_plain = f"#{ticket_id} {ticket_subject}"
         event.external_details = (
             f"{submitter_url} filed ticket on " +
             f"<a href='{tracker.url()}'>{tracker.name}</a> todo")
+        event.external_details_plain = f"{submitter['canonical_name']} filed ticket on {tracker.name} todo"
+        event.external_url = ticket_url
 
         db.session.add(event)
         db.session.commit()
@@ -404,9 +416,12 @@ def todo_ticket(tracker_id):
         event.external_summary = (
             f"<a href='{ticket_url}'>#{ticket_id}</a> " +
             f"{html.escape(ticket_subject)}")
+        event.external_summary_plain = f"#{ticket_id} {ticket_subject}"
         event.external_details = (
             f"{participant_url} commented on " +
             f"<a href='{tracker.url()}'>{tracker.name}</a> todo")
+        event.external_details_plain = f"{participant['canonical_name']} commented on {tracker.name} todo"
+        event.external_url = ticket_url
 
         db.session.add(event)
         db.session.commit()

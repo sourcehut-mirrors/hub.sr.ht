@@ -1,7 +1,8 @@
 import re
 import string
 from sqlalchemy import or_
-from flask import Blueprint, Response, render_template, request, redirect, url_for, abort
+from flask import Blueprint, Response, render_template, request, redirect, url_for, \
+        abort, make_response
 from flask import session
 from hubsrht.decorators import adminrequired
 from hubsrht.projects import ProjectAccess, get_project
@@ -134,6 +135,31 @@ def feed_GET(owner, project_name):
     return render_template("project-feed.html",
             view="summary", owner=owner, project=project,
             events=events, EventType=EventType, **pagination)
+
+@projects.route("/<owner>/<project_name>/feed.rss")
+def feed_rss_GET(owner, project_name):
+    owner, project = get_project(owner, project_name, ProjectAccess.read)
+
+    events = (Event.query
+        .filter(Event.project_id == project.id)
+        .order_by(Event.created.desc()))
+
+    if not current_user or current_user.id != owner.id:
+        events = (events
+            .outerjoin(SourceRepo)
+            .outerjoin(MailingList)
+            .outerjoin(Tracker)
+            .filter(or_(Event.source_repo == None, SourceRepo.visibility == Visibility.PUBLIC),
+                or_(Event.mailing_list == None, MailingList.visibility == Visibility.PUBLIC),
+                or_(Event.tracker == None, Tracker.visibility == Visibility.PUBLIC)))
+
+    events, pagination = paginate_query(events)
+
+    res = make_response(render_template("project-feed-rss.html",
+            view="summary", owner=owner, project=project,
+            events=events, EventType=EventType, **pagination))
+    res.headers['Content-Type'] = 'text/xml; charset=utf-8'
+    return res
 
 @projects.route("/<owner>/<project_name>/dismiss-checklist", methods=["POST"])
 @loginrequired

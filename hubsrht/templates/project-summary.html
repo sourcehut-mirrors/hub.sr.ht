@@ -125,6 +125,11 @@
               owner=owner, project_name=project.name)}}"
             class="btn btn-link"
           >View project feed&nbsp;{{icon("caret-right")}}</a>
+          <a
+            href="{{url_for("projects.feed_rss_GET",
+              owner=owner, project_name=project.name)}}"
+            class="btn btn-link"
+          >RSS&nbsp;{{icon("caret-right")}}</a>
         </div>
       </div>
     </div>

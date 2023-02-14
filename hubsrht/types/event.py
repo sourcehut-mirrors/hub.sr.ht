@@ -48,3 +48,6 @@ class Event(Base):
     external_source = sa.Column(sa.Unicode) # e.g. "lists.sr.ht"
     external_summary = sa.Column(sa.Unicode) # markdown
     external_details = sa.Column(sa.Unicode) # markdown
+    external_summary_plain = sa.Column(sa.Unicode) # plaintext
+    external_details_plain = sa.Column(sa.Unicode) # plaintext
+    external_url = sa.Column(sa.Unicode)

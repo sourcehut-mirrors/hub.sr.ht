@@ -96,5 +96,8 @@ CREATE TABLE event (
 	tracker_id integer REFERENCES tracker(id) ON DELETE CASCADE,
 	external_source character varying,
 	external_summary character varying,
-	external_details character varying
+	external_details character varying,
+	external_summary_plain character varying,
+	external_details_plain character varying,
+	external_url character varying
 );
