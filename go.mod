@@ -1,4 +1,4 @@
-module git.sr.ht/~sircmpwn/hub.sr.ht/api
+module git.sr.ht/~sircmpwn/hub.sr.ht
 
 go 1.17
 
