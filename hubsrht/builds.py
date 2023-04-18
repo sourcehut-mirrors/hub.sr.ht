@@ -107,7 +107,8 @@ git am -3 /tmp/{payload["id"]}.patch"""
         }))
 
         b = builds.submit_build(project.owner, manifest, build_note,
-            tags=[repo.name, "patches", key], execute=False, valid=valid)
+            tags=[repo.name, "patches", key], execute=False, valid=valid,
+            visibility=repo.visibility)
         ids.append(b["id"])
         build_url = f"{buildsrht}/{project.owner.canonical_name}/job/{b['id']}"
         lists.patchset_update_tool(ml.owner, tool_id, "WAITING",

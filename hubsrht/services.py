@@ -572,14 +572,40 @@ class TodoService(SrhtService):
         self.put(user, None, url, payload)
 
 class BuildService(SrhtService):
-    def submit_build(self, user, manifest, note, tags, execute=True, valid=None):
-        return self.post(user, valid, f"{_buildsrht}/api/jobs", {
-            "manifest": yaml.dump(manifest.to_dict(), default_flow_style=False),
-            "tags": tags,
-            "note": note,
-            "secrets": False,
-            "execute": execute,
+    def submit_build(self, user, manifest, note, tags, execute=True, valid=None, visibility=None):
+        query = """
+        mutation SubmitBuild(
+            $manifest: String!,
+            $note: String,
+            $tags: [String!],
+            $secrets: Boolean,
+            $execute: Boolean,
+            $visibility: Visibility,
+        ) {
+            submit(
+                manifest: $manifest,
+                note: $note,
+                tags: $tags,
+                secrets: $secrets,
+                execute: $execute,
+                visibility: $visibility,
+            ) {
+                id
+            }
+        }
+        """
+        r = self.post(user, valid, f"{_buildsrht_api}/query", {
+            "query": query,
+            "variables": {
+                "manifest": yaml.dump(manifest.to_dict(), default_flow_style=False),
+                "tags": tags,
+                "note": note,
+                "secrets": False,
+                "execute": execute,
+                "visibility": visibility.value if visibility else None,
+            },
         })
+        return r["data"]["submit"]
 
     def create_group(self, user, job_ids, note, triggers, valid=None):
         return self.post(user, valid, f"{_buildsrht}/api/job-group", {
