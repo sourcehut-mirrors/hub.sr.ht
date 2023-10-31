@@ -1,6 +1,7 @@
 import re
 import string
 from sqlalchemy import or_
+from sqlalchemy.sql import text
 from flask import Blueprint, Response, render_template, request, redirect, url_for, \
         abort, make_response
 from flask import session
@@ -279,8 +280,9 @@ def delete_GET(owner, project_name):
 def delete_POST(owner, project_name):
     owner, project = get_project(owner, project_name, ProjectAccess.write)
     session["notice"] = f"{project.name} has been deleted."
-    db.engine.execute(f"DELETE FROM project WHERE id = {project.id}")
-    db.session.commit()
+    with db.engine.connect() as conn:
+        conn.execute(text(f"DELETE FROM project WHERE id = {project.id}"))
+        conn.commit()
     return redirect(url_for("public.index"))
 
 @projects.route("/<owner>/<project_name>/feature", methods=["POST"])
