@@ -3,7 +3,6 @@ from sqlalchemy.sql import operators
 from flask import Blueprint, render_template, request, abort
 from hubsrht.types import User, Project, Visibility, Event, EventType
 from hubsrht.types import SourceRepo, MailingList, Tracker
-from srht.graphql import exec_gql
 from srht.flask import paginate_query
 from srht.oauth import current_user
 from srht.search import search_by
@@ -12,30 +11,17 @@ users = Blueprint("users", __name__)
 
 @users.route("/~<username>/")
 def summary_GET(username):
-    user = exec_gql("meta.sr.ht", """
-    query UserByName($username: String!) {
-        userByName(username: $username) {
-            id
-            canonicalName
-            username
-            location
-            url
-            bio
-        }
-    }
-    """, username=username)
-    user = user["userByName"]
+    user = User.query.filter(User.username == username).first()
     if not user:
         abort(404)
-
     projects = (Project.query
-            .filter(Project.owner_id == user["id"])
+            .filter(Project.owner_id == user.id)
             .order_by(Project.updated.desc()))
     events = (Event.query
-            .filter(Event.user_id == user["id"])
+            .filter(Event.user_id == user.id)
             .order_by(Event.created.desc()))
 
-    if not current_user or current_user.id != user["id"]:
+    if not current_user or current_user.id != user.id:
         # TODO: ACLs
         projects = projects.filter(Project.visibility == Visibility.PUBLIC)
         events = (events
