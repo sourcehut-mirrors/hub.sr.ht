@@ -4,14 +4,16 @@ from flask import Blueprint, render_template, request, abort
 from hubsrht.types import User, Project, Visibility, Event, EventType
 from hubsrht.types import SourceRepo, MailingList, Tracker
 from srht.flask import paginate_query
-from srht.oauth import current_user
+from srht.oauth import current_user, UserType
 from srht.search import search_by
 
 users = Blueprint("users", __name__)
 
 @users.route("/~<username>/")
 def summary_GET(username):
-    user = User.query.filter(User.username == username).first()
+    user = (User.query
+            .filter(User.username == username)
+            .filter(User.user_type != UserType.suspended)).first()
     if not user:
         abort(404)
     projects = (Project.query
