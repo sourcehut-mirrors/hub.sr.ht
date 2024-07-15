@@ -157,7 +157,12 @@ class GitService(SrhtService):
                   }
                 }
               },
-              single: path(path:".build.yml") {
+              singleYML: path(path:".build.yml") {
+                object {
+                  ... on TextBlob { text }
+                }
+              },
+              singleYAML: path(path:".build.yaml") {
                 object {
                   ... on TextBlob { text }
                 }
@@ -183,8 +188,11 @@ class GitService(SrhtService):
                 if not ent["object"]:
                     continue
                 manifests[ent["name"]] = ent["object"]["text"]
-        elif r["data"]["user"]["repository"]["single"]:
-            manifests[".build.yml"] = r["data"]["user"]["repository"]["single"]\
+        elif r["data"]["user"]["repository"]["singleYAML"]:
+            manifests[".build.yaml"] = r["data"]["user"]["repository"]["singleYAML"]\
+                    ["object"]["text"]
+        elif r["data"]["user"]["repository"]["singleYML"]:
+            manifests[".build.yml"] = r["data"]["user"]["repository"]["singleYML"]\
                     ["object"]["text"]
         else:
             return None
