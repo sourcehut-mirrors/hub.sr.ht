@@ -6,6 +6,7 @@ from abc import ABC
 from flask import url_for
 from markupsafe import Markup, escape
 from srht.api import ensure_webhooks, encrypt_request_authorization, get_results
+from srht.graphql import gql_time
 from srht.markdown import markdown, sanitize
 from srht.config import get_origin, cfg
 
@@ -80,14 +81,64 @@ class GitService(SrhtService):
         super().__init__()
 
     def get_repos(self, user):
-        return get_results(f"{_gitsrht}/api/repos", user)
+        get_repos_query = """
+        query GetRepos($cursor: Cursor) {
+            me {
+                repositories(cursor: $cursor) {
+                    results {
+                        id
+                        name
+                        updated
+                        owner {
+                            canonicalName
+                        }
+                    }
+                    cursor
+                }
+            }
+        }
+        """
+
+        repos = []
+        cursor = None
+        while True:
+            r = self.post(user, None, f"{_gitsrht_api}/query", {
+                "query": get_repos_query,
+                "variables": {
+                    "cursor": cursor,
+                },
+            })
+            result = r["data"]["me"]["repositories"]
+            repos.extend(result["results"])
+            cursor = result["cursor"]
+            if cursor is None:
+                break
+
+        for repo in repos:
+            repo["updated"] = gql_time(repo["updated"])
+
+        return repos
 
     def get_repo(self, user, repo_name):
-        r = self.session.get(f"{_gitsrht}/api/repos/{repo_name}",
-                headers=encrypt_request_authorization(user))
-        if r.status_code != 200:
-            raise Exception(r.text)
-        return r.json()
+        get_repo_query = """
+        query GetRepo($repoName: String!) {
+            me {
+                repository(name: $repoName) {
+                    id
+                    name
+                    description
+                    visibility
+                }
+            }
+        }
+        """
+        r = self.post(user, None, f"{_gitsrht_api}/query", {
+            "query": get_repo_query,
+            "variables": {
+                "repoName": repo_name,
+            },
+        })
+        return r["data"]["me"]["repository"]
 
     def get_readme(self, user, repo_name, repo_url):
         readme_query = """
