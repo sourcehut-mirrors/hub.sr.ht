@@ -6,9 +6,10 @@ from abc import ABC
 from flask import url_for
 from markupsafe import Markup, escape
 from srht.api import ensure_webhooks, encrypt_request_authorization, get_results
-from srht.graphql import gql_time
-from srht.markdown import markdown, sanitize
 from srht.config import get_origin, cfg
+from srht.graphql import gql_time, exec_gql
+from srht.markdown import markdown, sanitize
+from typing import Any, Callable
 
 _gitsrht = get_origin("git.sr.ht", default=None)
 _gitsrht_api = cfg("git.sr.ht", "api-origin", default=None) or _gitsrht
@@ -47,8 +48,40 @@ def try_html_readme(session, prefix, user, repo_name):
         raise Exception(r.text)
 
 class SrhtService(ABC):
-    def __init__(self):
+    def __init__(self, site):
         self.session = requests.Session()
+        self.site = site
+
+    def exec(self, user, query, valid=None, **kwargs):
+        return exec_gql(self.site, query, user=user, valid=valid, **kwargs)
+
+    def enumerate(self, user,
+                  query: str,
+                  collector: Callable[[Any], Any],
+                  **kwargs):
+        """Enumerate a cursor-driven list of resources from GraphQL.
+
+        Parameters:
+        - user: the user to authenticate as
+        - query: the GraphQL query to execute
+        - collector: function which extracts the cursor object from the GraphQL
+          response
+        - kwargs: variables for GraphQL query. "cursor" is added to this by
+          enumerate.
+        """
+
+        items = []
+        cursor = None
+
+        while True:
+            r = self.exec(user, query, cursor=cursor, **kwargs)
+            result = collector(r)
+            items.extend(result["results"])
+            cursor = result["cursor"]
+            if cursor is None:
+                break
+
+        return items
 
     def post(self, user, valid, url, payload):
         r = self.session.post(url,
@@ -78,41 +111,27 @@ class SrhtService(ABC):
 
 class GitService(SrhtService):
     def __init__(self):
-        super().__init__()
+        super().__init__("git.sr.ht")
 
     def get_repos(self, user):
-        get_repos_query = """
-        query GetRepos($cursor: Cursor) {
-            me {
-                repositories(cursor: $cursor) {
-                    results {
-                        id
-                        name
-                        updated
-                        owner {
-                            canonicalName
+        repos = self.enumerate(user, """
+            query GetRepos($cursor: Cursor) {
+                me {
+                    repositories(cursor: $cursor) {
+                        results {
+                            id
+                            name
+                            updated
+                            owner {
+                                canonicalName
+                            }
                         }
+                        cursor
                     }
-                    cursor
                 }
             }
-        }
-        """
-
-        repos = []
-        cursor = None
-        while True:
-            r = self.post(user, None, f"{_gitsrht_api}/query", {
-                "query": get_repos_query,
-                "variables": {
-                    "cursor": cursor,
-                },
-            })
-            result = r["data"]["me"]["repositories"]
-            repos.extend(result["results"])
-            cursor = result["cursor"]
-            if cursor is None:
-                break
+            """,
+            collector=lambda result: result["me"]["repositories"])
 
         for repo in repos:
             repo["updated"] = gql_time(repo["updated"])
@@ -120,58 +139,47 @@ class GitService(SrhtService):
         return repos
 
     def get_repo(self, user, repo_name):
-        get_repo_query = """
-        query GetRepo($repoName: String!) {
-            me {
-                repository(name: $repoName) {
-                    id
-                    name
-                    description
-                    visibility
+        resp = self.exec(user, """
+            query GetRepo($repoName: String!) {
+                me {
+                    repository(name: $repoName) {
+                        id
+                        name
+                        description
+                        visibility
+                    }
                 }
             }
-        }
-        """
-        r = self.post(user, None, f"{_gitsrht_api}/query", {
-            "query": get_repo_query,
-            "variables": {
-                "repoName": repo_name,
-            },
-        })
-        return r["data"]["me"]["repository"]
+            """, repoName=repo_name)
+        return resp["me"]["repository"]
 
     def get_readme(self, user, repo_name, repo_url):
-        readme_query = """
-        query Readme($username: String!, $repoName: String!) {
-            user(username: $username) {
-                repository(name: $repoName) {
-                    html: readme
-                    md: path(path: "README.md") { ...textData }
-                    markdown: path(path: "README.markdown") { ...textData }
-                    plaintext: path(path: "README") { ...textData }
+        resp = self.exec(user, """
+            query Readme($username: String!, $repo_name: String!) {
+                user(username: $username) {
+                    repository(name: $repo_name) {
+                        html: readme
+                        md: path(path: "README.md") { ...textData }
+                        markdown: path(path: "README.markdown") { ...textData }
+                        plaintext: path(path: "README") { ...textData }
+                    }
                 }
             }
-        }
 
-        fragment textData on TreeEntry {
-            object {
-                ... on TextBlob {
-                    text
+            fragment textData on TreeEntry {
+                object {
+                    ... on TextBlob {
+                        text
+                    }
                 }
             }
-        }
-        """
-        r = self.post(user, None, f"{_gitsrht_api}/query", {
-                "query": readme_query,
-                "variables": {
-                    "username": user.username,
-                    "repoName": repo_name,
-                },
-            })
-        if not r["data"]["user"]["repository"]:
+            """,
+            username=user.username, repo_name=repo_name)
+
+        if not resp["user"]["repository"]:
             raise Exception("git.sr.ht returned no repository: " +
                     json.dumps(r, indent=1))
-        repo = r["data"]["user"]["repository"]
+        repo = resp["user"]["repository"]
 
         content = repo["html"]
         if content:
@@ -181,7 +189,8 @@ class GitService(SrhtService):
         if content:
             blob_prefix = repo_url + "/blob/HEAD/"
             rendered_prefix = repo_url + "/tree/HEAD/"
-            html = markdown(content["object"]["text"], link_prefix=[rendered_prefix, blob_prefix])
+            html = markdown(content["object"]["text"],
+                    link_prefix=[rendered_prefix, blob_prefix])
             return Markup(html)
 
         content = repo["plaintext"]
@@ -192,141 +201,122 @@ class GitService(SrhtService):
         return None
 
     def get_manifests(self, user, repo_name):
-        manifests_query = """
-        query Manifests($username: String!, $repoName: String!) {
-          user(username: $username) {
-            repository(name: $repoName) {
-              multiple: path(path:".builds") {
-                object {
-                  ... on Tree {
-                    entries {
-                      results {
-                        name
-                        object { ... on TextBlob { text } }
+        resp = self.exec(user, """
+            query Manifests($username: String!, $repo_name: String!) {
+              user(username: $username) {
+                repository(name: $repo_name) {
+                  multiple: path(path:".builds") {
+                    object {
+                      ... on Tree {
+                        entries {
+                          results {
+                            name
+                            object { ... on TextBlob { text } }
+                          }
+                        }
                       }
+                    }
+                  },
+                  singleYML: path(path:".build.yml") {
+                    object {
+                      ... on TextBlob { text }
+                    }
+                  },
+                  singleYAML: path(path:".build.yaml") {
+                    object {
+                      ... on TextBlob { text }
                     }
                   }
                 }
-              },
-              singleYML: path(path:".build.yml") {
-                object {
-                  ... on TextBlob { text }
-                }
-              },
-              singleYAML: path(path:".build.yaml") {
-                object {
-                  ... on TextBlob { text }
-                }
               }
             }
-          }
-        }
-        """
-        r = self.post(user, None, f"{_gitsrht_api}/query", {
-            "query": manifests_query,
-            "variables": {
-                "username": user.username,
-                "repoName": repo_name,
-            },
-        })
-        if not r["data"]["user"]["repository"]:
+            """, username=user.username, repo_name=repo_name)
+
+        if not resp["user"]["repository"]:
             raise Exception(f"git.sr.ht did not find repo {repo_name} (requesting on behalf of {user.username})\n" +
                     json.dumps(r, indent=1))
+        repo = resp["user"]["repository"]
+
         manifests = dict()
-        if r["data"]["user"]["repository"]["multiple"]:
-            for ent in r["data"]["user"]["repository"]["multiple"]["object"]\
-                    ["entries"]["results"]:
+
+        if repo["multiple"]:
+            for ent in repo["multiple"]["object"]["entries"]["results"]:
                 if not ent["object"]:
                     continue
                 manifests[ent["name"]] = ent["object"]["text"]
-        elif r["data"]["user"]["repository"]["singleYAML"]:
-            manifests[".build.yaml"] = r["data"]["user"]["repository"]["singleYAML"]\
-                    ["object"]["text"]
-        elif r["data"]["user"]["repository"]["singleYML"]:
-            manifests[".build.yml"] = r["data"]["user"]["repository"]["singleYML"]\
-                    ["object"]["text"]
+        elif repo["singleYML"]:
+            manifests[".build.yml"] = repo["singleYML"]["object"]["text"]
+        elif repo["singleYAML"]:
+            manifests[".build.yaml"] = repo["singleYAML"]["object"]["text"]
         else:
             return None
+
         return manifests
 
     def log(self, user, repo, old, new):
-        query = """
-        query Log($username: String!, $repo: String!, $from: String!) {
-            user(username: $username) {
-                repository(name: $repo) {
-                    log(from: $from) {
-                        results {
-                            id
-                            message
-                            author {
-                                name
+        resp = self.exec(user, """
+            query Log($username: String!, $repo: String!, $from: String!) {
+                user(username: $username) {
+                    repository(name: $repo) {
+                        log(from: $from) {
+                            results {
+                                id
+                                message
+                                author {
+                                    name
+                                }
                             }
                         }
                     }
                 }
             }
-        }
-        """
-        r = self.post(user, None, f"{_gitsrht_api}/query", {
-            "query": query,
-            "variables": {
+            """, **{
                 "username": repo.owner.username,
                 "repo": repo.name,
                 "from": new,
-            }
-        })
+            })
+
         commits = []
-        for c in r["data"]["user"]["repository"]["log"]["results"]:
+        for c in resp["user"]["repository"]["log"]["results"]:
             if c["id"] == old:
                 break
             commits.append(c)
         return commits
 
     def create_repo(self, user, valid, visibility):
-        query = """
-        mutation CreateRepo(
-                $name: String!,
-                $description: String,
-                $visibility: Visibility!) {
-            createRepository(name: $name,
-                    description: $description,
-                    visibility: $visibility) {
-                id, name, description, visibility
-            }
-        }
-        """
         name = valid.require("name")
         description = valid.require("description")
         if not valid.ok:
             return None
-        r = self.post(user, None, f"{_gitsrht_api}/query", {
-            "query": query,
-            "variables": {
-                "name": name,
-                "visibility": visibility.value.upper(),
-                "description": description,
+
+        resp = self.exec(user, """
+            mutation CreateRepo(
+                    $name: String!,
+                    $description: String,
+                    $visibility: Visibility!) {
+                createRepository(name: $name,
+                        description: $description,
+                        visibility: $visibility) {
+                    id, name, description, visibility
+                }
             }
-        })
-        if not r["data"] or not r["data"]["createRepository"]:
-            for error in r["errors"]:
-                valid.error(error["message"])
+            """,
+            name=name,
+            description=description,
+            visibility=visibility.value,
+            valid=valid)
+
+        if not valid.ok:
             return None
-        repo = r["data"]["createRepository"]
-        repo["visibility"] = repo["visibility"].lower()
-        return r["data"]["createRepository"]
+
+        return resp["createRepository"]
 
     def delete_repo(self, user, repo_id):
-        query = """
-        mutation DeleteRepo($id: Int!) {
-            deleteRepository(id: $id) { id }
-        }
-        """
-        self.post(user, None, f"{_gitsrht_api}/query", {
-            "query": query,
-            "variables": {
-                "id": repo_id,
-            },
-        })
+        self.exec(user, """
+            mutation DeleteRepo($repo_id: Int!) {
+                deleteRepository(id: $repo_id) { id }
+            }
+            """, repo_id=repo_id)
 
     def ensure_user_webhooks(self, user):
         config = {
@@ -362,7 +352,7 @@ class GitService(SrhtService):
 
 class HgService(SrhtService):
     def __init__(self):
-        super().__init__()
+        super().__init__("hg.sr.ht")
 
     def get_repos(self, user):
         return get_results(f"{_hgsrht}/api/repos", user)
@@ -423,6 +413,9 @@ class HgService(SrhtService):
             pass # nbd, upstream was presumably deleted
 
 class ListService(SrhtService):
+    def __init__(self):
+        super().__init__("lists.sr.ht")
+
     def get_lists(self, user):
         return get_results(f"{_listsrht}/api/lists", user)
 
@@ -508,6 +501,9 @@ class ListService(SrhtService):
         return r["data"]["updateTool"]["id"]
 
 class TodoService(SrhtService):
+    def __init__(self):
+        super().__init__("todo.sr.ht")
+
     def get_trackers(self, user):
         return get_results(f"{_todosrht}/api/trackers", user)
 
@@ -631,6 +627,9 @@ class TodoService(SrhtService):
         self.put(user, None, url, payload)
 
 class BuildService(SrhtService):
+    def __init__(self):
+        super().__init__("builds.sr.ht")
+
     def submit_build(self, user, manifest, note, tags, execute=True, valid=None, visibility=None):
         query = """
         mutation SubmitBuild(
