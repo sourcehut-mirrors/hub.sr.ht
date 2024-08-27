@@ -93,14 +93,14 @@ Mailing list for end-user discussion and questions related to the
     for list_name in template:
         desc = descs[list_name]
         list_name = list_name.lower() # Per lists.sr.ht naming rules
-        try:
-            mailing_list = lists.get_list(owner, list_name)
+        mailing_list = lists.get_list(owner, list_name)
+        if mailing_list is not None:
             in_project = [l.remote_id for l in (MailingList.query
                     .filter(MailingList.project_id == project.id)
                     .filter(MailingList.name == list_name)).all()]
             if in_project:
                 continue
-        except:
+        else:
             valid = Validation({
                 "name": list_name,
                 "description": desc,
@@ -115,7 +115,7 @@ Mailing list for end-user discussion and questions related to the
         ml.owner_id = project.owner_id
         ml.name = mailing_list["name"]
         ml.description = mailing_list["description"]
-        if any(mailing_list["permissions"]["nonsubscriber"]):
+        if mailing_list["defaultACL"]["browse"]:
             ml.visibility = Visibility.PUBLIC
         else:
             ml.visibility = Visibility.UNLISTED
@@ -189,7 +189,7 @@ def new_POST(owner, project_name):
     ml.owner_id = project.owner_id
     ml.name = mailing_list["name"]
     ml.description = mailing_list["description"]
-    if any(mailing_list["permissions"]["nonsubscriber"]):
+    if mailing_list["defaultACL"]["browse"]:
         ml.visibility = Visibility.PUBLIC
     else:
         ml.visibility = Visibility.UNLISTED
@@ -257,7 +257,7 @@ def delete_POST(owner, project_name, list_id):
     if not mailing_list:
         abort(404)
 
-    list_name = mailing_list.name
+    list_id = mailing_list.remote_id
     lists.unensure_mailing_list_webhooks(mailing_list)
     db.session.delete(mailing_list)
     db.session.commit()
@@ -265,7 +265,7 @@ def delete_POST(owner, project_name, list_id):
     valid = Validation(request)
     delete_remote = valid.optional("delete-remote") == "on"
     if delete_remote:
-        lists.delete_list(owner, list_name)
+        lists.delete_list(owner, list_id)
 
     return redirect(url_for("projects.summary_GET",
         owner=owner.canonical_name, project_name=project.name))

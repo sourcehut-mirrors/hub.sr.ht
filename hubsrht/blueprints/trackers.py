@@ -89,7 +89,7 @@ def new_POST(owner, project_name):
     tracker.owner_id = owner.id
     tracker.name = remote_tracker["name"]
     tracker.description = remote_tracker["description"]
-    if any(remote_tracker["default_access"]):
+    if remote_tracker["defaultACL"]["browse"]:
         tracker.visibility = Visibility.PUBLIC
     else:
         tracker.visibility = Visibility.UNLISTED
@@ -156,14 +156,14 @@ def delete_POST(owner, project_name, tracker_id):
         .filter(Tracker.project_id == project.id)).one_or_none()
     if not tracker:
         abort(404)
-    tracker_name = tracker.name
+    tracker_name = tracker.remote_id
     db.session.delete(tracker)
     db.session.commit()
 
     valid = Validation(request)
     delete_remote = valid.optional("delete-remote") == "on"
     if delete_remote:
-        todo.delete_tracker(owner, tracker_name)
+        todo.delete_tracker(owner, tracker_id)
 
     return redirect(url_for("projects.summary_GET",
         owner=owner.canonical_name, project_name=project.name))

@@ -275,7 +275,7 @@ def delete_POST(owner, project_name, repo_id):
         if repo.repo_type == RepoType.git:
             git.delete_repo(owner, repo_id)
         elif repo.repo_type == RepoType.hg: 
-            hg.delete_repo(owner, repo_name)
+            hg.delete_repo(owner, repo_id)
         else:
             assert False
 

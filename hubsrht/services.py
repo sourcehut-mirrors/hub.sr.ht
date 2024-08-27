@@ -355,14 +355,43 @@ class HgService(SrhtService):
         super().__init__("hg.sr.ht")
 
     def get_repos(self, user):
-        return get_results(f"{_hgsrht}/api/repos", user)
+        repos = self.enumerate(user, """
+            query GetRepos($cursor: Cursor) {
+                me {
+                    repositories(cursor: $cursor) {
+                        results {
+                            id
+                            name
+                            updated
+                            owner {
+                                canonicalName
+                            }
+                        }
+                        cursor
+                    }
+                }
+            }
+        """, collector=lambda result: result["me"]["repositories"])
+
+        for repo in repos:
+            repo["updated"] = gql_time(repo["updated"])
+
+        return repos
 
     def get_repo(self, user, repo_name):
-        r = self.session.get(f"{_hgsrht}/api/repos/{repo_name}",
-                headers=encrypt_request_authorization(user))
-        if r.status_code != 200:
-            raise Exception(r.text)
-        return r.json()
+        resp = self.exec(user, """
+            query GetRepo($repoName: String!) {
+                me {
+                    repository(name: $repoName) {
+                        id
+                        name
+                        description
+                        visibility
+                    }
+                }
+            }
+        """, repoName=repo_name)
+        return resp["me"]["repository"]
 
     def get_readme(self, user, repo_name, repo_url):
         # TODO: Cache?
@@ -386,17 +415,35 @@ class HgService(SrhtService):
         description = valid.require("description")
         if not valid.ok:
             return None
-        return self.post(user, valid, f"{_hgsrht}/api/repos", {
-            "name": name,
-            "description": description,
-            "visibility": visibility.value,
-        })
 
-    def delete_repo(self, user, repo_name):
-        r = self.session.delete(f"{_hgsrht}/api/repos/{repo_name}",
-                headers=encrypt_request_authorization(user))
-        if r.status_code != 204 and r.status_code != 404:
-            raise Exception(r.text)
+        resp = self.exec(user, """
+        mutation CreateRepo(
+                $name: String!,
+                $description: String!,
+                $visibility: Visibility!) {
+            createRepository(name: $name,
+                    description: $description,
+                    visibility: $visibility) {
+                id, name, description, visibility
+            }
+        }
+        """,
+        name=name,
+        description=description,
+        visibility=visibility.value,
+        valid=valid)
+
+        if not valid.ok:
+            return None
+
+        return resp["createRepository"]
+
+    def delete_repo(self, user, repo_id):
+        self.exec(user, """
+        mutation DeleteRepo($repo_id: Int!) {
+            deleteRepository(id: $repo_id) { id }
+        }
+        """, repo_id=repo_id)
 
     def ensure_user_webhooks(self, user):
         config = {
@@ -417,14 +464,119 @@ class ListService(SrhtService):
         super().__init__("lists.sr.ht")
 
     def get_lists(self, user):
-        return get_results(f"{_listsrht}/api/lists", user)
+        lists = self.enumerate(user, """
+        query GetLists($cursor: Cursor) {
+            me {
+                lists(cursor: $cursor) {
+                    results {
+                        id
+                        name
+                        description
+                        updated
+                        owner {
+                            canonicalName
+                        }
+                    }
+                    cursor
+                }
+            }
+        }
+        """,
+        collector=lambda result: result["me"]["lists"])
+
+        for ml in lists:
+            ml["updated"] = gql_time(ml["updated"])
+
+        return lists
 
     def get_list(self, user, list_name):
-        r = self.session.get(f"{_listsrht}/api/lists/{list_name}",
-                headers=encrypt_request_authorization(user))
-        if r.status_code != 200:
-            raise Exception(r.json())
-        return r.json()
+        resp = self.exec(user, """
+        query GetList($listName: String!) {
+            me {
+                list(name: $listName) {
+                    id
+                    name
+                    description
+                    visibility
+                    defaultACL {
+                        browse
+                    }
+                }
+            }
+        }
+        """, listName=list_name)
+        return resp["me"]["list"]
+
+    def create_list(self, user, valid):
+        name = valid.require("name")
+        description = valid.optional("description")
+        if not valid.ok:
+            return None
+
+        resp = self.exec(user, """
+        mutation CreateList(
+                $name: String!,
+                $description: String!) {
+            createMailingList(name: $name,
+                    description: $description,
+                    visibility: PUBLIC) {
+                id
+                name
+                description
+                visibility
+                defaultACL {
+                    browse
+                }
+            }
+        }
+        """,
+        name=name,
+        description=description,
+        valid=valid)
+
+        if not valid.ok:
+            return None
+
+        return resp["createMailingList"]
+
+    def delete_list(self, user, list_id):
+        resp = self.exec(user, """
+        mutation DeleteList($list_id: Int!) {
+            deleteMailingList(id: $list_id) { id }
+        }
+        """, list_id=list_id)
+
+    def patchset_create_tool(self, user, patchset_id, icon, details):
+        resp = self.exec(user, """
+        mutation CreateTool(
+                $patchset_id: Int!,
+                $details: String!,
+                $icon: ToolIcon!) {
+            createTool(patchsetID: $patchsetID, details: $details, icon: $icon) {
+                id
+            }
+        }
+        """,
+        patchsetID=patchset_id,
+        icon=icon,
+        details=details)
+        return r["createTool"]["id"]
+
+    def patchset_update_tool(self, user, tool_id, icon, details):
+        resp = self.exec(user, """
+        mutation UpdateTool(
+                $toolID: Int!,
+                $details: String!,
+                $icon: ToolIcon!) {
+            updateTool(id: $toolID, details: $details, icon: $icon) {
+                id
+            }
+        }
+        """,
+        toolID=tool_id,
+        icon=icon,
+        details=details)
+        return resp["updateTool"]["id"]
 
     def ensure_mailing_list_webhooks(self, mailing_list):
         config = {
@@ -444,92 +596,136 @@ class ListService(SrhtService):
         except:
             pass # nbd, upstream was presumably deleted
 
-    def create_list(self, user, valid):
-        name = valid.require("name")
-        description = valid.optional("description")
-        if not valid.ok:
-            return None
-        return self.post(user, valid, f"{_listsrht}/api/lists", {
-            "name": name,
-            "description": description,
-        })
-
-    def delete_list(self, user, list_name):
-        r = self.session.delete(f"{_listsrht}/api/lists/{list_name}",
-                headers=encrypt_request_authorization(user))
-        if r.status_code != 204 and r.status_code != 404:
-            raise Exception(r.text)
-
-    def patchset_create_tool(self, user, patchset_id, icon, details):
-        query = """
-        mutation CreateTool($id: Int!, $details: String!, $icon: ToolIcon!) {
-            createTool(patchsetID: $id, details: $details, icon: $icon) {
-                id
-            }
-        }
-        """
-        r = self.post(user, None, f"{_listsrht_api}/query", {
-            "query": query,
-            "variables": {
-                "id": patchset_id,
-                "icon": icon,
-                "details": details,
-            },
-        })
-        if not r["data"] or not r["data"]["createTool"]:
-            return None
-        return r["data"]["createTool"]["id"]
-
-    def patchset_update_tool(self, user, tool_id, icon, details):
-        query = """
-        mutation UpdateTool($id: Int!, $details: String!, $icon: ToolIcon!) {
-            updateTool(id: $id, details: $details, icon: $icon) {
-                id
-            }
-        }
-        """
-        r = self.post(user, None, f"{_listsrht_api}/query", {
-            "query": query,
-            "variables": {
-                "id": tool_id,
-                "icon": icon,
-                "details": details,
-            },
-        })
-        if not r["data"] or not r["data"]["updateTool"]:
-            return None
-        return r["data"]["updateTool"]["id"]
-
 class TodoService(SrhtService):
     def __init__(self):
         super().__init__("todo.sr.ht")
 
     def get_trackers(self, user):
-        return get_results(f"{_todosrht}/api/trackers", user)
+        trackers = self.enumerate(user, """
+        query GetTrackers($cursor: Cursor) {
+            me {
+                trackers(cursor: $cursor) {
+                    results {
+                        id
+                        name
+                        description
+                        updated
+                        owner {
+                            canonicalName
+                        }
+                    }
+                    cursor
+                }
+            }
+        }
+        """, collector=lambda result: result["me"]["trackers"])
+
+        for tr in trackers:
+            tr["updated"] = gql_time(tr["updated"])
+
+        return trackers
 
     def get_tracker(self, user, tracker_name):
-        r = self.session.get(f"{_todosrht}/api/trackers/{tracker_name}",
-                headers=encrypt_request_authorization(user))
-        if r.status_code != 200:
-            raise Exception(r.json())
-        return r.json()
+        resp = self.exec(user, """
+        query GetTracker($trackerName: String!) {
+            me {
+                tracker(name: $trackerName) {
+                    id
+                    name
+                    description
+                    visibility
+                    defaultACL {
+                        browse
+                    }
+                }
+            }
+        }
+        """, trackerName=tracker_name)
+        return resp["me"]["tracker"]
 
     def create_tracker(self, user, valid, visibility):
         name = valid.require("name")
         description = valid.optional("description")
         if not valid.ok:
             return None
-        return self.post(user, valid, f"{_todosrht}/api/trackers", {
-            "name": name,
-            "description": description,
-            "visibility": visibility.value.upper(),
-        })
 
-    def delete_tracker(self, user, tracker_name):
-        r = self.session.delete(f"{_todosrht}/api/trackers/{tracker_name}",
-                headers=encrypt_request_authorization(user))
-        if r.status_code != 204 and r.status_code != 404:
-            raise Exception(r.text)
+        resp = self.exec(user, """
+        mutation CreateTracker(
+                $name: String!,
+                $description: String!,
+                $visibility: Visibility!) {
+            createTracker(name: $name,
+                    description: $description,
+                    visibility: $visibility) {
+                id
+                name
+                description
+                visibility
+                defaultACL {
+                    browse
+                }
+            }
+        }
+        """,
+        name=name,
+        description=description,
+        visibility=visibility.value,
+        valid=valid)
+
+        if not valid.ok:
+            return None
+
+        return resp["createTracker"]
+
+    def delete_tracker(self, user, tracker_id):
+        self.exec(user, """
+        mutation DeleteTracker($trackerID: Int!) {
+            deleteTracker(id: $trackerID) { id }
+        }
+        """, trackerID=tracker_id)
+
+    def get_ticket_comments(self, user, owner, tracker, ticket):
+        query = """
+        query TicketComments($username: String!, $tracker: String!, $ticket: Int!) {
+          user(username: $username) {
+            tracker(name: $tracker) {
+              ticket(id: $ticket) {
+                events {
+                  results {
+                    changes {
+                      ... on Comment {
+                        text
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+        """
+        r = self.post(user, None, f"{_todosrht_api}/query", {
+            "query": query,
+            "variables": {
+                "username": owner[1:],
+                "tracker": tracker,
+                "ticket": ticket,
+            }
+        })
+        comments = []
+        for e in r["data"]["user"]["tracker"]["ticket"]["events"]["results"]:
+            for c in e["changes"]:
+                if "text" in c:
+                    comments.append(c["text"])
+        return comments
+
+    def update_ticket(self, user, owner, tracker, ticket, comment, resolution=None):
+        url = f"{_todosrht}/api/user/{owner}/trackers/{tracker}/tickets/{ticket}"
+        payload = {"comment": comment}
+        if resolution is not None:
+            payload["resolution"] = resolution
+            payload["status"] = "resolved"
+        self.put(user, None, url, payload)
 
     def ensure_user_webhooks(self, user):
         config = {
@@ -582,49 +778,6 @@ class TodoService(SrhtService):
             ensure_webhooks(owner, url, config)
         except:
             pass # nbd, upstream was presumably deleted
-
-    def get_ticket_comments(self, user, owner, tracker, ticket):
-        query = """
-        query TicketComments($username: String!, $tracker: String!, $ticket: Int!) {
-          user(username: $username) {
-            tracker(name: $tracker) {
-              ticket(id: $ticket) {
-                events {
-                  results {
-                    changes {
-                      ... on Comment {
-                        text
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
-        """
-        r = self.post(user, None, f"{_todosrht_api}/query", {
-            "query": query,
-            "variables": {
-                "username": owner[1:],
-                "tracker": tracker,
-                "ticket": ticket,
-            }
-        })
-        comments = []
-        for e in r["data"]["user"]["tracker"]["ticket"]["events"]["results"]:
-            for c in e["changes"]:
-                if "text" in c:
-                    comments.append(c["text"])
-        return comments
-
-    def update_ticket(self, user, owner, tracker, ticket, comment, resolution=None):
-        url = f"{_todosrht}/api/user/{owner}/trackers/{tracker}/tickets/{ticket}"
-        payload = {"comment": comment}
-        if resolution is not None:
-            payload["resolution"] = resolution
-            payload["status"] = "resolved"
-        self.put(user, None, url, payload)
 
 class BuildService(SrhtService):
     def __init__(self):
