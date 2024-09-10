@@ -549,7 +549,7 @@ class ListService(SrhtService):
     def patchset_create_tool(self, user, patchset_id, icon, details):
         resp = self.exec(user, """
         mutation CreateTool(
-                $patchset_id: Int!,
+                $patchsetID: Int!,
                 $details: String!,
                 $icon: ToolIcon!) {
             createTool(patchsetID: $patchsetID, details: $details, icon: $icon) {
