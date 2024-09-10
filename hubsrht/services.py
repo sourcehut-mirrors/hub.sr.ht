@@ -560,7 +560,7 @@ class ListService(SrhtService):
         patchsetID=patchset_id,
         icon=icon,
         details=details)
-        return r["createTool"]["id"]
+        return resp["createTool"]["id"]
 
     def patchset_update_tool(self, user, tool_id, icon, details):
         resp = self.exec(user, """
