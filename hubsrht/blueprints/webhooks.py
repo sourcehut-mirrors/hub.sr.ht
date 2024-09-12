@@ -367,7 +367,11 @@ def todo_tracker(tracker_id):
         event.external_details = (
             f"{submitter_url} filed ticket on " +
             f"<a href='{tracker.url()}'>{tracker.name}</a> todo")
-        event.external_details_plain = f"{submitter['canonical_name']} filed ticket on {tracker.name} todo"
+        assert submitter['type'] in ['user', 'email']
+        if submitter['type'] == 'user':
+            event.external_details_plain = f"{submitter['canonical_name']} filed ticket on {tracker.name} todo"
+        elif submitter['type'] == 'email':
+            event.external_details_plain = f"{submitter['name']} filed ticket on {tracker.name} todo"
         event.external_url = ticket_url
 
         db.session.add(event)
