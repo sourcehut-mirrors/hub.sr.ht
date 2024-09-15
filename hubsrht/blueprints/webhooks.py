@@ -346,8 +346,10 @@ def todo_tracker(tracker_id):
             # TODO: Move this to a hub.sr.ht user page
             submitter_url = f"{_todosrht}/{submitter['canonical_name']}"
             submitter_url = f"<a href='{submitter_url}'>{submitter['canonical_name']}</a>"
-        elif submitter["type"] == "email":
+        elif submitter["type"] == "email" and 'name' in submitter:
             submitter_url = f"{submitter['name']}"
+        elif submitter["type"] == "email":
+            submitter_url = f"{submitter['email']}"
         else:
             submitter_url = f"{submitter['external_id']}"
 
