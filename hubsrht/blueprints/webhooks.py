@@ -426,6 +426,8 @@ def todo_ticket(tracker_id):
         event.external_details = (
             f"{participant_url} commented on " +
             f"<a href='{tracker.url()}'>{tracker.name}</a> todo")
+
+        submitter = payload["submitter"]
         assert submitter['type'] in ['user', 'email']
         if submitter['type'] == 'user':
             event.external_details_plain = f"{submitter['canonical_name']} commented on {tracker.name} todo"
