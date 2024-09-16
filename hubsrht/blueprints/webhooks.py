@@ -427,12 +427,10 @@ def todo_ticket(tracker_id):
             f"{participant_url} commented on " +
             f"<a href='{tracker.url()}'>{tracker.name}</a> todo")
 
-        submitter = payload["submitter"]
-        assert submitter['type'] in ['user', 'email']
-        if submitter['type'] == 'user':
-            event.external_details_plain = f"{submitter['canonical_name']} commented on {tracker.name} todo"
-        elif submitter['type'] == 'email':
-            event.external_details_plain = f"{submitter['name']} commented on {tracker.name} todo"
+        if participant['type'] == 'user':
+            event.external_details_plain = f"{participant['canonical_name']} commented on {tracker.name} todo"
+        elif participant['type'] == 'email':
+            event.external_details_plain = f"{participant['name']} commented on {tracker.name} todo"
         event.external_url = ticket_url
 
         db.session.add(event)
