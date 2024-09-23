@@ -7,7 +7,7 @@ from flask import url_for
 from markupsafe import Markup, escape
 from srht.api import ensure_webhooks, encrypt_request_authorization, get_results
 from srht.config import get_origin, cfg
-from srht.graphql import gql_time, exec_gql
+from srht.graphql import gql_time, exec_gql, GraphQLError
 from srht.markdown import markdown, sanitize
 from typing import Any, Callable
 
@@ -155,9 +155,9 @@ class GitService(SrhtService):
 
     def get_readme(self, user, repo_name, repo_url):
         resp = self.exec(user, """
-            query Readme($username: String!, $repo_name: String!) {
+            query Readme($username: String!, $repoName: String!) {
                 user(username: $username) {
-                    repository(name: $repo_name) {
+                    repository(name: $repoName) {
                         html: readme
                         md: path(path: "README.md") { ...textData }
                         markdown: path(path: "README.markdown") { ...textData }
@@ -174,7 +174,7 @@ class GitService(SrhtService):
                 }
             }
             """,
-            username=user.username, repo_name=repo_name)
+            username=user.username, repoName=repo_name)
 
         if not resp["user"]["repository"]:
             raise Exception("git.sr.ht returned no repository: " +
@@ -394,21 +394,43 @@ class HgService(SrhtService):
         return resp["me"]["repository"]
 
     def get_readme(self, user, repo_name, repo_url):
-        # TODO: Cache?
-        override = try_html_readme(self.session, _hgsrht, user, repo_name)
-        if override is not None:
-            return override
-        blob_prefix = repo_url + "/raw/"
-        rendered_prefix = repo_url + "/browse/"
-        for readme_name in readme_names:
-            r = self.session.get(f"{_hgsrht}/api/repos/{repo_name}/raw/{readme_name}",
-                    headers=encrypt_request_authorization(user))
-            if r.status_code == 404:
-                continue
-            elif r.status_code != 200:
-                raise Exception(r.text)
-            return format_readme(r.text, readme_name, link_prefix=[rendered_prefix, blob_prefix])
-        return format_readme("")
+        try:
+            resp = self.exec(user, """
+                query Readme($username: String!, $repoName: String!) {
+                    user(username: $username) {
+                        repository(name: $repoName) {
+                            html: readme
+                            md: cat(path: "README.md")
+                            markdown: cat(path: "README.markdown")
+                            plaintext: cat(path: "README")
+                        }
+                    }
+                }
+            """, username=user.username, repoName=repo_name)
+        except GraphQLError as err:
+            # hg.sr.ht returns an error if any of the requested paths cannot be
+            # found. Ignore these errors.
+            resp = err.data
+
+        if not resp["user"]["repository"]:
+            raise Exception("hg.sr.ht returned no repository: " +
+                    json.dumps(r, indent=1))
+        repo = resp["user"]["repository"]
+
+        content = repo["html"]
+        if content:
+            return Markup(sanitize(content))
+
+        content = repo["md"] or repo["markdown"]
+        if content:
+            html = markdown(content)
+            return Markup(html)
+
+        content = repo["plaintext"]
+        if content:
+            return Markup(f"<pre>{escape(content)}</pre>")
+
+        return None
 
     def create_repo(self, user, valid, visibility):
         name = valid.require("name")
