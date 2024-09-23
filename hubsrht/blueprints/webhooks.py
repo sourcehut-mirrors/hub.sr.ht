@@ -136,11 +136,11 @@ def _handle_commit_trailer(trailer, value, pusher, repo, commit):
         return
 
     if trailer == "Closes":
-        resolution = "closed"
+        resolution = "CLOSED"
     elif trailer == "Fixes":
-        resolution = "fixed"
+        resolution = "FIXED"
     elif trailer == "Implements":
-        resolution = "implemented"
+        resolution = "IMPLEMENTED"
     elif trailer == "References":
         resolution = None
     else:
@@ -159,27 +159,17 @@ def _handle_commit_trailer(trailer, value, pusher, repo, commit):
 
 [{commit_sha}]: {commit_url} "{commit_message}"\
 """
-    try:
-        existing_comments = todo.get_ticket_comments(
-            user=pusher,
-            owner=match["owner"],
-            tracker=match["tracker"],
-            ticket=int(match["ticket"]),
-        )
-        if comment in existing_comments:
-            # avoid duplicate comments
-            return
-        todo.update_ticket(
-            user=pusher,
-            owner=match["owner"],
-            tracker=match["tracker"],
-            ticket=int(match["ticket"]),
-            comment=comment,
-            resolution=resolution,
-        )
-    except Exception:
-        # invalid ticket or pusher does not have triage access, ignore
-        pass
+    existing_comments, trackerId = todo.get_ticket_comments(
+        user=pusher,
+        owner=match["owner"],
+        tracker=match["tracker"],
+        ticket=int(match["ticket"]),
+    )
+    if comment in existing_comments:
+        # avoid duplicate comments
+        return
+    ticketId = int(match["ticket"])
+    todo.update_ticket(pusher, trackerId, ticketId, comment, resolution)
 
 @csrf_bypass
 @webhooks.route("/webhooks/hg-user/<int:user_id>", methods=["POST"])

@@ -23,30 +23,6 @@ _buildsrht = get_origin("builds.sr.ht", default=None)
 _buildsrht_api = cfg("builds.sr.ht", "api-origin", default=None) or _buildsrht
 origin = get_origin("hub.sr.ht")
 
-readme_names = ["README.md", "README.markdown", "README"]
-
-def format_readme(content, filename="", link_prefix=None):
-    markdown_exts = ['.md', '.markdown']
-    basename, ext = os.path.splitext(filename)
-    if ext in markdown_exts:
-        html = markdown(content,
-                link_prefix=link_prefix)
-    elif content:
-        html = f"<pre>{escape(content)}</pre>"
-    else:
-        html = ""
-    return Markup(html)
-
-def try_html_readme(session, prefix, user, repo_name):
-    r = session.get(f"{prefix}/api/repos/{repo_name}/readme",
-            headers=encrypt_request_authorization(user))
-    if r.status_code == 200:
-        return Markup(sanitize(r.text))
-    elif r.status_code == 404:
-        return None
-    else:
-        raise Exception(r.text)
-
 class SrhtService(ABC):
     def __init__(self, site):
         self.session = requests.Session()
@@ -85,19 +61,6 @@ class SrhtService(ABC):
 
     def post(self, user, valid, url, payload):
         r = self.session.post(url,
-            headers=encrypt_request_authorization(user),
-            json=payload)
-        if r.status_code == 400:
-            if valid:
-                for error in r.json()["errors"]:
-                    valid.error(error["reason"], field=error.get("field"))
-            return None
-        elif r.status_code not in [200, 201]:
-            raise Exception(r.text)
-        return r.json()
-
-    def put(self, user, valid, url, payload):
-        r = self.session.put(url,
             headers=encrypt_request_authorization(user),
             json=payload)
         if r.status_code == 400:
@@ -707,16 +670,18 @@ class TodoService(SrhtService):
         """, trackerID=tracker_id)
 
     def get_ticket_comments(self, user, owner, tracker, ticket):
-        query = """
-        query TicketComments($username: String!, $tracker: String!, $ticket: Int!) {
-          user(username: $username) {
-            tracker(name: $tracker) {
-              ticket(id: $ticket) {
-                events {
-                  results {
-                    changes {
-                      ... on Comment {
-                        text
+        resp = self.exec(user, """
+          query TicketComments($username: String!, $tracker: String!, $ticket: Int!) {
+            user(username: $username) {
+              tracker(name: $tracker) {
+                id
+                ticket(id: $ticket) {
+                  events {
+                    results {
+                      changes {
+                        ... on Comment {
+                          text
+                        }
                       }
                     }
                   }
@@ -724,30 +689,38 @@ class TodoService(SrhtService):
               }
             }
           }
-        }
-        """
-        r = self.post(user, None, f"{_todosrht_api}/query", {
-            "query": query,
-            "variables": {
-                "username": owner[1:],
-                "tracker": tracker,
-                "ticket": ticket,
-            }
-        })
+        """, username=owner[1:], tracker=tracker, ticket=ticket)
         comments = []
-        for e in r["data"]["user"]["tracker"]["ticket"]["events"]["results"]:
+        trackerId = resp["user"]["tracker"]["id"]
+        for e in resp["user"]["tracker"]["ticket"]["events"]["results"]:
             for c in e["changes"]:
                 if "text" in c:
                     comments.append(c["text"])
-        return comments
+        return comments, trackerId
 
-    def update_ticket(self, user, owner, tracker, ticket, comment, resolution=None):
-        url = f"{_todosrht}/api/user/{owner}/trackers/{tracker}/tickets/{ticket}"
-        payload = {"comment": comment}
+    def update_ticket(self, user, trackerId, ticketId, comment, resolution=None):
+        commentInput = {
+            "text": comment,
+        }
         if resolution is not None:
-            payload["resolution"] = resolution
-            payload["status"] = "resolved"
-        self.put(user, None, url, payload)
+            commentInput["resolution"] = resolution
+            commentInput["status"] = "RESOLVED"
+
+        self.exec(user, """
+        mutation UpdateTicket(
+            $trackerId: Int!,
+            $ticketId: Int!,
+            $commentInput: SubmitCommentInput!
+        ) {
+            submitComment(
+                trackerId: $trackerId,
+                ticketId: $ticketId,
+                input: $commentInput,
+            ) {
+                id
+            }
+        }
+        """, trackerId=trackerId, ticketId=ticketId, commentInput=commentInput)
 
     def ensure_user_webhooks(self, user):
         config = {
