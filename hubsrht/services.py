@@ -1,11 +1,9 @@
 import json
-import os.path
 import requests
 import yaml
-from abc import ABC
 from flask import url_for
 from markupsafe import Markup, escape
-from srht.api import ensure_webhooks, encrypt_request_authorization, get_results
+from srht.api import ensure_webhooks
 from srht.config import get_origin, cfg
 from srht.graphql import gql_time, exec_gql, GraphQLError
 from srht.markdown import markdown, sanitize
@@ -23,7 +21,7 @@ _buildsrht = get_origin("builds.sr.ht", default=None)
 _buildsrht_api = cfg("builds.sr.ht", "api-origin", default=None) or _buildsrht
 origin = get_origin("hub.sr.ht")
 
-class SrhtService(ABC):
+class SrhtService:
     def __init__(self, site):
         self.session = requests.Session()
         self.site = site
@@ -58,19 +56,6 @@ class SrhtService(ABC):
                 break
 
         return items
-
-    def post(self, user, valid, url, payload):
-        r = self.session.post(url,
-            headers=encrypt_request_authorization(user),
-            json=payload)
-        if r.status_code == 400:
-            if valid:
-                for error in r.json()["errors"]:
-                    valid.error(error["reason"], field=error.get("field"))
-            return None
-        elif r.status_code not in [200, 201]:
-            raise Exception(r.text)
-        return r.json()
 
 class GitService(SrhtService):
     def __init__(self):
