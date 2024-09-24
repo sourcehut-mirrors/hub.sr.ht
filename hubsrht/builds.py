@@ -114,12 +114,15 @@ git am -3 /tmp/{payload["id"]}.patch"""
         lists.patchset_update_tool(ml.owner, tool_id, "WAITING",
                    f"[#{b['id']}]({build_url}) running {key}")
 
-    trigger = Trigger({
-        "action": TriggerAction.email,
-        "condition": TriggerCondition.always,
-    })
-    trigger.attrs["to"] = email.utils.formataddr(submitter)
-    trigger.attrs["cc"] = ml.posting_addr()
-    trigger.attrs["in_reply_to"] = payload["message_id"]
-    builds.create_group(project.owner, ids, build_note, [trigger.to_dict()], valid=valid)
+    # XXX: This is a different format than the REST API uses
+    trigger = {
+            "type": "EMAIL",
+            "condition": "ALWAYS",
+            "email": {
+                "to": email.utils.formataddr(submitter),
+                "cc": ml.posting_addr(),
+                "inReplyTo": payload["message_id"],
+            },
+    }
+    builds.create_group(project.owner, ids, build_note, [trigger], valid=valid)
     return ids

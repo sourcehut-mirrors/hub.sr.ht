@@ -779,7 +779,7 @@ class BuildService(SrhtService):
         super().__init__("builds.sr.ht")
 
     def submit_build(self, user, manifest, note, tags, execute=True, valid=None, visibility=None):
-        query = """
+        resp = self.exec(user, """
         mutation SubmitBuild(
             $manifest: String!,
             $note: String,
@@ -799,27 +799,28 @@ class BuildService(SrhtService):
                 id
             }
         }
-        """
-        r = self.post(user, valid, f"{_buildsrht_api}/query", {
-            "query": query,
-            "variables": {
-                "manifest": yaml.dump(manifest.to_dict(), default_flow_style=False),
-                "tags": tags,
-                "note": note,
-                "secrets": False,
-                "execute": execute,
-                "visibility": visibility.value if visibility else None,
-            },
+        """, **{
+            "manifest": yaml.dump(manifest.to_dict(), default_flow_style=False),
+            "tags": tags,
+            "note": note,
+            "secrets": False,
+            "execute": execute,
+            "visibility": visibility.value if visibility else None,
         })
-        return r["data"]["submit"]
+        return resp["submit"]
 
     def create_group(self, user, job_ids, note, triggers, valid=None):
-        return self.post(user, valid, f"{_buildsrht}/api/job-group", {
-            "jobs": job_ids,
-            "note": note,
-            "execute": True,
-            "triggers": triggers,
-        })
+        return self.exec(user, """
+        mutation CreateGroup(
+            $jobIds: [Int!]!,
+            $triggers: [TriggerInput!]!,
+            $note: String!,
+        ) {
+            createGroup(jobIds: $jobIds, triggers: $triggers, note: $note) {
+                id
+            }
+        }
+        """, jobIds=job_ids, note=note, triggers=triggers, valid=valid)
 
 git = GitService()
 hg = HgService()
