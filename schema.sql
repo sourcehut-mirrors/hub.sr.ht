@@ -4,6 +4,18 @@ CREATE TYPE visibility AS ENUM (
 	'UNLISTED'
 );
 
+CREATE TABLE user_service_webhooks (
+	id serial PRIMARY KEY,
+	-- git.sr.ht user webhook remote ID
+	git_hook_id integer,
+	-- hg.sr.ht user webhook remote ID
+	hg_hook_id integer,
+	-- lists.sr.ht user webhook remote ID
+	list_hook_id integer,
+	-- todo.sr.ht user webhook remote ID
+	todo_hook_id integer
+);
+
 CREATE TABLE "user" (
 	id serial PRIMARY KEY,
 	created timestamp without time zone NOT NULL,
@@ -18,7 +30,8 @@ CREATE TABLE "user" (
 	oauth_token character varying(256),
 	oauth_token_expires timestamp without time zone,
 	oauth_token_scopes character varying,
-	oauth_revocation_token character varying(256)
+	oauth_revocation_token character varying(256),
+	user_hooks integer REFERENCES user_service_webhooks(id)
 );
 
 CREATE UNIQUE INDEX ix_user_username ON "user" USING btree (username);
@@ -53,7 +66,8 @@ CREATE TABLE mailing_list (
 	owner_id integer NOT NULL REFERENCES "user"(id) ON DELETE CASCADE,
 	name character varying(128) NOT NULL,
 	description character varying,
-	visibility visibility DEFAULT 'UNLISTED'::visibility NOT NULL
+	visibility visibility DEFAULT 'UNLISTED'::visibility NOT NULL,
+	remote_hook_id integer
 );
 
 CREATE TABLE source_repo (
@@ -67,6 +81,7 @@ CREATE TABLE source_repo (
 	description character varying,
 	repo_type character varying NOT NULL,
 	visibility visibility DEFAULT 'UNLISTED'::visibility NOT NULL,
+	remote_hook_id integer,
 	CONSTRAINT project_source_repo_unique UNIQUE (project_id, remote_id, repo_type)
 );
 
@@ -82,7 +97,8 @@ CREATE TABLE tracker (
 	owner_id integer NOT NULL REFERENCES "user"(id) ON DELETE CASCADE,
 	name character varying(128) NOT NULL,
 	description character varying,
-	visibility visibility DEFAULT 'UNLISTED'::visibility NOT NULL
+	visibility visibility DEFAULT 'UNLISTED'::visibility NOT NULL,
+	remote_hook_id integer
 );
 
 CREATE TABLE event (
