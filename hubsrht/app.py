@@ -17,7 +17,7 @@ class HubApp(SrhtFlask):
         from hubsrht.blueprints.sources import sources
         from hubsrht.blueprints.trackers import trackers
         from hubsrht.blueprints.users import users
-        from hubsrht.blueprints.webhooks import webhooks
+        from hubsrht.blueprints.webhooks_legacy import webhooks_legacy
 
         self.register_blueprint(mailing_lists)
         self.register_blueprint(projects)
@@ -25,7 +25,7 @@ class HubApp(SrhtFlask):
         self.register_blueprint(sources)
         self.register_blueprint(trackers)
         self.register_blueprint(users)
-        self.register_blueprint(webhooks)
+        self.register_blueprint(webhooks_legacy)
 
         self.url_map.strict_slashes = False
 

@@ -16,7 +16,7 @@ from srht.flask import csrf_bypass
 from srht.validation import Validation
 from urllib.parse import quote
 
-webhooks = Blueprint("webhooks", __name__)
+webhooks_legacy = Blueprint("webhooks_legacy", __name__)
 
 _gitsrht = get_origin("git.sr.ht", external=True, default=None)
 _hgsrht = get_origin("hg.sr.ht", external=True, default=None)
@@ -24,7 +24,7 @@ _todosrht = get_origin("todo.sr.ht", external=True, default=None)
 _listssrht = get_origin("lists.sr.ht", external=True, default=None)
 
 @csrf_bypass
-@webhooks.route("/webhooks/git-user/<int:user_id>", methods=["POST"])
+@webhooks_legacy.route("/webhooks/git-user/<int:user_id>", methods=["POST"])
 def git_user(user_id):
     event = request.headers.get("X-Webhook-Event")
     payload = verify_request_signature(request)
@@ -64,7 +64,7 @@ def git_user(user_id):
         raise NotImplementedError()
 
 @csrf_bypass
-@webhooks.route("/webhooks/git-repo/<int:repo_id>", methods=["POST"])
+@webhooks_legacy.route("/webhooks/git-repo/<int:repo_id>", methods=["POST"])
 def git_repo(repo_id):
     event = request.headers.get("X-Webhook-Event")
     payload = verify_request_signature(request)
@@ -172,7 +172,7 @@ def _handle_commit_trailer(trailer, value, pusher, repo, commit):
     todo.update_ticket(pusher, trackerId, ticketId, comment, resolution)
 
 @csrf_bypass
-@webhooks.route("/webhooks/hg-user/<int:user_id>", methods=["POST"])
+@webhooks_legacy.route("/webhooks/hg-user/<int:user_id>", methods=["POST"])
 def hg_user(user_id):
     event = request.headers.get("X-Webhook-Event")
     payload = verify_request_signature(request)
@@ -210,7 +210,7 @@ def hg_user(user_id):
         raise NotImplementedError()
 
 @csrf_bypass
-@webhooks.route("/webhooks/mailing-list/<list_id>", methods=["POST"])
+@webhooks_legacy.route("/webhooks/mailing-list/<list_id>", methods=["POST"])
 def mailing_list(list_id):
     event = request.headers.get("X-Webhook-Event")
     payload = verify_request_signature(request)
@@ -282,7 +282,7 @@ def mailing_list(list_id):
         raise NotImplementedError()
 
 @csrf_bypass
-@webhooks.route("/webhooks/todo-user/<int:user_id>", methods=["POST"])
+@webhooks_legacy.route("/webhooks/todo-user/<int:user_id>", methods=["POST"])
 def todo_user(user_id):
     event = request.headers.get("X-Webhook-Event")
     payload = verify_request_signature(request)
@@ -318,7 +318,7 @@ def todo_user(user_id):
         raise NotImplementedError()
 
 @csrf_bypass
-@webhooks.route("/webhooks/todo-tracker/<int:tracker_id>", methods=["POST"])
+@webhooks_legacy.route("/webhooks/todo-tracker/<int:tracker_id>", methods=["POST"])
 def todo_tracker(tracker_id):
     event = request.headers.get("X-Webhook-Event")
     payload = verify_request_signature(request)
@@ -374,7 +374,7 @@ def todo_tracker(tracker_id):
         raise NotImplementedError()
 
 @csrf_bypass
-@webhooks.route("/webhooks/todo-ticket/<int:tracker_id>/ticket", methods=["POST"])
+@webhooks_legacy.route("/webhooks/todo-ticket/<int:tracker_id>/ticket", methods=["POST"])
 def todo_ticket(tracker_id):
     event = request.headers.get("X-Webhook-Event")
     payload = verify_request_signature(request)
@@ -430,7 +430,7 @@ def todo_ticket(tracker_id):
         raise NotImplementedError()
 
 @csrf_bypass
-@webhooks.route("/webhooks/build-complete/<details>", methods=["POST"])
+@webhooks_legacy.route("/webhooks/build-complete/<details>", methods=["POST"])
 def build_complete(details):
     payload = verify_request_signature(request)
     payload = json.loads(payload.decode('utf-8'))
