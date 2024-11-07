@@ -17,8 +17,7 @@ CREATE TABLE "user" (
 	suspension_notice character varying(4096),
 	oauth_token character varying(256),
 	oauth_token_expires timestamp without time zone,
-	oauth_token_scopes character varying,
-	oauth_revocation_token character varying(256)
+	oauth_token_scopes character varying
 );
 
 CREATE UNIQUE INDEX ix_user_username ON "user" USING btree (username);
