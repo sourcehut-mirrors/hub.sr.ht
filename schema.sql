@@ -30,7 +30,6 @@ CREATE TABLE "user" (
 	oauth_token character varying(256),
 	oauth_token_expires timestamp without time zone,
 	oauth_token_scopes character varying,
-	oauth_revocation_token character varying(256),
 	user_hooks integer REFERENCES user_service_webhooks(id)
 );
 
