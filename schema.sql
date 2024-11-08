@@ -4,13 +4,24 @@ CREATE TYPE visibility AS ENUM (
 	'UNLISTED'
 );
 
+CREATE TYPE user_type AS ENUM (
+	'UNCONFIRMED',
+	'ACTIVE_NON_PAYING',
+	'ACTIVE_FREE',
+	'ACTIVE_PAYING',
+	'ACTIVE_DELINQUENT',
+	'ADMIN',
+	'UNKNOWN',
+	'SUSPENDED'
+);
+
 CREATE TABLE "user" (
 	id serial PRIMARY KEY,
 	created timestamp without time zone NOT NULL,
 	updated timestamp without time zone NOT NULL,
 	username character varying(256),
 	email character varying(256) NOT NULL,
-	user_type character varying NOT NULL,
+	user_type user_type NOT NULL,
 	url character varying(256),
 	location character varying(256),
 	bio character varying(4096),
