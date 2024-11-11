@@ -599,6 +599,8 @@ gioui.org v0.0.0-20210308172011-57750fc8a0a6/go.mod h1:RSH6KIUZ0p2xy5zHDxgAM4zum
 git.sr.ht/~sbinet/gg v0.3.1/go.mod h1:KGYtlADtqsqANL9ueOFkWymvzUvLMQllU5Ixo+8v3pc=
 git.sr.ht/~sircmpwn/core-go v0.0.0-20240124105042-864816cfbc0c h1:o5jKIK7BJBEGSuY9ux4FREZry4aJV3DgI41iP6uf5xY=
 git.sr.ht/~sircmpwn/core-go v0.0.0-20240124105042-864816cfbc0c/go.mod h1:OovCpg5LsbYJjmDTpk5wUgHM4tUor736Pmxekm9BUcQ=
+git.sr.ht/~sircmpwn/core-go v0.0.0-20241108083940-50396a55470c h1:sPmSg93ThDtZAphqaj1iXxnCnas9bDU3j8rOrmSJ5Qg=
+git.sr.ht/~sircmpwn/core-go v0.0.0-20241108083940-50396a55470c/go.mod h1:IJnvU9MmYyWS8FdpY6FlEOtM/Sg30/ms+Jh6UcGiYoE=
 git.sr.ht/~sircmpwn/dowork v0.0.0-20221010085743-46c4299d76a1 h1:EvPKkneKkF/f7zEgKPqIZVyj3jWO8zSmsBOvMhAGqMA=
 git.sr.ht/~sircmpwn/dowork v0.0.0-20221010085743-46c4299d76a1/go.mod h1:8neHEO3503w/rNtttnR0JFpQgM/GFhaafVwvkPsFIDw=
 git.sr.ht/~sircmpwn/getopt v0.0.0-20191230200459-23622cc906b3/go.mod h1:wMEGFFFNuPos7vHmWXfszqImLppbc0wEhh6JBfJIUgw=
@@ -717,6 +719,7 @@ github.com/emersion/go-sasl v0.0.0-20231106173351-e73c9f7bad43/go.mod h1:iL2twTe
 github.com/emersion/go-smtp v0.18.0/go.mod h1:qm27SGYgoIPRot6ubfQ/GpiPy/g3PaZAVRxiO/sDUgQ=
 github.com/emersion/go-smtp v0.20.2 h1:peX42Qnh5Q0q3vrAnRy43R/JwTnnv75AebxbkTL7Ia4=
 github.com/emersion/go-smtp v0.20.2/go.mod h1:qm27SGYgoIPRot6ubfQ/GpiPy/g3PaZAVRxiO/sDUgQ=
+github.com/emersion/go-smtp v0.21.3/go.mod h1:qm27SGYgoIPRot6ubfQ/GpiPy/g3PaZAVRxiO/sDUgQ=
 github.com/emersion/go-textwrapper v0.0.0-20200911093747-65d896831594 h1:IbFBtwoTQyw0fIM5xv1HF+Y+3ZijDR839WMulgxCcUY=
 github.com/emersion/go-textwrapper v0.0.0-20200911093747-65d896831594/go.mod h1:aqO8z8wPrjkscevZJFVE1wXJrLpC5LtJG7fqLOsPb2U=
 github.com/envoyproxy/go-control-plane v0.9.0/go.mod h1:YTl/9mNaCwkRvm6d1a2C3ymFceY/DCBVvsKhRF0iEA4=
