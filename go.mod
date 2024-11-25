@@ -1,9 +1,11 @@
 module git.sr.ht/~sircmpwn/hub.sr.ht
 
-go 1.17
+go 1.22
+
+toolchain go1.23.3
 
 require (
-	git.sr.ht/~sircmpwn/core-go v0.0.0-20241108083940-50396a55470c
+	git.sr.ht/~sircmpwn/core-go v0.0.0-20241122143336-e559510fc244
 	git.sr.ht/~sircmpwn/dowork v0.0.0-20221010085743-46c4299d76a1
 	github.com/99designs/gqlgen v0.17.43
 	github.com/vektah/gqlparser/v2 v2.5.11
