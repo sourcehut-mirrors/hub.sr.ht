@@ -25,18 +25,14 @@ packages = [
     "hubsrht.alembic",
     "hubsrht.alembic.versions",
     "hubsrht.blueprints",
-    "hubsrht.static",
-    "hubsrht.static.icons",
     "hubsrht.templates",
     "hubsrht.types",
 ]
 script-files = [
-    "hubsrht-initdb",
-    "hubsrht-migrate",
+    "hub.sr.ht-initdb",
+    "hub.sr.ht-migrate",
 ]
 [tool.setuptools.package-data]
 "hubsrht.templates" = ['*.html']
-"hubsrht.static" = ['*']
-"hubsrht.static.icons" = ['*']
 
 [tool.setuptools_scm]
