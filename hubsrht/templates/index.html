@@ -45,7 +45,7 @@
         <div class="tags">
         {% for tag in feature.project.tags %}
           <a href="{{url_for("public.project_index", search="#"+tag)}}"
-             class="tag">#{{tag}}</a>
+             class="tag" rel="nofollow">#{{tag}}</a>
         {% endfor %}
         </div>
         {% endif %}

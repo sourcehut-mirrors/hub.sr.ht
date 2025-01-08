@@ -73,7 +73,7 @@
             {% for tag in project.tags %}
               <a href="{{url_for("public.project_index",
                     search=((search or "").strip() + " #"+tag).lstrip())}}"
-                 class="tag">#{{tag}}</a>
+                 class="tag" rel="nofollow">#{{tag}}</a>
             {% endfor %}
             </div>
             {% endif %}
