@@ -393,7 +393,10 @@ def todo_ticket(tracker_id):
             participant_url = f"{_todosrht}/{participant['canonical_name']}"
             participant_url = f"<a href='{participant_url}'>{participant['canonical_name']}</a>"
         elif participant["type"] == "email":
-            participant_url = f"{participant['name']}"
+            if name in participant:
+                participant_url = participant['name']
+            else:
+                participant_url = participant['email']
         else:
             participant_url = f"{participant['external_id']}"
 
@@ -420,7 +423,7 @@ def todo_ticket(tracker_id):
         if participant['type'] == 'user':
             event.external_details_plain = f"{participant['canonical_name']} commented on {tracker.name} todo"
         elif participant['type'] == 'email':
-            event.external_details_plain = f"{participant['name']} commented on {tracker.name} todo"
+            event.external_details_plain = f"{participant_url} commented on {tracker.name} todo"
         event.external_url = ticket_url
 
         db.session.add(event)
