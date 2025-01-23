@@ -109,6 +109,13 @@ Mailing list for end-user discussion and questions related to the
             if not mailing_list:
                 raise Exception(json.dumps(valid.response))
 
+        try:
+            webhook_id, webhook_version = lists.create_list_webhook(
+                    owner, mailing_list["id"])
+        except:
+            lists.delete_list(owner, mailing_list["id"])
+            raise
+
         ml = MailingList()
         ml.remote_id = mailing_list["id"]
         ml.project_id = project.id
@@ -119,6 +126,8 @@ Mailing list for end-user discussion and questions related to the
             ml.visibility = Visibility.PUBLIC
         else:
             ml.visibility = Visibility.UNLISTED
+        ml.webhook_id = webhook_id
+        ml.webhook_version = webhook_version
         db.session.add(ml)
         db.session.flush()
 
@@ -128,9 +137,6 @@ Mailing list for end-user discussion and questions related to the
         event.project_id = project.id
         event.user_id = project.owner_id
         db.session.add(event)
-
-        lists.ensure_mailing_list_webhooks(ml)
-
         db.session.commit()
 
     return redirect(project_url)
@@ -183,6 +189,13 @@ def new_POST(owner, project_name):
                     lists=mls, existing=existing, search=search)
         mailing_list = lists.get_list(owner, list_name)
 
+    try:
+        webhook_id, webhook_version = lists.create_list_webhook(
+                owner, mailing_list["id"])
+    except:
+        lists.delete_list(owner, mailing_list["id"])
+        raise
+
     ml = MailingList()
     ml.remote_id = mailing_list["id"]
     ml.project_id = project.id
@@ -193,6 +206,8 @@ def new_POST(owner, project_name):
         ml.visibility = Visibility.PUBLIC
     else:
         ml.visibility = Visibility.UNLISTED
+    ml.webhook_id = webhook_id
+    ml.webhook_version = webhook_version
     db.session.add(ml)
     db.session.flush()
 
@@ -202,9 +217,6 @@ def new_POST(owner, project_name):
     event.project_id = project.id
     event.user_id = project.owner_id
     db.session.add(event)
-
-    lists.ensure_mailing_list_webhooks(ml)
-
     db.session.commit()
 
     return redirect(url_for("projects.summary_GET",
@@ -258,9 +270,11 @@ def delete_POST(owner, project_name, list_id):
         abort(404)
 
     list_id = mailing_list.remote_id
-    lists.unensure_mailing_list_webhooks(mailing_list)
+    hook_id = mailing_list.webhook_id
     db.session.delete(mailing_list)
     db.session.commit()
+
+    lists.delete_list_webhook(hook_id)
 
     valid = Validation(request)
     delete_remote = valid.optional("delete-remote") == "on"

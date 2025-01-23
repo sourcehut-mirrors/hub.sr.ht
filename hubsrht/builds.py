@@ -17,9 +17,13 @@ def submit_patchset(ml, payload, valid=None):
     from buildsrht.manifest import Trigger, TriggerAction, TriggerCondition
 
     project = ml.project
-    subject = payload["subject"]
 
+    patch_id = payload["id"]
+    patch_url = f"{ml.url()}/patches/{patch_id}"
+    patch_mbox = f"{ml.url()}/patches/{patch_id}.mbox"
+    subject = payload["subject"]
     prefix = payload["prefix"]
+
     if not prefix:
         # TODO: More sophisticated matching is possible
         # - test if patch is applicable to a repo; see the following:
@@ -51,19 +55,22 @@ def submit_patchset(ml, payload, valid=None):
     else:
         version = f" v{version}"
 
-    reply_to = payload.get("reply_to")
+    message_id = payload["thread"]["root"]["messageID"]
+    reply_to = payload["thread"]["root"]["reply_to"]
     if reply_to:
         submitter = email.utils.parseaddr(reply_to)
     else:
-        submitter = email.utils.parseaddr(payload["submitter"])
+        name = payload["submitter"]["name"]
+        address = payload["submitter"]["address"]
+        submitter = (name, address)
 
     build_note = f"""[{subject}][0]{version} from [{submitter[0]}][1]
 
-[0]: {ml.url()}/patches/{payload["id"]}
+[0]: {ml.url()}/patches/{patch_id}
 [1]: mailto:{submitter[1]}"""
 
     for key, value in manifests.items():
-        tool_id = lists.patchset_create_tool(ml.owner, payload["id"],
+        tool_id = lists.patchset_create_tool(ml.owner, patch_id,
                 "PENDING", f"build pending: {key}")
 
         try:
@@ -77,8 +84,8 @@ def submit_patchset(ml, payload, valid=None):
 git config --global user.name 'builds.sr.ht'
 git config --global user.email builds@sr.ht
 cd {repo.name}
-curl -sS {ml.url()}/patches/{payload["id"]}/mbox >/tmp/{payload["id"]}.patch
-git am -3 /tmp/{payload["id"]}.patch"""
+curl -sS {patch_mbox} >/tmp/{patch_id}.patch
+git am -3 /tmp/{patch_id}.patch"""
         })
         manifest.tasks.insert(0, task)
 
@@ -87,15 +94,14 @@ git am -3 /tmp/{payload["id"]}.patch"""
 
         manifest.environment.setdefault("BUILD_SUBMITTER", "hub.sr.ht")
         manifest.environment.setdefault("BUILD_REASON", "patchset")
-        manifest.environment.setdefault("PATCHSET_ID", payload["id"])
-        manifest.environment.setdefault("PATCHSET_URL",
-                f"{ml.url()}/patches/{payload['id']}")
+        manifest.environment.setdefault("PATCHSET_ID", patch_id)
+        manifest.environment.setdefault("PATCHSET_URL", patch_url)
 
         # Add webhook trigger
         root = get_origin("hub.sr.ht", external=True)
         details = fernet.encrypt(json.dumps({
             "mailing_list": ml.id,
-            "patchset_id": payload["id"],
+            "patchset_id": patch_id,
             "tool_id": tool_id,
             "name": key,
             "user": project.owner.canonical_name,
@@ -121,7 +127,7 @@ git am -3 /tmp/{payload["id"]}.patch"""
             "email": {
                 "to": email.utils.formataddr(submitter),
                 "cc": ml.posting_addr(),
-                "inReplyTo": payload["message_id"],
+                "inReplyTo": message_id,
             },
     }
     builds.create_group(project.owner, ids, build_note, [trigger], valid=valid)

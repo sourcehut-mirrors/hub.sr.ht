@@ -59,7 +59,10 @@ CREATE TABLE mailing_list (
 	owner_id integer NOT NULL REFERENCES "user"(id) ON DELETE CASCADE,
 	name character varying(128) NOT NULL,
 	description character varying,
-	visibility visibility DEFAULT 'UNLISTED'::visibility NOT NULL
+	visibility visibility DEFAULT 'UNLISTED'::visibility NOT NULL,
+	-- lists.sr.ht-assigned webhook ID
+	webhook_id integer NOT NULL,
+	webhook_version integer NOT NULL
 );
 
 CREATE TABLE source_repo (

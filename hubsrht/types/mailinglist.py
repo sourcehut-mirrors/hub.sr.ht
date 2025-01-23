@@ -31,6 +31,9 @@ class MailingList(Base):
     visibility = sa.Column(postgresql.ENUM(Visibility),
             nullable=False, server_default="UNLISTED")
 
+    webhook_id = sa.Column(sa.Integer, nullable=False)
+    webhook_version = sa.Column(sa.Integer, nullable=False)
+
     def url(self):
         return f"{_listsrht}/{self.owner.canonical_name}/{self.name}"
 

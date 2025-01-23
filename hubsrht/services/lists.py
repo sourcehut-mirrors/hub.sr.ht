@@ -1,6 +1,5 @@
 from flask import url_for
 from hubsrht.services import SrhtService
-from srht.api import ensure_webhooks # XXX TEMP
 from srht.config import get_origin, cfg
 from srht.graphql import gql_time
 
@@ -88,6 +87,44 @@ class ListService(SrhtService):
 
         return resp["createMailingList"]
 
+    def create_list_webhook(self, user, list_id):
+        url = origin + url_for("webhooks.mailing_list")
+        resp = self.exec(user, """
+            mutation CreateWebhook(
+                $listId: Int!,
+                $payload: String!
+                $url: String!,
+            ) {
+                webhook: createMailingListWebhook(
+                    listId: $listId,
+                    config: {
+                        url: $url,
+                        query: $payload,
+                        events: [
+                          LIST_UPDATED,
+                          LIST_DELETED,
+                          EMAIL_RECEIVED,
+                          PATCHSET_RECEIVED,
+                        ],
+                    },
+                ) { 
+                    id
+                }
+            }
+            """,
+            listId=list_id,
+            payload=lists_webhook_payload,
+            url=url)
+        return (resp["webhook"]["id"], lists_webhook_version)
+
+    def delete_list_webhook(self, hook_id):
+        self.exec(user, """
+            mutation DeleteWebhook($id: Int!) {
+                deleteMailingListWebhook(id: $id) { id }
+            }
+            """,
+            id=hook_id)
+
     def delete_list(self, user, list_id):
         resp = self.exec(user, """
         mutation DeleteList($list_id: Int!) {
@@ -127,20 +164,68 @@ class ListService(SrhtService):
         details=details)
         return resp["updateTool"]["id"]
 
-    def ensure_mailing_list_webhooks(self, mailing_list):
-        config = {
-            origin + url_for("webhooks.mailing_list", list_id=mailing_list.id):
-                ["list:update", "list:delete", "post:received", "patchset:received"],
-        }
-        owner = mailing_list.owner
-        url = f"{_listsrht}/api/user/{owner.canonical_name}/lists/{mailing_list.name}/webhooks"
-        ensure_webhooks(owner, url, config)
+lists_webhook_version = 1
+lists_webhook_payload = """
+query {
+    webhook {
+        uuid
+        event
+        date
 
-    def unensure_mailing_list_webhooks(self, mailing_list):
-        config = { }
-        owner = mailing_list.owner
-        url = f"{_listsrht}/api/user/{owner.canonical_name}/lists/{mailing_list.name}/webhooks"
-        try:
-            ensure_webhooks(owner, url, config)
-        except:
-            pass # nbd, upstream was presumably deleted
+        ... on MailingListEvent {
+            list {
+                id
+                name
+                description
+                visibility
+            }
+        }
+
+        ... on EmailEvent {
+            email {
+                id
+                list { id }
+                messageID
+                subject
+
+                sender {
+                    canonicalName
+
+                    ... on User {
+                        username
+                    }
+                }
+            }
+        }
+
+        ... on PatchsetEvent {
+            patchset {
+                id
+                subject
+                prefix
+                version
+                list { id }
+
+                thread {
+                    root {
+                        messageID
+                        reply_to: header(want: "In-Reply-To")
+                    }
+                }
+
+                submitter {
+                    ... on User {
+                        name: canonicalName
+                        address: email
+                    }
+
+                    ... on Mailbox {
+                        name
+                        address
+                    }
+                }
+            }
+        }
+    }
+}
+"""
