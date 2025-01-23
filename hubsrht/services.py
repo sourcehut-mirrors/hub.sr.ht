@@ -24,6 +24,7 @@ origin = get_origin("hub.sr.ht")
 class SrhtService:
     def __init__(self, site):
         self.session = requests.Session()
+        self.session.headers["User-Agent"] = "SourceHut project hub (https://sr.ht - https://git.sr.ht/~sircmpwn/hub.sr.ht)"
         self.site = site
 
     def exec(self, user, query, valid=None, **kwargs):
