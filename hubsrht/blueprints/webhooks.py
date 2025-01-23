@@ -256,7 +256,7 @@ def mailing_list(list_id):
         archive_url = ml.url() + f"/{quote(payload['message_id'])}"
         subject = payload["subject"]
 
-        event.external_source = "todo.sr.ht"
+        event.external_source = "lists.sr.ht"
         event.external_summary = (
             f"<a href='{archive_url}'>{html.escape(subject)}</a>")
         event.external_summary_plain = subject
