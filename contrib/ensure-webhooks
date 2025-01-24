@@ -43,7 +43,10 @@ with app.app_context():
         unensure_legacy_webhooks(mailing_list)
 
         try:
-            lists.create_list_webhook(mailing_list.owner, mailing_list.remote_id)
+            hook_id, hook_ver = lists.create_list_webhook(
+                    mailing_list.owner, mailing_list.remote_id)
+            mailing_list.webhook_id = hook_id
+            mailing_list.webhook_ver = hook_ver
         except Exception as ex:
             mailing_list.webhook_id = -1
             mailing_list.webhook_version = 0
@@ -54,4 +57,5 @@ with app.app_context():
     db.session.commit()
 
 print("Done. You can run migration 2e24bd9655ce now.")
-print(f"Warning: {failed} webhooks failed to update. Manual intervention is required. See 'SELECT ... FROM mailing_list WHERE webhook_id = -1")
+if failed != 0:
+    print(f"Warning: {failed} webhooks failed to update. Manual intervention is required. See 'SELECT ... FROM mailing_list WHERE webhook_id = -1")
