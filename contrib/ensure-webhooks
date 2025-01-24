@@ -1,0 +1,42 @@
+#!/usr/bin/env python3
+#
+# This contrib script makes sure that all of the webhooks are properly
+# configured for all projects.
+#
+# It is intended to be run between migrations e4b380a0eb98 and 2e24bd9655ce.
+#
+# $ hub.sr.ht-migrate upgrade e4b380a0eb98
+# $ ./contrib/ensure-webhooks
+# $ hub.sr.ht-migrate upgrade 2e24bd9655ce
+
+from hubsrht.app import db
+from hubsrht.types import MailingList
+from hubsrht.services import lists
+from srht.api import ensure_webhooks
+from srht.config import get_origin
+
+_listsrht = get_origin("lists.sr.ht", default=None)
+
+def unensure_legacy_webhooks(mailing_list):
+    config = {}
+    owner = mailing_list.owner
+    url = f"{_listsrht}/api/user/{owner.canonical_name}/lists/{mailing_list.name}/webhooks"
+    try:
+        ensure_webhooks(owner, url, config)
+    except:
+        pass
+
+print("Updating mailing list webhooks...")
+
+for mailing_list in MailingList.query.all():
+    unensure_legacy_webhooks(mailing_list)
+    try:
+        lists.create_list_webhook(mailing_list.owner, mailing_list.id)
+    except:
+        mailing_list.webhook_id = -1
+        mailing_list.webhook_version = 0
+        print(f"Warning: mailing list ID {mailing_list.id} failed to create new webhook")
+
+db.session.commit()
+
+print("Done. You can run migration 2e24bd9655ce now.")
