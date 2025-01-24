@@ -1,5 +1,6 @@
 from flask import url_for
 from hubsrht.services import SrhtService
+from srht.api import ensure_webhooks
 from srht.config import get_origin, cfg
 from srht.graphql import gql_time
 
