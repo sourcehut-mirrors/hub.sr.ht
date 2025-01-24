@@ -46,7 +46,7 @@ with app.app_context():
             hook_id, hook_ver = lists.create_list_webhook(
                     mailing_list.owner, mailing_list.remote_id)
             mailing_list.webhook_id = hook_id
-            mailing_list.webhook_ver = hook_ver
+            mailing_list.webhook_version = hook_ver
         except Exception as ex:
             mailing_list.webhook_id = -1
             mailing_list.webhook_version = 0
