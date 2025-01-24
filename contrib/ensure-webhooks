@@ -9,11 +9,17 @@
 # $ ./contrib/ensure-webhooks
 # $ hub.sr.ht-migrate upgrade 2e24bd9655ce
 
-from hubsrht.app import db
-from hubsrht.types import MailingList
+from hubsrht.app import app
 from hubsrht.services import lists
 from srht.api import ensure_webhooks
-from srht.config import get_origin
+from srht.config import cfg, get_origin
+from srht.database import DbSession
+
+connection_string = cfg("hub.sr.ht", "connection-string")
+db = DbSession(connection_string)
+db.create()
+
+from hubsrht.types import MailingList
 
 _listsrht = get_origin("lists.sr.ht", default=None)
 
@@ -23,20 +29,29 @@ def unensure_legacy_webhooks(mailing_list):
     url = f"{_listsrht}/api/user/{owner.canonical_name}/lists/{mailing_list.name}/webhooks"
     try:
         ensure_webhooks(owner, url, config)
-    except:
-        pass
+    except Exception as ex:
+        print(f"Warning: failed to remove legacy webhook for mailing list ID {mailing_list.id}")
+        print(ex)
 
 print("Updating mailing list webhooks...")
 
-for mailing_list in MailingList.query.all():
-    unensure_legacy_webhooks(mailing_list)
-    try:
-        lists.create_list_webhook(mailing_list.owner, mailing_list.id)
-    except:
-        mailing_list.webhook_id = -1
-        mailing_list.webhook_version = 0
-        print(f"Warning: mailing list ID {mailing_list.id} failed to create new webhook")
+failed = 0
 
-db.session.commit()
+app.config['SERVER_NAME'] = get_origin("hub.sr.ht", external=True)
+with app.app_context():
+    for mailing_list in MailingList.query.all():
+        unensure_legacy_webhooks(mailing_list)
+
+        try:
+            lists.create_list_webhook(mailing_list.owner, mailing_list.remote_id)
+        except Exception as ex:
+            mailing_list.webhook_id = -1
+            mailing_list.webhook_version = 0
+            print(f"Warning: mailing list ID {mailing_list.id} failed to create new webhook")
+            print(ex)
+            failed += 1
+
+    db.session.commit()
 
 print("Done. You can run migration 2e24bd9655ce now.")
+print(f"Warning: {failed} webhooks failed to update. Manual intervention is required. See 'SELECT ... FROM mailing_list WHERE webhook_id = -1")
