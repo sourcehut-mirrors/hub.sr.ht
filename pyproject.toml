@@ -25,6 +25,7 @@ packages = [
     "hubsrht.alembic",
     "hubsrht.alembic.versions",
     "hubsrht.blueprints",
+    "hubsrht.services",
     "hubsrht.templates",
     "hubsrht.types",
 ]
