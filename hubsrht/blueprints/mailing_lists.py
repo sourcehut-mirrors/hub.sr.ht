@@ -274,7 +274,7 @@ def delete_POST(owner, project_name, list_id):
     db.session.delete(mailing_list)
     db.session.commit()
 
-    lists.delete_list_webhook(hook_id)
+    lists.delete_list_webhook(owner, hook_id)
 
     valid = Validation(request)
     delete_remote = valid.optional("delete-remote") == "on"

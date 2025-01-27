@@ -117,8 +117,8 @@ class ListService(SrhtService):
             url=url)
         return (resp["webhook"]["id"], lists_webhook_version)
 
-    def delete_list_webhook(self, hook_id):
-        self.exec(user, """
+    def delete_list_webhook(self, user, hook_id):
+        self.exec(self, user, """
             mutation DeleteWebhook($id: Int!) {
                 deleteMailingListWebhook(id: $id) { id }
             }
