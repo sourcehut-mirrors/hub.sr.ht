@@ -219,7 +219,7 @@ def mailing_list():
     if event == "LIST_UPDATED":
         data = payload["list"]
         mailing_list = (MailingList.query
-            .filter(MailingList.remote_id == data["list"]["id"])).one()
+            .filter(MailingList.remote_id == data["id"])).one()
         mailing_list.name = data["name"]
         mailing_list.description = data["description"]
         mailing_list.visibility = Visibility(data["visibility"])
@@ -232,7 +232,7 @@ def mailing_list():
     elif event == "LIST_DELETED":
         data = payload["list"]
         mailing_list = (MailingList.query
-            .filter(MailingList.remote_id == data["list"]["id"])).one()
+            .filter(MailingList.remote_id == data["id"])).one()
         db.session.delete(mailing_list)
         mailing_list.project.updated = datetime.utcnow()
         db.session.commit()
