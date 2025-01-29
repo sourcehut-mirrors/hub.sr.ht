@@ -243,7 +243,7 @@ def mailing_list():
     elif event == "EMAIL_RECEIVED":
         data = payload["email"]
         sender_canon = data["sender"]["canonicalName"]
-        sender_username = data["sender"]["username"]
+        sender_username = data["sender"].get("username")
         subject = data["subject"]
         message_id = f"<{data['messageID']}>"
 
