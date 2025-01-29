@@ -127,7 +127,7 @@ git am -3 /tmp/{patch_id}.patch"""
             "email": {
                 "to": email.utils.formataddr(submitter),
                 "cc": ml.posting_addr(),
-                "inReplyTo": message_id,
+                "inReplyTo": f"<{message_id}>",
             },
     }
     builds.create_group(project.owner, ids, build_note, [trigger], valid=valid)
