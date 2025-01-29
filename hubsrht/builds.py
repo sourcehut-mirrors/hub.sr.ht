@@ -20,7 +20,7 @@ def submit_patchset(ml, payload, valid=None):
 
     patch_id = payload["id"]
     patch_url = f"{ml.url()}/patches/{patch_id}"
-    patch_mbox = f"{ml.url()}/patches/{patch_id}.mbox"
+    patch_mbox = f"{ml.url()}/patches/{patch_id}/mbox"
     subject = payload["subject"]
     prefix = payload["prefix"]
 
