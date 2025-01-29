@@ -218,12 +218,12 @@ def mailing_list():
 
     if event == "LIST_UPDATED":
         data = payload["list"]
-        mailing_list = (MailingList.query
-            .filter(MailingList.remote_id == data["id"])).one()
-        mailing_list.name = data["name"]
-        mailing_list.description = data["description"]
-        mailing_list.visibility = Visibility(data["visibility"])
-        mailing_list.project.updated = datetime.utcnow()
+        for mailing_list in (MailingList.query
+                 .filter(MailingList.remote_id == data["id"])):
+            mailing_list.name = data["name"]
+            mailing_list.description = data["description"]
+            mailing_list.visibility = Visibility(data["visibility"])
+            mailing_list.project.updated = datetime.utcnow()
         db.session.commit()
 
         local_id = mailing_list.id
@@ -231,10 +231,10 @@ def mailing_list():
         return f"Updated local:{local_id}/remote:{remote_id}", 200
     elif event == "LIST_DELETED":
         data = payload["list"]
-        mailing_list = (MailingList.query
-            .filter(MailingList.remote_id == data["id"])).one()
-        db.session.delete(mailing_list)
-        mailing_list.project.updated = datetime.utcnow()
+        for mailing_list in (MailingList.query
+                 .filter(MailingList.remote_id == data["id"])):
+            mailing_list.project.updated = datetime.utcnow()
+            db.session.delete(mailing_list)
         db.session.commit()
 
         local_id = mailing_list.id
@@ -247,45 +247,40 @@ def mailing_list():
         subject = data["subject"]
         message_id = f"<{data['messageID']}>"
 
-        mailing_list = (MailingList.query
-            .filter(MailingList.remote_id == data["list"]["id"])).one()
-        archive_url = f"{mailing_list.url()}/{quote(message_id)}"
+        for mailing_list in (MailingList.query
+                 .filter(MailingList.remote_id == data["list"]["id"])):
+            archive_url = f"{mailing_list.url()}/{quote(message_id)}"
 
-        event = Event()
-        if sender_username:
-            sender = current_app.oauth_service.lookup_user(sender_username)
-            event.user_id = sender.id
-            attrib = f"<a href='{_listssrht}/{sender_canon}'>{sender_canon}</a>"
-        else:
-            attrib = sender_canon
+            event = Event()
+            if sender_username:
+                sender = current_app.oauth_service.lookup_user(sender_username)
+                event.user_id = sender.id
+                attrib = f"<a href='{_listssrht}/{sender_canon}'>{sender_canon}</a>"
+            else:
+                attrib = sender_canon
 
-        event.event_type = EventType.external_event
-        event.mailing_list_id = mailing_list.id
-        event.project_id = mailing_list.project_id
+            event.event_type = EventType.external_event
+            event.mailing_list_id = mailing_list.id
+            event.project_id = mailing_list.project_id
 
-        event.external_source = "lists.sr.ht"
-        event.external_summary = f"<a href='{archive_url}'>{html.escape(subject)}</a>"
-        event.external_details = (f"{attrib} via " +
-                f"<a href='{mailing_list.url()}'>{mailing_list.name}</a>")
-        event.external_url = archive_url
+            event.external_source = "lists.sr.ht"
+            event.external_summary = f"<a href='{archive_url}'>{html.escape(subject)}</a>"
+            event.external_details = (f"{attrib} via " +
+                    f"<a href='{mailing_list.url()}'>{mailing_list.name}</a>")
+            event.external_url = archive_url
 
-        db.session.add(event)
+            db.session.add(event)
+
         db.session.commit()
         return f"Assigned event ID {event.id}"
     elif event == "PATCHSET_RECEIVED":
         data = payload["patchset"]
-        mailing_list = (MailingList.query
-            .filter(MailingList.remote_id == data["list"]["id"])).one()
-
-        valid = Validation(request)
-        build_ids = submit_patchset(mailing_list, data, valid)
-        if not valid.ok:
-            emsg = f"{valid.errors[0].field}: {valid.errors[0].message}"
-            return f"Error submitting builds: {emsg}", 400
-        if build_ids:
-            return f"Submitted builds #{build_ids}"
-        else:
-            return "No action required"
+        for mailing_list in (MailingList.query
+                 .filter(MailingList.remote_id == data["list"]["id"])):
+            valid = Validation(request)
+            submit_patchset(mailing_list, data, valid)
+            # TODO: We could do something useful with validation errors
+        return "Patchset received"
     else:
         raise Exception(f"Unknown mailing list webhook event: {event}")
 
