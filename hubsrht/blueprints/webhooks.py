@@ -236,10 +236,7 @@ def mailing_list():
             mailing_list.project.updated = datetime.utcnow()
             db.session.delete(mailing_list)
         db.session.commit()
-
-        local_id = mailing_list.id
-        remote_id = mailing_list.remote_id
-        return f"Deleted local:{local_id}/remote:{remote_id}", 200
+        return f"Deleted mailing lists remote:{data['id']}", 200
     elif event == "EMAIL_RECEIVED":
         data = payload["email"]
         sender_canon = data["sender"]["canonicalName"]
@@ -275,12 +272,12 @@ def mailing_list():
         return f"Assigned event ID {event.id}"
     elif event == "PATCHSET_RECEIVED":
         data = payload["patchset"]
+        valid = Validation(request)
         for mailing_list in (MailingList.query
                  .filter(MailingList.remote_id == data["list"]["id"])):
-            valid = Validation(request)
             submit_patchset(mailing_list, data, valid)
             # TODO: We could do something useful with validation errors
-        return "Patchset received"
+        return valid.response
     else:
         raise Exception(f"Unknown mailing list webhook event: {event}")
 
