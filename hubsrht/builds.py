@@ -8,6 +8,7 @@ from hubsrht.types import SourceRepo, RepoType
 from sqlalchemy import func
 from srht.config import get_origin
 from srht.crypto import fernet
+from srht.graphql import GraphQLError
 
 def submit_patchset(ml, payload, valid=None):
     buildsrht = get_origin("builds.sr.ht", external=True, default=None)
@@ -112,9 +113,15 @@ git am -3 /tmp/{patch_id}.patch"""
             "url": root + url_for("webhooks.build_complete", details=details),
         }))
 
-        b = builds.submit_build(project.owner, manifest, build_note,
-            tags=[repo.name, "patches", key], execute=False, valid=valid,
-            visibility=repo.visibility)
+        try:
+            b = builds.submit_build(project.owner, manifest, build_note,
+                tags=[repo.name, "patches", key], execute=False, valid=valid,
+                visibility=repo.visibility)
+        except GraphQLError as err:
+            details = ", ".join([e["message"] for e in err.errors])
+            lists.patchset_update_tool(ml.owner, tool_id, "FAILED",
+                f"Failed to submit build: {details}")
+            continue
         ids.append(b["id"])
         build_url = f"{buildsrht}/{project.owner.canonical_name}/job/{b['id']}"
         lists.patchset_update_tool(ml.owner, tool_id, "WAITING",
