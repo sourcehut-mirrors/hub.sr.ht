@@ -342,8 +342,7 @@ def _mailing_list(list_id):
         valid = Validation(request)
         build_ids = submit_patchset(ml, payload, valid)
         if not valid.ok:
-            emsg = f"{valid.errors[0].field}: {valid.errors[0].message}"
-            return f"Error submitting builds: {emsg}", 400
+            return valid.response
         if build_ids:
             return f"Submitted builds #{build_ids}. Thanks!"
         else:
