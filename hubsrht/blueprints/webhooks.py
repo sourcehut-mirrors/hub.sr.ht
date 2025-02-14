@@ -462,7 +462,7 @@ def todo_ticket(tracker_id):
             participant_url = f"{_todosrht}/{participant['canonical_name']}"
             participant_url = f"<a href='{participant_url}'>{participant['canonical_name']}</a>"
         elif participant["type"] == "email":
-            if name in participant:
+            if 'name' in participant:
                 participant_url = participant['name']
             else:
                 participant_url = participant['email']
