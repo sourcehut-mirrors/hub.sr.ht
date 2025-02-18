@@ -74,11 +74,7 @@ def submit_patchset(ml, payload, valid=None):
         tool_id = lists.patchset_create_tool(ml.owner, patch_id,
                 "PENDING", f"build pending: {key}")
 
-        try:
-            manifest = Manifest(yaml.safe_load(value))
-        except:
-            # TODO: Maybe we should email the user with the error details?
-            return
+        manifest = Manifest(yaml.safe_load(value))
         # TODO: https://todo.sr.ht/~sircmpwn/builds.sr.ht/291
         task = Task({
             "_apply_patch": f"""echo Applying patch from lists.sr.ht

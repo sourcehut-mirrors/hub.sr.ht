@@ -273,11 +273,21 @@ def mailing_list():
     elif event == "PATCHSET_RECEIVED":
         data = payload["patchset"]
         valid = Validation(request)
-        for mailing_list in (MailingList.query
-                 .filter(MailingList.remote_id == data["list"]["id"])):
-            submit_patchset(mailing_list, data, valid)
-            # TODO: We could do something useful with validation errors
-        return valid.response
+        job_ids = []
+
+        try:
+            for mailing_list in (MailingList.query
+                     .filter()):
+                ids = submit_patchset(mailing_list, data, valid)
+                if ids is not None:
+                    job_ids.extend(ids)
+        except Exception as ex:
+            return "Error submitting builds: " + str(ex)
+
+        if not valid.ok:
+            return valid.response
+        else:
+            return "Submitted builds: " + ", ".join([str(x) for x in job_ids])
     else:
         raise Exception(f"Unknown mailing list webhook event: {event}")
 
