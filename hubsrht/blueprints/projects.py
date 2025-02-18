@@ -71,7 +71,6 @@ def summary_GET(owner, project_name):
             else:
                 assert False
         except Exception as ex:
-            print(ex)
             summary = None
             summary_error = True
 
