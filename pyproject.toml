@@ -30,7 +30,6 @@ packages = [
     "hubsrht.types",
 ]
 script-files = [
-    "hub.sr.ht-initdb",
     "hub.sr.ht-migrate",
 ]
 [tool.setuptools.package-data]
