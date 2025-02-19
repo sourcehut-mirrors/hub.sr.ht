@@ -271,23 +271,7 @@ def mailing_list():
         db.session.commit()
         return f"Assigned event ID {event.id}"
     elif event == "PATCHSET_RECEIVED":
-        data = payload["patchset"]
-        valid = Validation(request)
-        job_ids = []
-
-        try:
-            for mailing_list in (MailingList.query
-                     .filter(MailingList.remote_id == data["list"]["id"])):
-                ids = submit_patchset(mailing_list, data, valid)
-                if ids is not None:
-                    job_ids.extend(ids)
-        except Exception as ex:
-            return "Error submitting builds: " + str(ex)
-
-        if not valid.ok:
-            return valid.response
-        else:
-            return "Submitted builds: " + ", ".join([str(x) for x in job_ids])
+        return "Temporarily disabled"
     else:
         raise Exception(f"Unknown mailing list webhook event: {event}")
 
