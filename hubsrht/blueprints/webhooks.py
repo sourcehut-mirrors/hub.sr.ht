@@ -277,7 +277,7 @@ def mailing_list():
 
         try:
             for mailing_list in (MailingList.query
-                     .filter()):
+                     .filter(MailingList.remote_id == data["list"]["id"])):
                 ids = submit_patchset(mailing_list, data, valid)
                 if ids is not None:
                     job_ids.extend(ids)
