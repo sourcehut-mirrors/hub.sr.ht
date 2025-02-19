@@ -109,27 +109,27 @@ Mailing list for end-user discussion and questions related to the
             if not mailing_list:
                 raise Exception(json.dumps(valid.response))
 
-        try:
-            webhook_id, webhook_version = lists.create_list_webhook(
-                    owner, mailing_list["id"])
-        except:
-            lists.delete_list(owner, mailing_list["id"])
-            raise
-
         ml = MailingList()
         ml.remote_id = mailing_list["id"]
         ml.project_id = project.id
         ml.owner_id = project.owner_id
         ml.name = mailing_list["name"]
+        ml.webhook_id = -1
+        ml.webhook_version = 0
         ml.description = mailing_list["description"]
         if mailing_list["defaultACL"]["browse"]:
             ml.visibility = Visibility.PUBLIC
         else:
             ml.visibility = Visibility.UNLISTED
-        ml.webhook_id = webhook_id
-        ml.webhook_version = webhook_version
         db.session.add(ml)
         db.session.flush()
+
+        try:
+            ml.webhook_id, ml.webhook_version = lists.create_list_webhook(
+                    owner, mailing_list["id"], ml.id)
+        except:
+            lists.delete_list(owner, mailing_list["id"])
+            raise
 
         event = Event()
         event.event_type = EventType.mailing_list_added 
@@ -189,13 +189,6 @@ def new_POST(owner, project_name):
                     lists=mls, existing=existing, search=search)
         mailing_list = lists.get_list(owner, list_name)
 
-    try:
-        webhook_id, webhook_version = lists.create_list_webhook(
-                owner, mailing_list["id"])
-    except:
-        lists.delete_list(owner, mailing_list["id"])
-        raise
-
     ml = MailingList()
     ml.remote_id = mailing_list["id"]
     ml.project_id = project.id
@@ -206,10 +199,17 @@ def new_POST(owner, project_name):
         ml.visibility = Visibility.PUBLIC
     else:
         ml.visibility = Visibility.UNLISTED
-    ml.webhook_id = webhook_id
-    ml.webhook_version = webhook_version
+    ml.webhook_id = -1
+    ml.webhook_version = 0
     db.session.add(ml)
     db.session.flush()
+
+    try:
+        ml.webhook_id, ml.webhook_version = lists.create_list_webhook(
+                owner, mailing_list["id"], ml.id)
+    except:
+        lists.delete_list(owner, mailing_list["id"])
+        raise
 
     event = Event()
     event.event_type = EventType.mailing_list_added 

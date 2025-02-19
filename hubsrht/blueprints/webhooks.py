@@ -210,6 +210,85 @@ def hg_user(user_id):
         raise NotImplementedError()
 
 @csrf_bypass
+@webhooks.route("/webhooks/gql/mailing-list/<int:list_id>", methods=["POST"])
+def project_mailing_list(list_id):
+    event = request.headers.get("X-Webhook-Event")
+    payload = verify_request_signature(request)
+    payload = json.loads(payload.decode('utf-8'))["data"]["webhook"]
+
+    mailing_list = (MailingList.query
+             .filter(MailingList.id == list_id)).one_or_none()
+    if not mailing_list:
+        return "I don't recognize that mailing list.", 404
+
+    if event == "LIST_UPDATED":
+        data = payload["list"]
+
+        mailing_list.name = data["name"]
+        mailing_list.description = data["description"]
+        mailing_list.visibility = Visibility(data["visibility"])
+        mailing_list.project.updated = datetime.utcnow()
+        db.session.commit()
+
+        local_id = mailing_list.id
+        remote_id = mailing_list.remote_id
+        return f"Updated local:{local_id}/remote:{remote_id}", 200
+    elif event == "LIST_DELETED":
+        local_id = mailing_list.id
+        remote_id = mailing_list.remote_id
+        mailing_list.project.updated = datetime.utcnow()
+        db.session.delete(mailing_list)
+        db.session.commit()
+        return f"Deleted mailing lists local:{local_id}/remote:{remote_id}", 200
+    elif event == "EMAIL_RECEIVED":
+        data = payload["email"]
+        sender_canon = data["sender"]["canonicalName"]
+        sender_username = data["sender"].get("username")
+        subject = data["subject"]
+        message_id = f"<{data['messageID']}>"
+        archive_url = f"{mailing_list.url()}/{quote(message_id)}"
+
+        event = Event()
+        if sender_username:
+            sender = current_app.oauth_service.lookup_user(sender_username)
+            event.user_id = sender.id
+            attrib = f"<a href='{_listssrht}/{sender_canon}'>{sender_canon}</a>"
+        else:
+            attrib = sender_canon
+
+        event.event_type = EventType.external_event
+        event.mailing_list_id = mailing_list.id
+        event.project_id = mailing_list.project_id
+
+        event.external_source = "lists.sr.ht"
+        event.external_summary = f"<a href='{archive_url}'>{html.escape(subject)}</a>"
+        event.external_details = (f"{attrib} via " +
+                f"<a href='{mailing_list.url()}'>{mailing_list.name}</a>")
+        event.external_url = archive_url
+
+        db.session.add(event)
+        db.session.commit()
+        return f"Assigned event ID {event.id}"
+    elif event == "PATCHSET_RECEIVED":
+        data = payload["patchset"]
+        valid = Validation(request)
+        job_ids = []
+
+        try:
+            ids = submit_patchset(mailing_list, data, valid)
+            if ids is not None:
+                job_ids.extend(ids)
+        except Exception as ex:
+            return "Error submitting builds: " + str(ex)
+
+        if not valid.ok:
+            return valid.response
+        else:
+            return "Submitted builds: " + ", ".join([str(x) for x in job_ids])
+    else:
+        raise Exception(f"Unknown mailing list webhook event: {event}")
+
+@csrf_bypass
 @webhooks.route("/webhooks/gql/mailing-list", methods=["POST"])
 def mailing_list():
     event = request.headers.get("X-Webhook-Event")

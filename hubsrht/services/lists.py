@@ -87,8 +87,9 @@ class ListService(SrhtService):
 
         return resp["createMailingList"]
 
-    def create_list_webhook(self, user, list_id):
-        url = origin + url_for("webhooks.mailing_list", _external=False)
+    def create_list_webhook(self, user, remote_list_id, local_list_id):
+        url = origin + url_for("webhooks.project_mailing_list",
+                list_id=local_list_id, _external=False)
         resp = self.exec(user, """
             mutation CreateWebhook(
                 $listId: Int!,
@@ -112,7 +113,7 @@ class ListService(SrhtService):
                 }
             }
             """,
-            listId=list_id,
+            listId=remote_list_id,
             payload=lists_webhook_payload,
             url=url)
         return (resp["webhook"]["id"], lists_webhook_version)

@@ -33,6 +33,18 @@ def unensure_legacy_webhooks(mailing_list):
         print(f"Warning: failed to remove legacy webhook for mailing list ID {mailing_list.id}")
         print(ex)
 
+def unensure_previous_gql_webhook(mailing_list):
+    if mailing_list.webhook_id == -1:
+        return
+    try:
+        lists.delete_list_webhook(
+                mailing_list.owner, mailing_list.webhook_id)
+        mailing_list.webhook_id = -1
+        mailing_list.webhook_version = 0
+    except Exception as ex:
+        print(f"Warning: failed to remove previous webhook ID {mailing_list.webhook_id} for mailing list ID {mailing_list.id}")
+        print(ex)
+
 print("Updating mailing list webhooks...")
 
 failed = 0
@@ -41,10 +53,13 @@ app.config['SERVER_NAME'] = get_origin("hub.sr.ht", external=True)
 with app.app_context():
     for mailing_list in MailingList.query.all():
         unensure_legacy_webhooks(mailing_list)
+        if mailing_list.webhook_id:
+            unensure_previous_gql_webhook(mailing_list)
 
         try:
             hook_id, hook_ver = lists.create_list_webhook(
-                    mailing_list.owner, mailing_list.remote_id)
+                    mailing_list.owner, mailing_list.remote_id,
+                    mailing_list.id)
             mailing_list.webhook_id = hook_id
             mailing_list.webhook_version = hook_ver
         except Exception as ex:
