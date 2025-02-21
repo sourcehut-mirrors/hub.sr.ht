@@ -22,9 +22,10 @@ db.create()
 from hubsrht.types import MailingList
 
 _listsrht = get_origin("lists.sr.ht", default=None)
+_hubsrht = get_origin("hub.sr.ht", default=None)
 
 def unensure_legacy_webhooks(mailing_list):
-    config = {}
+    config = { f"{_hubsrht}/webhooks/mailing-list/{mailing_list.id}": None }
     owner = mailing_list.owner
     url = f"{_listsrht}/api/user/{owner.canonical_name}/lists/{mailing_list.name}/webhooks"
     try:
