@@ -1,13 +1,15 @@
 PREFIX?=/usr/local
 BINDIR?=$(PREFIX)/bin
 LIBDIR?=$(PREFIX)/lib
-SHAREDIR?=$(PREFIX)/share/sourcehut
+SHAREDIR?=$(PREFIX)/share
+
+ASSETS=$(SHAREDIR)/sourcehut
 
 SERVICE=hub.sr.ht
-STATICDIR=$(SHAREDIR)/static/$(SERVICE)
+STATICDIR=$(ASSETS)/static/$(SERVICE)
 
 SASSC?=sassc
-SASSC_INCLUDE=-I$(SHAREDIR)/scss/
+SASSC_INCLUDE=-I$(ASSETS)/scss/
 
 BINARIES=\
 	$(SERVICE)-api
@@ -32,7 +34,7 @@ install-bin: all-bin
 install-share: all-share
 	mkdir -p $(STATICDIR)
 	install -Dm644 static/*.css $(STATICDIR)
-	install -Dm644 api/graph/schema.graphqls $(SHAREDIR)/$(SERVICE).graphqls
+	install -Dm644 api/graph/schema.graphqls $(ASSETS)/$(SERVICE).graphqls
 
 clean-bin:
 	rm -f $(BINARIES)
