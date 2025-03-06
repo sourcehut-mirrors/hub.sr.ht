@@ -13,6 +13,7 @@ from srht.config import get_origin
 from srht.crypto import fernet, verify_request_signature
 from srht.database import db
 from srht.flask import csrf_bypass
+from srht.graphql import GraphQLError, Error
 from srht.validation import Validation
 from urllib.parse import quote
 
@@ -169,7 +170,14 @@ def _handle_commit_trailer(trailer, value, pusher, repo, commit):
         # avoid duplicate comments
         return
     ticketId = int(match["ticket"])
-    todo.update_ticket(pusher, trackerId, ticketId, comment, resolution)
+    try:
+        todo.update_ticket(pusher, trackerId, ticketId, comment, resolution)
+    except GraphQLError as err:
+        if not err.has(Error.ACCESS_DENIED):
+            raise
+        # Try again without resolving the ticket, in case this user has comment
+        # access but not triage access
+        todo.update_ticket(pusher, trackerId, ticketId, comment)
 
 @csrf_bypass
 @webhooks.route("/webhooks/hg-user/<int:user_id>", methods=["POST"])
