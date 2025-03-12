@@ -177,7 +177,12 @@ def _handle_commit_trailer(trailer, value, pusher, repo, commit):
             raise
         # Try again without resolving the ticket, in case this user has comment
         # access but not triage access
-        todo.update_ticket(pusher, trackerId, ticketId, comment)
+        try:
+            todo.update_ticket(pusher, trackerId, ticketId, comment)
+        except GraphQLError as err:
+            # Silently discard further access denied errors
+            if not err.has(Error.ACCESS_DENIED):
+                raise
 
 @csrf_bypass
 @webhooks.route("/webhooks/hg-user/<int:user_id>", methods=["POST"])
