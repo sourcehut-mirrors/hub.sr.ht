@@ -64,7 +64,10 @@ def project_index():
     else:
         projects = projects.order_by(Project.updated.desc())
 
-    projects, pagination = paginate_query(projects)
+    try:
+        projects, pagination = paginate_query(projects)
+    except ValueError as e:
+        search_error = str(e)
 
     features = (Feature.query
             .join(Project, Feature.project_id == Project.id)
