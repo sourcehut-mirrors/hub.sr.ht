@@ -110,3 +110,11 @@ CREATE TABLE event (
 	external_details_plain character varying,
 	external_url character varying
 );
+
+CREATE TABLE redirect (
+   id serial PRIMARY KEY,
+   created timestamp without time zone NOT NULL,
+   name character varying(256) NOT NULL,
+   owner_id integer NOT NULL REFERENCES "user"(id) ON DELETE CASCADE,
+   new_project_id integer NOT NULL REFERENCES project(id) ON DELETE CASCADE
+);

@@ -14,5 +14,6 @@ from hubsrht.types.event import Event, EventType
 from hubsrht.types.feature import Feature
 from hubsrht.types.mailinglist import MailingList
 from hubsrht.types.project import Project
+from hubsrht.types.redirect import Redirect
 from hubsrht.types.sourcerepo import SourceRepo, RepoType
 from hubsrht.types.tracker import Tracker
