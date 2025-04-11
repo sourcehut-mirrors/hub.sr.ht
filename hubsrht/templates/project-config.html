@@ -10,9 +10,13 @@
         {{csrf_token()}}
         <div class="row">
           <div class="col-lg-6">
-            <div class="form-group">
-              <label for="name">
-                Project name <small class="text-muted">(you can't edit this)</small>
+            <div class="form-group {{valid.cls("name")}}">
+              <label class="d-block" for="name">
+                Project name
+                <a
+                  href="/{{ project.owner.canonical_name }}/{{ project.name }}/settings/rename"
+                  class="pull-right"
+                >Rename?</a>
               </label>
               <input
                 type="text"

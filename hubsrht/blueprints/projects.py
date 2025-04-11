@@ -11,6 +11,7 @@ from hubsrht.services import git, hg
 from hubsrht.types import Feature, Event, EventType
 from hubsrht.types import Project, RepoType, Visibility
 from hubsrht.types import SourceRepo, MailingList, Tracker
+from hubsrht.types import Redirect
 from srht.config import cfg, get_origin
 from srht.database import db
 from srht.flask import csrf_bypass, paginate_query
@@ -270,6 +271,39 @@ def config_POST(owner, project_name):
     return redirect(url_for("projects.summary_GET",
         owner=current_user.canonical_name,
         project_name=project.name))
+
+
+@projects.route("/<owner>/<project_name>/settings/rename")
+@loginrequired
+def settings_rename(owner, project_name):
+    owner, project = get_project(owner, project_name, ProjectAccess.write)
+    if project is None:
+        abort(404)
+    return render_template("project-rename.html", owner=owner, project=project)
+
+@projects.route("/<owner>/<project_name>/settings/rename", methods=["POST"])
+@loginrequired
+def settings_rename_POST(owner, project_name):
+    owner, project = get_project(owner, project_name, ProjectAccess.write)
+    if project is None:
+        abort(404)
+
+    valid = Validation(request)
+    name = valid.require("name", friendly_name="Name")
+    if not valid.ok:
+        return render_template("project-rename.html", owner=owner, project=project,
+                **valid.kwargs)
+
+    project.name = name
+    redir = Redirect()
+    redir.owner_id = project.owner_id
+    redir.name = project_name
+    redir.new_project_id = project.id
+    db.session.add(redir)
+    db.session.commit()
+
+    return redirect(url_for("projects.summary_GET", owner=owner, project_name=project.name))
+
 
 @projects.route("/<owner>/<project_name>/delete")
 @loginrequired
