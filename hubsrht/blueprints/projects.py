@@ -6,7 +6,7 @@ from flask import Blueprint, Response, render_template, request, redirect, url_f
         abort, make_response
 from flask import session
 from hubsrht.decorators import adminrequired
-from hubsrht.projects import ProjectAccess, get_project
+from hubsrht.projects import ProjectAccess, get_project, get_project_or_redir
 from hubsrht.services import git, hg
 from hubsrht.types import Feature, Event, EventType
 from hubsrht.types import Project, RepoType, Visibility
@@ -45,7 +45,7 @@ To browse all of the available repositories for this project, visit this URL:
 
 @projects.route("/<owner>/<project_name>/")
 def summary_GET(owner, project_name):
-    owner, project = get_project(owner, project_name, ProjectAccess.read)
+    owner, project = get_project_or_redir(owner, project_name, ProjectAccess.read)
 
     # Mercurial clone
     if request.args.get("cmd") == "capabilities":
@@ -95,7 +95,7 @@ def summary_GET(owner, project_name):
 @projects.route("/<owner>/<project_name>/info/refs")
 def summary_refs(owner, project_name):
     if request.args.get("service") == "git-upload-pack":
-        owner, project = get_project(owner, project_name, ProjectAccess.read)
+        owner, project = get_project_or_redir(owner, project_name, ProjectAccess.read)
 
         sources = (SourceRepo.query
                 .filter(SourceRepo.project_id == project.id)
@@ -115,7 +115,7 @@ def summary_refs(owner, project_name):
 
 @projects.route("/<owner>/<project_name>/feed")
 def feed_GET(owner, project_name):
-    owner, project = get_project(owner, project_name, ProjectAccess.read)
+    owner, project = get_project_or_redir(owner, project_name, ProjectAccess.read)
 
     events = (Event.query
         .filter(Event.project_id == project.id)
@@ -138,7 +138,7 @@ def feed_GET(owner, project_name):
 
 @projects.route("/<owner>/<project_name>/feed.rss")
 def feed_rss_GET(owner, project_name):
-    owner, project = get_project(owner, project_name, ProjectAccess.read)
+    owner, project = get_project_or_redir(owner, project_name, ProjectAccess.read)
 
     events = (Event.query
         .filter(Event.project_id == project.id)
@@ -165,6 +165,8 @@ def feed_rss_GET(owner, project_name):
 @loginrequired
 def dismiss_checklist_POST(owner, project_name):
     owner, project = get_project(owner, project_name, ProjectAccess.write)
+    if project is None:
+        abort(404)
     project.checklist_complete = True
     db.session.commit()
     return redirect(url_for("projects.summary_GET",
@@ -237,7 +239,7 @@ def create_POST():
 @projects.route("/<owner>/<project_name>/settings")
 @loginrequired
 def config_GET(owner, project_name):
-    owner, project = get_project(owner, project_name, ProjectAccess.write)
+    owner, project = get_project_or_redir(owner, project_name, ProjectAccess.write)
     return render_template("project-config.html", view="add more",
             owner=owner, project=project)
 
@@ -245,6 +247,8 @@ def config_GET(owner, project_name):
 @loginrequired
 def config_POST(owner, project_name):
     owner, project = get_project(owner, project_name, ProjectAccess.write)
+    if project is None:
+        abort(404)
 
     valid = Validation(request)
     description = valid.require("description")
@@ -270,7 +274,7 @@ def config_POST(owner, project_name):
 @projects.route("/<owner>/<project_name>/delete")
 @loginrequired
 def delete_GET(owner, project_name):
-    owner, project = get_project(owner, project_name, ProjectAccess.write)
+    owner, project = get_project_or_redir(owner, project_name, ProjectAccess.write)
     return render_template("project-delete.html", view="add more",
             owner=owner, project=project)
 
@@ -278,6 +282,8 @@ def delete_GET(owner, project_name):
 @loginrequired
 def delete_POST(owner, project_name):
     owner, project = get_project(owner, project_name, ProjectAccess.write)
+    if project is None:
+        abort(404)
     session["notice"] = f"{project.name} has been deleted."
     with db.engine.connect() as conn:
         conn.execute(text(f"DELETE FROM project WHERE id = {project.id}"))
@@ -288,6 +294,8 @@ def delete_POST(owner, project_name):
 @adminrequired
 def feature_POST(owner, project_name):
     owner, project = get_project(owner, project_name, ProjectAccess.read)
+    if project is None:
+        abort(404)
     valid = Validation(request)
 
     feature = Feature()

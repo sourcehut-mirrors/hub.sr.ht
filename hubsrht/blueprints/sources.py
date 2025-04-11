@@ -1,5 +1,5 @@
 from flask import Blueprint, render_template, request, redirect, url_for, abort
-from hubsrht.projects import ProjectAccess, get_project
+from hubsrht.projects import ProjectAccess, get_project, get_project_or_redir
 from hubsrht.services import git, hg
 from hubsrht.types import Event, EventType
 from hubsrht.types import RepoType, SourceRepo, Visibility
@@ -14,7 +14,7 @@ sources = Blueprint("sources", __name__)
 
 @sources.route("/<owner>/<project_name>/sources")
 def sources_GET(owner, project_name):
-    owner, project = get_project(owner, project_name, ProjectAccess.read)
+    owner, project = get_project_or_redir(owner, project_name, ProjectAccess.read)
     sources = (SourceRepo.query
             .filter(SourceRepo.project_id == project.id)
             .order_by(SourceRepo.updated.desc()))
@@ -39,12 +39,12 @@ def sources_GET(owner, project_name):
 @loginrequired
 def new_GET(owner, project_name):
     # TODO: Redirect appropriately if this instance only has git or hg support
-    owner, project = get_project(owner, project_name, ProjectAccess.write)
+    owner, project = get_project_or_redir(owner, project_name, ProjectAccess.write)
     return render_template("sources-new.html", view="new-resource",
             owner=owner, project=project)
 
 def src_new_GET(owner, project_name, vcs, service, repo_type):
-    owner, project = get_project(owner, project_name, ProjectAccess.write)
+    owner, project = get_project_or_redir(owner, project_name, ProjectAccess.write)
     # TODO: Pagination
     repos = service.get_repos(owner)
     repos = sorted(repos, key=lambda r: r["updated"], reverse=True)
@@ -70,6 +70,8 @@ def hg_new_GET(owner, project_name):
 @loginrequired
 def git_new_POST(owner, project_name):
     owner, project = get_project(owner, project_name, ProjectAccess.write)
+    if project is None:
+        abort(404)
     valid = Validation(request)
     if "create" in valid:
         git_repo = git.create_repo(owner, valid, project.visibility)
@@ -135,6 +137,8 @@ def git_new_POST(owner, project_name):
 @loginrequired
 def hg_new_POST(owner, project_name):
     owner, project = get_project(owner, project_name, ProjectAccess.write)
+    if project is None:
+        abort(404)
     valid = Validation(request)
     if "create" in valid:
         hg_repo = hg.create_repo(owner, valid, project.visibility)
@@ -199,7 +203,7 @@ def hg_new_POST(owner, project_name):
 @sources.route("/<owner>/<project_name>/sources/manage")
 @loginrequired
 def manage_GET(owner, project_name):
-    owner, project = get_project(owner, project_name, ProjectAccess.write)
+    owner, project = get_project_or_redir(owner, project_name, ProjectAccess.write)
     sources = (SourceRepo.query
             .filter(SourceRepo.project_id == project.id)
             .order_by(SourceRepo.updated.desc()))
@@ -223,6 +227,8 @@ def manage_GET(owner, project_name):
 @loginrequired
 def summary_POST(owner, project_name, repo_id):
     owner, project = get_project(owner, project_name, ProjectAccess.write)
+    if project is None:
+        abort(404)
     repo = (SourceRepo.query
         .filter(SourceRepo.id == repo_id)
         .filter(SourceRepo.project_id == project.id)).one_or_none()
@@ -236,7 +242,7 @@ def summary_POST(owner, project_name, repo_id):
 @sources.route("/<owner>/<project_name>/sources/delete/<int:repo_id>")
 @loginrequired
 def delete_GET(owner, project_name, repo_id):
-    owner, project = get_project(owner, project_name, ProjectAccess.write)
+    owner, project = get_project_or_redir(owner, project_name, ProjectAccess.write)
     repo = (SourceRepo.query
         .filter(SourceRepo.id == repo_id)
         .filter(SourceRepo.project_id == project.id)).one_or_none()
@@ -251,6 +257,8 @@ def delete_GET(owner, project_name, repo_id):
 @loginrequired
 def delete_POST(owner, project_name, repo_id):
     owner, project = get_project(owner, project_name, ProjectAccess.write)
+    if project is None:
+        abort(404)
     repo = (SourceRepo.query
         .filter(SourceRepo.id == repo_id)
         .filter(SourceRepo.project_id == project.id)).one_or_none()

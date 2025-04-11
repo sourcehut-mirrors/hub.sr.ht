@@ -1,6 +1,6 @@
 from flask import Blueprint, render_template, request, redirect, url_for
 from flask import abort
-from hubsrht.projects import ProjectAccess, get_project
+from hubsrht.projects import ProjectAccess, get_project, get_project_or_redir
 from hubsrht.services import todo
 from hubsrht.types import Event, EventType, Tracker, Visibility
 from srht.database import db
@@ -13,7 +13,7 @@ trackers = Blueprint("trackers", __name__)
 
 @trackers.route("/<owner>/<project_name>/trackers")
 def trackers_GET(owner, project_name):
-    owner, project = get_project(owner, project_name, ProjectAccess.read)
+    owner, project = get_project_or_redir(owner, project_name, ProjectAccess.read)
     trackers = (Tracker.query
             .filter(Tracker.project_id == project.id)
             .order_by(Tracker.updated.desc()))
@@ -37,7 +37,7 @@ def trackers_GET(owner, project_name):
 @trackers.route("/<owner>/<project_name>/trackers/new")
 @loginrequired
 def new_GET(owner, project_name):
-    owner, project = get_project(owner, project_name, ProjectAccess.write)
+    owner, project = get_project_or_redir(owner, project_name, ProjectAccess.write)
     # TODO: Pagination
     trackers = todo.get_trackers(owner)
     trackers = sorted(trackers, key=lambda r: r["updated"], reverse=True)
@@ -50,6 +50,8 @@ def new_GET(owner, project_name):
 @loginrequired
 def new_POST(owner, project_name):
     owner, project = get_project(owner, project_name, ProjectAccess.write)
+    if project is None:
+        abort(404)
     valid = Validation(request)
     if "create" in valid:
         remote_tracker = todo.create_tracker(owner, valid, project.visibility)
@@ -114,7 +116,7 @@ def new_POST(owner, project_name):
 @trackers.route("/<owner>/<project_name>/trackers/manage")
 @loginrequired
 def manage_GET(owner, project_name):
-    owner, project = get_project(owner, project_name, ProjectAccess.write)
+    owner, project = get_project_or_redir(owner, project_name, ProjectAccess.write)
     trackers = (Tracker.query
             .filter(Tracker.project_id == project.id)
             .order_by(Tracker.updated.desc()))
@@ -136,7 +138,7 @@ def manage_GET(owner, project_name):
 @trackers.route("/<owner>/<project_name>/trackers/delete/<int:tracker_id>")
 @loginrequired
 def delete_GET(owner, project_name, tracker_id):
-    owner, project = get_project(owner, project_name, ProjectAccess.write)
+    owner, project = get_project_or_redir(owner, project_name, ProjectAccess.write)
     tracker = (Tracker.query
         .filter(Tracker.id == tracker_id)
         .filter(Tracker.project_id == project.id)).one_or_none()
@@ -151,6 +153,8 @@ def delete_GET(owner, project_name, tracker_id):
 @loginrequired
 def delete_POST(owner, project_name, tracker_id):
     owner, project = get_project(owner, project_name, ProjectAccess.write)
+    if project is None:
+        abort(404)
     tracker = (Tracker.query
         .filter(Tracker.id == tracker_id)
         .filter(Tracker.project_id == project.id)).one_or_none()

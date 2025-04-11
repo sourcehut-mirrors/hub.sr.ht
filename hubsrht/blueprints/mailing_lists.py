@@ -1,6 +1,6 @@
 import json
 from flask import Blueprint, render_template, request, redirect, url_for, abort
-from hubsrht.projects import ProjectAccess, get_project
+from hubsrht.projects import ProjectAccess, get_project, get_project_or_redir
 from hubsrht.services import lists
 from hubsrht.types import Event, EventType
 from hubsrht.types import MailingList, Visibility
@@ -15,7 +15,7 @@ mailing_lists = Blueprint("mailing_lists", __name__)
 
 @mailing_lists.route("/<owner>/<project_name>/lists")
 def lists_GET(owner, project_name):
-    owner, project = get_project(owner, project_name, ProjectAccess.read)
+    owner, project = get_project_or_redir(owner, project_name, ProjectAccess.read)
     mailing_lists = (MailingList.query
             .filter(MailingList.project_id == project.id)
             .order_by(MailingList.updated.desc()))
@@ -41,7 +41,7 @@ def lists_GET(owner, project_name):
 @mailing_lists.route("/<owner>/<project_name>/lists/new")
 @loginrequired
 def new_GET(owner, project_name):
-    owner, project = get_project(owner, project_name, ProjectAccess.write)
+    owner, project = get_project_or_redir(owner, project_name, ProjectAccess.write)
     # TODO: Pagination
     mls = lists.get_lists(owner)
     mls = sorted(mls, key=lambda r: r["updated"], reverse=True)
@@ -145,6 +145,8 @@ Mailing list for end-user discussion and questions related to the
 @loginrequired
 def new_POST(owner, project_name):
     owner, project = get_project(owner, project_name, ProjectAccess.write)
+    if project is None:
+        abort(404)
     valid = Validation(request)
     if "from-template" in valid:
         template = valid.require("template")
@@ -225,7 +227,7 @@ def new_POST(owner, project_name):
 @mailing_lists.route("/<owner>/<project_name>/lists/manage")
 @loginrequired
 def manage_GET(owner, project_name):
-    owner, project = get_project(owner, project_name, ProjectAccess.write)
+    owner, project = get_project_or_redir(owner, project_name, ProjectAccess.write)
     mailing_lists = (MailingList.query
             .filter(MailingList.project_id == project.id)
             .order_by(MailingList.updated.desc()))
@@ -248,7 +250,7 @@ def manage_GET(owner, project_name):
 @mailing_lists.route("/<owner>/<project_name>/lists/delete/<int:list_id>")
 @loginrequired
 def delete_GET(owner, project_name, list_id):
-    owner, project = get_project(owner, project_name, ProjectAccess.write)
+    owner, project = get_project_or_redir(owner, project_name, ProjectAccess.write)
     mailing_list = (MailingList.query
         .filter(MailingList.id == list_id)
         .filter(MailingList.project_id == project.id)).one_or_none()
@@ -263,6 +265,8 @@ def delete_GET(owner, project_name, list_id):
 @loginrequired
 def delete_POST(owner, project_name, list_id):
     owner, project = get_project(owner, project_name, ProjectAccess.write)
+    if project is None:
+        abort(404)
     mailing_list = (MailingList.query
         .filter(MailingList.id == list_id)
         .filter(MailingList.project_id == project.id)).one_or_none()
