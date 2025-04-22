@@ -2,7 +2,7 @@ from flask import url_for
 from hubsrht.services import SrhtService
 from srht.api import ensure_webhooks
 from srht.config import get_origin, cfg
-from srht.graphql import gql_time
+from srht.graphql import gql_time, GraphQLError, Error
 
 origin = get_origin("hub.sr.ht")
 _todosrht = get_origin("todo.sr.ht", default=None)
@@ -90,11 +90,16 @@ class TodoService(SrhtService):
         return resp["createTracker"]
 
     def delete_tracker(self, user, tracker_id):
-        self.exec(user, """
-        mutation DeleteTracker($trackerID: Int!) {
-            deleteTracker(id: $trackerID) { id }
-        }
-        """, trackerID=tracker_id)
+        try:
+            self.exec(user, """
+            mutation DeleteTracker($trackerID: Int!) {
+                deleteTracker(id: $trackerID) { id }
+            }
+            """, trackerID=tracker_id)
+        except GraphQLError as err:
+            if err.has(Error.NOT_FOUND):
+                return # Already deleted upstream
+            raise err
 
     def get_ticket_comments(self, user, owner, tracker, ticket):
         resp = self.exec(user, """
