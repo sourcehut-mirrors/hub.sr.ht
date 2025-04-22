@@ -24,7 +24,7 @@ def get_project(owner, project_name, access, user=current_user):
         ).one_or_none()
     if not project:
         return None, None
-    if user is not None and user.id == project.owner_id:
+    if user != None and user.id == project.owner_id:
         return project.owner, project
     if access == ProjectAccess.write:
         abort(401)
