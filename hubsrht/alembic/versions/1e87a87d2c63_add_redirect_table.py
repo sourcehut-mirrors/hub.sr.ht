@@ -1,7 +1,7 @@
 """Add redirect table
 
 Revision ID: 1e87a87d2c63
-Revises: 7129b483a070
+Revises: 2e24bd9655ce
 Create Date: 2024-12-06 10:31:42.164799
 """
 
@@ -9,7 +9,7 @@ from alembic import op
 
 # revision identifiers, used by Alembic.
 revision = "1e87a87d2c63"
-down_revision = "7129b483a070"
+down_revision = "2e24bd9655ce"
 
 
 def upgrade():
