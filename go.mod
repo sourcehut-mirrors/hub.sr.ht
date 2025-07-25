@@ -5,7 +5,7 @@ go 1.22.5
 toolchain go1.24.0
 
 require (
-	git.sr.ht/~sircmpwn/core-go v0.0.0-20250304085405-cbf919e45b5b
+	git.sr.ht/~sircmpwn/core-go v0.0.0-20250724133210-a85160555638
 	git.sr.ht/~sircmpwn/dowork v0.0.0-20241216125407-2b00aa42322c
 	github.com/99designs/gqlgen v0.17.64
 	github.com/vektah/gqlparser/v2 v2.5.23
@@ -15,11 +15,11 @@ require (
 	git.sr.ht/~sircmpwn/getopt v1.0.0 // indirect
 	git.sr.ht/~sircmpwn/go-bare v0.0.0-20210406120253-ab86bc2846d9 // indirect
 	github.com/Masterminds/squirrel v1.5.4 // indirect
-	github.com/ProtonMail/go-crypto v1.0.0 // indirect
+	github.com/ProtonMail/go-crypto v1.3.0 // indirect
 	github.com/agnivade/levenshtein v1.2.1 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/cespare/xxhash/v2 v2.2.0 // indirect
-	github.com/cloudflare/circl v1.3.7 // indirect
+	github.com/cloudflare/circl v1.6.0 // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.6 // indirect
 	github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f // indirect
 	github.com/emersion/go-message v0.18.2 // indirect
@@ -28,6 +28,7 @@ require (
 	github.com/emersion/go-smtp v0.21.3 // indirect
 	github.com/fernet/fernet-go v0.0.0-20240119011108-303da6aec611 // indirect
 	github.com/go-chi/chi/v5 v5.0.11 // indirect
+	github.com/go-chi/cors v1.2.2 // indirect
 	github.com/go-redis/redis/v8 v8.11.5 // indirect
 	github.com/go-viper/mapstructure/v2 v2.2.1 // indirect
 	github.com/google/uuid v1.6.0 // indirect
