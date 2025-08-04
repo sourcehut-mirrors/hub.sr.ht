@@ -17,7 +17,9 @@
           class="form-control {{valid.cls('name')}}"
           id="name"
           name="name"
-          value="{{name or project.name}}" />
+          value="{{name or project.name}}"
+          maxlength="128"
+          required />
         {{valid.summary('name')}}
       </div>
       <p>

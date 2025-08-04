@@ -34,7 +34,8 @@
                 name="description"
                 placeholder="Short description of your project, shown in lists"
                 value="{{description or project.description}}"
-                required />
+                required
+                maxlength="512" />
               {{valid.summary("description")}}
             </div>
             <div class="form-group">
