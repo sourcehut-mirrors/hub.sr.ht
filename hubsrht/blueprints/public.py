@@ -3,7 +3,7 @@ from flask import Blueprint, render_template, request, session
 from hubsrht.types import Project, Feature, Event, EventType, Visibility, User
 from srht.database import db
 from srht.flask import paginate_query
-from srht.oauth import current_user, loginrequired
+from srht.oauth import UserType, current_user, loginrequired
 from srht.search import search_by
 
 public = Blueprint("public", __name__)
@@ -42,7 +42,9 @@ def getting_started():
 
 @public.route("/projects")
 def project_index():
-    projects = Project.query.filter(Project.visibility == Visibility.PUBLIC)
+    projects = (Project.query.join(User)
+        .filter(User.user_type != UserType.suspended)
+        .filter(Project.visibility == Visibility.PUBLIC))
 
     search = request.args.get("search")
     search_error = None
