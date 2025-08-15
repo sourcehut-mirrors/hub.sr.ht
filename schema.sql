@@ -40,7 +40,8 @@ CREATE TABLE project (
 	visibility visibility DEFAULT 'UNLISTED'::visibility NOT NULL,
 	checklist_complete boolean DEFAULT false NOT NULL,
 	summary_repo_id integer,
-	tags character varying(16)[] DEFAULT '{}'::character varying[] NOT NULL
+	tags character varying(16)[] DEFAULT '{}'::character varying[] NOT NULL,
+	UNIQUE (owner_id, name)
 );
 
 CREATE TABLE features (
