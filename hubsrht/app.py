@@ -1,4 +1,4 @@
-from hubsrht.oauth import HubOAuthService
+from hubsrht.types import User
 from srht.config import cfg
 from srht.database import DbSession
 from srht.flask import SrhtFlask
@@ -8,8 +8,7 @@ db.init()
 
 class HubApp(SrhtFlask):
     def __init__(self):
-        super().__init__("hub.sr.ht", __name__,
-                oauth_service=HubOAuthService())
+        super().__init__("hub.sr.ht", __name__, user_class=User)
 
         from hubsrht.blueprints.mailing_lists import mailing_lists
         from hubsrht.blueprints.projects import projects
