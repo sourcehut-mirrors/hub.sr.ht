@@ -473,7 +473,9 @@ def build_complete(details):
     build_url = f"{buildsrht}/{project.owner.canonical_name}/job/{payload['id']}"
 
     tool_details = f"[#{payload['id']}]({build_url}) {details['name']} {payload['status']}"
-    lists.patchset_update_tool(ml.owner, details["tool_id"],
-            payload["status"].upper(), tool_details)
+    status = payload["status"].upper()
+    if status == 'TIMEOUT':
+        status = 'FAILED'
+    lists.patchset_update_tool(ml.owner, details["tool_id"], status, tool_details)
 
     return "Thanks!"
