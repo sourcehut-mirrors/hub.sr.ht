@@ -11,7 +11,8 @@ authors = [{name = "Drew DeVault", email = "sir@cmpwn.com"}]
 dependencies = [
     "srht",
 ]
-license.text = "AGPL-3.0-only"
+license = "AGPL-3.0-only"
+license-files = ["LICENSE"]
 
 [project.urls]
 repository = "https://git.sr.ht/~sircmpwn/hub.sr.ht"
