@@ -163,7 +163,9 @@ class TodoService(SrhtService):
         ensure_webhooks(user, url, config)
 
     def unensure_user_webhooks(self, user):
-        config = { }
+        config = {
+             origin + url_for("webhooks.todo_user", user_id=user.id): None
+        }
         url = f"{_todosrht}/api/user/webhooks"
         try:
             ensure_webhooks(user, url, config)
@@ -180,7 +182,9 @@ class TodoService(SrhtService):
         ensure_webhooks(owner, url, config)
 
     def unensure_tracker_webhooks(self, tracker):
-        config = { }
+        config = {
+            origin + url_for("webhooks.todo_tracker", tracker_id=tracker.id): None
+        }
         owner = tracker.owner
         url = f"{_todosrht}/api/user/{owner.canonical_name}/trackers/{tracker.name}/webhooks"
         try:

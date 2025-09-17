@@ -228,7 +228,9 @@ class GitService(SrhtService):
         ensure_webhooks(user, f"{_gitsrht}/api/user/webhooks", config)
 
     def unensure_user_webhooks(self, user):
-        config = { }
+        config = {
+            origin + url_for("webhooks.git_user", user_id=user.id): None
+        }
         try:
             ensure_webhooks(user, f"{_gitsrht}/api/user/webhooks", config)
         except:
@@ -244,7 +246,9 @@ class GitService(SrhtService):
         ensure_webhooks(owner, url, config)
 
     def unensure_repo_webhooks(self, repo):
-        config = { }
+        config = {
+            origin + url_for("webhooks.git_repo", repo_id=repo.id): None
+        }
         owner = repo.owner
         url = f"{_gitsrht}/api/{owner.canonical_name}/repos/{repo.name}/webhooks"
         try:

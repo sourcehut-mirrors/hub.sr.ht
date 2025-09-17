@@ -7,7 +7,7 @@ from flask import Blueprint, Response, render_template, request, redirect, url_f
 from flask import session
 from hubsrht.decorators import adminrequired
 from hubsrht.projects import ProjectAccess, get_project, get_project_or_redir
-from hubsrht.services import git, hg
+from hubsrht.services import git, hg, lists, todo
 from hubsrht.types import Feature, Event, EventType
 from hubsrht.types import Project, RepoType, Visibility
 from hubsrht.types import SourceRepo, MailingList, Tracker
@@ -319,6 +319,28 @@ def delete_POST(owner, project_name):
     if project is None:
         abort(404)
     session["notice"] = f"{project.name} has been deleted."
+
+    # Any mailing list, repository or tracker associated to the project will
+    # be deleted via the foreign key it has on project.id; we need to clean-up
+    # remote resources associated to it.
+    associated_lists = (MailingList.query
+        .filter(MailingList.project_id == project.id))
+    for i in associated_lists:
+        lists.delete_list_webhook(owner, i.webhook_id)
+    associated_repos = (SourceRepo.query
+        .filter(SourceRepo.project_id == project.id))
+    for r in associated_repos:
+        if r.repo_type == RepoType.git:
+            git.unensure_user_webhooks(owner)
+            git.unensure_repo_webhooks(r)
+        else:
+            hg.unnsure_user_webhooks(owner)
+    associated_trackers = (Tracker.query
+        .filter(Tracker.project_id == project.id))
+    for t in associated_trackers:
+        todo.unensure_user_webhooks(owner)
+        todo.unensure_tracker_webhooks(t)
+
     with db.engine.connect() as conn:
         conn.execute(text(f"DELETE FROM project WHERE id = {project.id}"))
         conn.commit()

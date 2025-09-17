@@ -136,7 +136,9 @@ class HgService(SrhtService):
         ensure_webhooks(user, f"{_hgsrht}/api/user/webhooks", config)
 
     def unensure_user_webhooks(self, user):
-        config = { }
+        config = {
+            origin + url_for("webhooks.hg_user", user_id=user.id): None
+        }
         try:
             ensure_webhooks(user, f"{_hgsrht}/api/user/webhooks", config)
         except:
