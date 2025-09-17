@@ -23,15 +23,10 @@ repository = "https://git.sr.ht/~sircmpwn/hub.sr.ht"
 include-package-data = false
 packages = [
     "hubsrht",
-    "hubsrht.alembic",
-    "hubsrht.alembic.versions",
     "hubsrht.blueprints",
     "hubsrht.services",
     "hubsrht.templates",
     "hubsrht.types",
-]
-script-files = [
-    "hub.sr.ht-migrate",
 ]
 [tool.setuptools.package-data]
 "hubsrht.templates" = ['*.html']
