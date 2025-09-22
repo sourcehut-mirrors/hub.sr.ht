@@ -3,27 +3,34 @@ import json
 import random
 import yaml
 from flask import url_for
-from hubsrht.services import builds, git, lists
+from hubsrht.services.builds import BuildsClient, GraphQLClientGraphQLMultiError
+from hubsrht.services.builds import TriggerInput, EmailTriggerInput, TriggerType
+from hubsrht.services.builds import TriggerCondition, Visibility
+from hubsrht.services.git import GitClient
+from hubsrht.services.lists import ListsClient, ToolIcon
 from hubsrht.types import SourceRepo, RepoType
 from sqlalchemy import func
 from srht.config import get_origin
 from srht.crypto import fernet
-from srht.graphql import GraphQLError
+from srht.graphql import InternalAuth
 
-def submit_patchset(ml, payload, valid=None):
+def submit_patchset(ml, patchset):
     buildsrht = get_origin("builds.sr.ht", external=True, default=None)
     if not buildsrht:
         return None
-    from buildsrht.manifest import Manifest, Task
-    from buildsrht.manifest import Trigger, TriggerAction, TriggerCondition
+    from buildsrht.manifest import Manifest, Task, Trigger
 
     project = ml.project
+    auth = InternalAuth(project.owner)
+    builds_client = BuildsClient(auth)
+    git_client = GitClient(auth)
+    lists_client = ListsClient(auth)
 
-    patch_id = payload["id"]
+    patch_id = patchset.id
     patch_url = f"{ml.url()}/patches/{patch_id}"
     patch_mbox = f"{ml.url()}/patches/{patch_id}/mbox"
-    subject = payload["subject"]
-    prefix = payload["prefix"]
+    subject = patchset.subject
+    prefix = patchset.prefix
 
     if not prefix:
         # TODO: More sophisticated matching is possible
@@ -40,9 +47,23 @@ def submit_patchset(ml, payload, valid=None):
     if repo.repo_type != RepoType.git:
         # TODO: support for hg.sr.ht
         return None
-    manifests = git.get_manifests(repo.owner, repo.name)
-    if not manifests:
+
+    repo = git_client.get_manifests(repo.owner.username, repo.name).user.repository
+    assert repo is not None
+
+    manifests = dict()
+    if repo.multiple:
+        for dirent in repo.multiple.object.entries.results:
+            if not dirent.object:
+                continue
+            manifests[dirent.name] = ent.object.text
+    elif repo.single_yml:
+        manifests[".build.yml"] = repo.single_yml.object.text
+    elif repo.single_yaml:
+        manifests[".build.yaml"] = repo.single_yaml.object.text
+    else:
         return None
+
     if len(manifests) > 4:
         keys = list(manifests.keys())
         random.shuffle(keys)
@@ -50,19 +71,19 @@ def submit_patchset(ml, payload, valid=None):
 
     ids = []
 
-    version = payload["version"]
+    version = patchset.version
     if version == 1:
         version = ""
     else:
         version = f" v{version}"
 
-    message_id = payload["thread"]["root"]["messageID"]
-    reply_to = payload["thread"]["root"]["reply_to"]
+    message_id = patchset.thread.root.message_id
+    reply_to = patchset.thread.root.reply_to
     if reply_to:
         submitter = email.utils.parseaddr(reply_to)
     else:
-        name = payload["submitter"]["name"]
-        address = payload["submitter"]["address"]
+        name = patchset.submitter.name
+        address = patchset.submitter.address
         submitter = (name, address)
 
     build_note = f"""[{subject}][0]{version} from [{submitter[0]}][1]
@@ -71,8 +92,10 @@ def submit_patchset(ml, payload, valid=None):
 [1]: mailto:{submitter[1]}"""
 
     for key, value in manifests.items():
-        tool_id = lists.patchset_create_tool(ml.owner, patch_id,
-                "PENDING", f"build pending: {key}")
+        tool_id = lists_client.create_tool(
+                patchset_id=patch_id,
+                icon=ToolIcon.PENDING,
+                details=f"build pending: {key}").create_tool.id
 
         manifest = Manifest(yaml.safe_load(value))
         # TODO: https://todo.sr.ht/~sircmpwn/builds.sr.ht/291
@@ -104,34 +127,45 @@ git am -3 /tmp/{patch_id}.patch"""
             "user": project.owner.canonical_name,
         }).encode()).decode()
         manifest.triggers.append(Trigger({
-            "action": TriggerAction.webhook,
-            "condition": TriggerCondition.always,
+            "action": "webhook",
+            "condition": "always",
             "url": root + url_for("webhooks.build_complete", details=details),
         }))
 
         try:
-            b = builds.submit_build(project.owner, manifest, build_note,
-                tags=[repo.name, "patches", key], execute=False, valid=valid,
-                visibility=repo.visibility)
-        except GraphQLError as err:
-            details = ", ".join([e["message"] for e in err.errors])
-            lists.patchset_update_tool(ml.owner, tool_id, "FAILED",
-                f"Failed to submit build: {details}")
+            manifest = yaml.dump(manifest.to_dict(), default_flow_style=False)
+            job = builds_client.submit_build(
+                    manifest=manifest,
+                    note=build_note,
+                    tags=[repo.name, "patches", key],
+                    execute=False,
+                    visibility=Visibility(repo.visibility.value)).submit
+        except GraphQLClientGraphQLMultiError as err:
+            details = ", ".join([e.message for e in err.errors])
+            lists_client.update_tool(
+                    tool_id=tool_id,
+                    icon=ToolIcon.FAILED,
+                    details=f"Failed to submit build: {details}")
             continue
-        ids.append(b["id"])
-        build_url = f"{buildsrht}/{project.owner.canonical_name}/job/{b['id']}"
-        lists.patchset_update_tool(ml.owner, tool_id, "WAITING",
-                   f"[#{b['id']}]({build_url}) running {key}")
 
-    # XXX: This is a different format than the REST API uses
-    trigger = {
-            "type": "EMAIL",
-            "condition": "ALWAYS",
-            "email": {
-                "to": email.utils.formataddr(submitter),
-                "cc": ml.posting_addr(),
-                "inReplyTo": f"<{message_id}>",
-            },
-    }
-    builds.create_group(project.owner, ids, build_note, [trigger], valid=valid)
+        ids.append(job.id)
+        build_url = f"{buildsrht}/{project.owner.canonical_name}/job/{job.id}"
+        lists_client.update_tool(
+                tool_id=tool_id,
+                icon=ToolIcon.WAITING,
+                details=f"[#{job.id}]({build_url}) running {key}")
+
+    trigger = TriggerInput(
+        type=TriggerType.EMAIL,
+        condition=TriggerCondition.ALWAYS,
+        email=EmailTriggerInput(
+            to=email.utils.formataddr(submitter),
+            cc=ml.posting_addr(),
+            in_reply_to=f"<{message_id}>",
+        )
+    )
+    builds_client.create_group(
+        jobs=ids,
+        triggers=[trigger],
+        note=build_note)
     return ids

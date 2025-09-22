@@ -1,7 +1,8 @@
+import hubsrht.services.todo.webhooks as todo_webhooks # XXX Legacy webhooks
 from flask import Blueprint, render_template, request, redirect, url_for
 from flask import abort
 from hubsrht.projects import ProjectAccess, get_project, get_project_or_redir
-from hubsrht.services import todo
+from hubsrht.services.todo import TodoClient, Visibility as TrackerVisibility
 from hubsrht.types import Event, EventType, Tracker, Visibility
 from srht.database import db
 from srht.flask import paginate_query
@@ -34,15 +35,29 @@ def trackers_GET(owner, project_name):
             search=terms, search_error=search_error,
             **pagination)
 
+def get_trackers(owner, project):
+    client = TodoClient()
+
+    # TODO: Pagination
+    cursor = None
+    trackers = []
+    while True:
+        batch = client.get_trackers(cursor).me.trackers
+        trackers.extend(batch.results)
+        cursor = batch.cursor
+        if not cursor:
+            break
+
+    trackers = sorted(trackers, key=lambda r: r.updated, reverse=True)
+    existing = [t.remote_id for t in (Tracker.query
+            .filter(Tracker.project_id == project.id)).all()]
+    return trackers, existing
+
 @trackers.route("/<owner>/<project_name>/trackers/new")
 @loginrequired
 def new_GET(owner, project_name):
     owner, project = get_project_or_redir(owner, project_name, ProjectAccess.write)
-    # TODO: Pagination
-    trackers = todo.get_trackers(owner)
-    trackers = sorted(trackers, key=lambda r: r["updated"], reverse=True)
-    existing = [t.remote_id for t in (Tracker.query
-            .filter(Tracker.project_id == project.id)).all()]
+    trackers, existing = get_trackers(owner, project)
     return render_template("tracker-new.html", view="new-resource",
             owner=owner, project=project, trackers=trackers, existing=existing)
 
@@ -52,14 +67,19 @@ def new_POST(owner, project_name):
     owner, project = get_project(owner, project_name, ProjectAccess.write)
     if project is None:
         abort(404)
+
+    todo_client = TodoClient()
     valid = Validation(request)
+    visibility = TrackerVisibility(project.visibility.value)
+
     if "create" in valid:
-        remote_tracker = todo.create_tracker(owner, valid, project.visibility)
-        trackers = todo.get_trackers(owner)
-        trackers = sorted(trackers, key=lambda r: r["updated"], reverse=True)
+        remote_tracker = todo_client.create_tracker(
+                name=valid.require("name"),
+                description=valid.optional("description"),
+                visibility=visibility,
+        ).tracker
         if not valid.ok:
-            existing = [t.remote_id for t in (Tracker.query
-                    .filter(Tracker.project_id == project.id)).all()]
+            trackers, existing = get_trackers(owner, project)
             return render_template("tracker-new.html",
                     view="new-resource", owner=owner, project=project,
                     trackers=trackers, existing=existing, **valid.kwargs)
@@ -72,29 +92,21 @@ def new_POST(owner, project_name):
 
         if not tracker_name:
             search = valid.optional("search")
-            trackers = todo.get_trackers(owner)
-            trackers = filter(lambda r:
-                    search.lower() in r["name"].lower()
-                    or search.lower() in r["description"].lower(), trackers)
-            trackers = sorted(trackers, key=lambda r: r["updated"], reverse=True)
-            existing = [t.remote_id for t in (Tracker.query
-                    .filter(Tracker.project_id == project.id)).all()]
-            return render_template("tracker-new.html", view="new-resource",
-                    owner=owner, project=project, trackers=trackers,
-                    existing=existing, search=search)
+            trackers, existing = get_trackers(owner, project)
+            trackers = filter(lambda r: search.lower() in r.name.lower(), trackers)
+            return render_template("tracker-new.html",
+                    view="new-resource", owner=owner, project=project,
+                    trackers=trackers, existing=existing, **valid.kwargs)
 
-        remote_tracker = todo.get_tracker(owner, tracker_name)
+        remote_tracker = todo_client.get_tracker(tracker_name).me.tracker
 
     tracker = Tracker()
-    tracker.remote_id = remote_tracker["id"]
+    tracker.remote_id = remote_tracker.id
     tracker.project_id = project.id
     tracker.owner_id = owner.id
-    tracker.name = remote_tracker["name"]
-    tracker.description = remote_tracker["description"]
-    if remote_tracker["defaultACL"]["browse"]:
-        tracker.visibility = Visibility.PUBLIC
-    else:
-        tracker.visibility = Visibility.UNLISTED
+    tracker.name = remote_tracker.name
+    tracker.description = remote_tracker.description
+    tracker.visibility = Visibility(remote_tracker.visibility.value)
     db.session.add(tracker)
     db.session.flush()
 
@@ -105,8 +117,8 @@ def new_POST(owner, project_name):
     event.user_id = project.owner_id
     db.session.add(event)
 
-    todo.ensure_user_webhooks(owner)
-    todo.ensure_tracker_webhooks(tracker)
+    todo_webhooks.ensure_user_webhooks(owner)
+    todo_webhooks.ensure_tracker_webhooks(tracker)
 
     db.session.commit()
 
@@ -160,14 +172,16 @@ def delete_POST(owner, project_name, tracker_id):
         .filter(Tracker.project_id == project.id)).one_or_none()
     if not tracker:
         abort(404)
-    tracker_name = tracker.remote_id
+    remote_id = tracker.remote_id
     db.session.delete(tracker)
     db.session.commit()
+
+    todo_webhooks.unensure_tracker_webhooks(tracker)
 
     valid = Validation(request)
     delete_remote = valid.optional("delete-remote") == "on"
     if delete_remote:
-        todo.delete_tracker(owner, tracker_id)
+        TodoClient().delete_tracker(remote_id)
 
     return redirect(url_for("projects.summary_GET",
         owner=owner.canonical_name, project_name=project.name))

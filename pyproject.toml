@@ -25,6 +25,11 @@ packages = [
     "hubsrht",
     "hubsrht.blueprints",
     "hubsrht.services",
+    "hubsrht.services.builds",
+    "hubsrht.services.git",
+    "hubsrht.services.hg",
+    "hubsrht.services.lists",
+    "hubsrht.services.todo",
     "hubsrht.templates",
     "hubsrht.types",
 ]

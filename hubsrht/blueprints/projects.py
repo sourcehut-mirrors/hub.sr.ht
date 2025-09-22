@@ -1,20 +1,27 @@
+import hubsrht.services.git.webhooks as git_webhooks # XXX Legacy webhooks
+import hubsrht.services.hg.webhooks as hg_webhooks # XXX Legacy webhooks
+import hubsrht.services.todo.webhooks as todo_webhooks # XXX Legacy webhooks
 import re
 import string
-from sqlalchemy import or_
-from sqlalchemy.sql import text
-from flask import Blueprint, Response, render_template, request, redirect, url_for, \
-        abort, make_response
-from flask import session
+from flask import Blueprint, Response, render_template, request, redirect, url_for
+from flask import session, abort, make_response
 from hubsrht.decorators import adminrequired
 from hubsrht.projects import ProjectAccess, get_project, get_project_or_redir
-from hubsrht.services import git, hg, lists, todo
+from hubsrht.services.git import GitClient
+from hubsrht.services.hg import HgClient
+from hubsrht.services.lists import ListsClient
 from hubsrht.types import Feature, Event, EventType
 from hubsrht.types import Project, RepoType, Visibility
-from hubsrht.types import SourceRepo, MailingList, Tracker
 from hubsrht.types import Redirect
+from hubsrht.types import SourceRepo, MailingList, Tracker
+from markupsafe import Markup, escape
+from sqlalchemy import or_
+from sqlalchemy.sql import text
 from srht.config import cfg, get_origin
 from srht.database import db
 from srht.flask import csrf_bypass, paginate_query
+from srht.graphql import InternalAuth
+from srht.markdown import markdown, sanitize
 from srht.oauth import current_user, loginrequired
 from srht.validation import Validation, valid_url
 
@@ -44,6 +51,45 @@ To browse all of the available repositories for this project, visit this URL:
       owner=owner.canonical_name, project_name=project.name)}
 """
 
+def get_readme(owner, repo):
+    auth = InternalAuth(owner)
+    html, plaintext, md = None, None, None
+
+    if repo.repo_type == RepoType.git:
+        blob_prefix = repo.url() + "/blob/HEAD/"
+        rendered_prefix = repo.url() + "/tree/HEAD/"
+
+        client = GitClient(auth)
+        git_repo = client.get_readme(owner.username, repo.name).user.repository
+        if not git_repo:
+            raise Exception(f"git.sr.ht returned no repository for {owner.username}/{repo_name}")
+        html = git_repo.html
+        if git_repo.plaintext:
+            plaintext = plaintext.object.text
+        if git_repo.md or git_repo.markdown:
+            md = (git_repo.md or git_repo.markdown).object.text
+    elif repo.repo_type == RepoType.hg:
+        blob_prefix = repo.url() + "/raw/"
+        rendered_prefix = repo.url() + "/browse/"
+
+        client = HgClient(auth)
+        hg_repo = client.get_readme(owner.username, repo.name).user.repository
+        html = hg_repo.html
+        plaintext = hg_repo.plaintext
+        md = hg_repo.md or hg_repo.markdown
+
+    if html:
+        return Markup(sanitize(html))
+
+    if md:
+        html = markdown(md, link_prefix=[rendered_prefix, blob_prefix])
+        return Markup(html)
+
+    if plaintext:
+        return Markup(f"<pre>{escape(content)}</pre>")
+
+    return None
+
 @projects.route("/<owner>/<project_name>/")
 def summary_GET(owner, project_name):
     owner, project = get_project_or_redir(owner, project_name, ProjectAccess.read)
@@ -65,12 +111,7 @@ def summary_GET(owner, project_name):
     if project.summary_repo_id is not None:
         repo = project.summary_repo
         try:
-            if repo.repo_type == RepoType.git:
-                summary = git.get_readme(owner, repo.name, repo.url())
-            elif repo.repo_type == RepoType.hg:
-                summary = hg.get_readme(owner, repo.name, repo.url())
-            else:
-                assert False
+            summary = get_readme(owner, repo)
         except Exception as ex:
             summary = None
             summary_error = True
@@ -320,26 +361,30 @@ def delete_POST(owner, project_name):
         abort(404)
     session["notice"] = f"{project.name} has been deleted."
 
+    lists_client = ListsClient()
+
     # Any mailing list, repository or tracker associated to the project will
     # be deleted via the foreign key it has on project.id; we need to clean-up
     # remote resources associated to it.
     associated_lists = (MailingList.query
         .filter(MailingList.project_id == project.id))
     for i in associated_lists:
-        lists.delete_list_webhook(owner, i.webhook_id)
+        lists_client.delete_list_webhook(i.webhook_id)
+
     associated_repos = (SourceRepo.query
         .filter(SourceRepo.project_id == project.id))
     for r in associated_repos:
         if r.repo_type == RepoType.git:
-            git.unensure_user_webhooks(owner)
-            git.unensure_repo_webhooks(r)
+            git_webhooks.unensure_user_webhooks(owner)
+            git_webhooks.unensure_repo_webhooks(r)
         else:
-            hg.unnsure_user_webhooks(owner)
+            hg_webhooks.unensure_user_webhooks(owner)
+
     associated_trackers = (Tracker.query
         .filter(Tracker.project_id == project.id))
     for t in associated_trackers:
-        todo.unensure_user_webhooks(owner)
-        todo.unensure_tracker_webhooks(t)
+        todo_webhooks.unensure_user_webhooks(owner)
+        todo_webhooks.unensure_tracker_webhooks(t)
 
     with db.engine.connect() as conn:
         conn.execute(text(f"DELETE FROM project WHERE id = {project.id}"))

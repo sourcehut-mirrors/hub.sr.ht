@@ -1,7 +1,7 @@
 import json
 from flask import Blueprint, render_template, request, redirect, url_for, abort
 from hubsrht.projects import ProjectAccess, get_project, get_project_or_redir
-from hubsrht.services import lists
+from hubsrht.services.lists import ListsClient, Visibility as ListVisibility
 from hubsrht.types import Event, EventType
 from hubsrht.types import MailingList, Visibility
 from srht.config import get_origin
@@ -12,6 +12,8 @@ from srht.search import search_by
 from srht.validation import Validation
 
 mailing_lists = Blueprint("mailing_lists", __name__)
+
+LIST_WEBHOOK_VERSION = 2
 
 @mailing_lists.route("/<owner>/<project_name>/lists")
 def lists_GET(owner, project_name):
@@ -42,13 +44,51 @@ def lists_GET(owner, project_name):
 @loginrequired
 def new_GET(owner, project_name):
     owner, project = get_project_or_redir(owner, project_name, ProjectAccess.write)
+    client = ListsClient()
+
     # TODO: Pagination
-    mls = lists.get_lists(owner)
-    mls = sorted(mls, key=lambda r: r["updated"], reverse=True)
+    cursor = None
+    lists = []
+    while True:
+        batch = client.get_lists(cursor).me.lists
+        lists.extend(batch.results)
+        cursor = batch.cursor
+        if not cursor:
+            break
+
+    lists = sorted(lists, key=lambda r: r.updated, reverse=True)
     existing = [l.remote_id for l in (MailingList.query
             .filter(MailingList.project_id == project.id)).all()]
     return render_template("mailing-list-new.html", view="new-resource",
-            owner=owner, project=project, lists=mls, existing=existing)
+            owner=owner, project=project, lists=lists, existing=existing)
+
+def finalize_add_list(client, owner, project, mailing_list):
+    ml = MailingList()
+    ml.remote_id = mailing_list.id
+    ml.project_id = project.id
+    ml.owner_id = project.owner_id
+    ml.name = mailing_list.name
+    ml.webhook_id = -1
+    ml.webhook_version = 0
+    ml.description = mailing_list.description
+    ml.visibility = Visibility(mailing_list.visibility.value)
+    db.session.add(ml)
+    db.session.flush()
+
+    webhook_url = (get_origin("hub.sr.ht", external=True) +
+           url_for("webhooks.project_mailing_list", list_id=ml.id))
+    ml.webhook_id = client.create_list_webhook(
+            list_id=mailing_list.id,
+            payload=ListsClient.event_webhook_query,
+            url=webhook_url).webhook.id
+
+    event = Event()
+    event.event_type = EventType.mailing_list_added 
+    event.mailing_list_id = ml.id
+    event.project_id = project.id
+    event.user_id = project.owner_id
+    db.session.add(event)
+    db.session.commit()
 
 def lists_from_template(owner, project, template):
     project_url = url_for("projects.summary_GET",
@@ -90,10 +130,12 @@ Mailing list for end-user discussion and questions related to the
     }
     template = templates[template]
 
+    client = ListsClient()
+
     for list_name in template:
         desc = descs[list_name]
         list_name = list_name.lower() # Per lists.sr.ht naming rules
-        mailing_list = lists.get_list(owner, list_name)
+        mailing_list = client.get_list(list_name).me.list
         if mailing_list is not None:
             in_project = [l.remote_id for l in (MailingList.query
                     .filter(MailingList.project_id == project.id)
@@ -101,43 +143,12 @@ Mailing list for end-user discussion and questions related to the
             if in_project:
                 continue
         else:
-            valid = Validation({
-                "name": list_name,
-                "description": desc,
-            })
-            mailing_list = lists.create_list(owner, valid)
-            if not mailing_list:
-                raise Exception(json.dumps(valid.response))
-
-        ml = MailingList()
-        ml.remote_id = mailing_list["id"]
-        ml.project_id = project.id
-        ml.owner_id = project.owner_id
-        ml.name = mailing_list["name"]
-        ml.webhook_id = -1
-        ml.webhook_version = 0
-        ml.description = mailing_list["description"]
-        if mailing_list["defaultACL"]["browse"]:
-            ml.visibility = Visibility.PUBLIC
-        else:
-            ml.visibility = Visibility.UNLISTED
-        db.session.add(ml)
-        db.session.flush()
-
-        try:
-            ml.webhook_id, ml.webhook_version = lists.create_list_webhook(
-                    owner, mailing_list["id"], ml.id)
-        except:
-            lists.delete_list(owner, mailing_list["id"])
-            raise
-
-        event = Event()
-        event.event_type = EventType.mailing_list_added 
-        event.mailing_list_id = ml.id
-        event.project_id = project.id
-        event.user_id = project.owner_id
-        db.session.add(event)
-        db.session.commit()
+            mailing_list = client.create_list(
+                name=list_name,
+                description=desc,
+                visibility=ListVisibility(project.visibility.value)
+            ).mailing_list
+        finalize_add_list(client, owner, project, mailing_list)
 
     return redirect(project_url)
 
@@ -147,31 +158,36 @@ def new_POST(owner, project_name):
     owner, project = get_project(owner, project_name, ProjectAccess.write)
     if project is None:
         abort(404)
+
+    client = ListsClient()
     valid = Validation(request)
+
     if "from-template" in valid:
         template = valid.require("template")
         valid.expect(template in ["public-inbox",
                 "announce-devel", "announce-devel-discuss"],
             "Invalid template selection")
         if not valid.ok:
-            mls = lists.get_lists(owner)
-            mls = sorted(mls, key=lambda r: r["updated"], reverse=True)
+            lists = sorted(lists, key=lambda r: r.updated, reverse=True)
             existing = [l.remote_id for l in (MailingList.query
                     .filter(MailingList.project_id == project.id)).all()]
-            return render_template("mailing-list-new.html",
-                    view="new-resource", owner=owner, project=project,
-                    lists=mls, existing=existing **valid.kwargs)
+            return render_template("mailing-list-new.html", view="new-resource",
+                    owner=owner, project=project, lists=lists,
+                    existing=existing, **valid.kwargs)
         return lists_from_template(owner, project, template)
     elif "create" in valid:
-        mailing_list = lists.create_list(owner, valid)
+        mailing_list = client.create_list(
+            name=valid.require("name"),
+            description=valid.optional("description"),
+            visibility=ListVisibility(project.visibility.value)
+        ).mailing_list
         if not valid.ok:
-            mls = lists.get_lists(owner)
-            mls = sorted(mls, key=lambda r: r["updated"], reverse=True)
+            lists = sorted(lists, key=lambda r: r.updated, reverse=True)
             existing = [l.remote_id for l in (MailingList.query
                     .filter(MailingList.project_id == project.id)).all()]
-            return render_template("mailing-list-new.html",
-                    view="new-resource", owner=owner, project=project,
-                    lists=mls, existing=existing, **valid.kwargs)
+            return render_template("mailing-list-new.html", view="new-resource",
+                    owner=owner, project=project, lists=lists,
+                    existing=existing, **valid.kwargs)
     else:
         list_name = None
         for field in valid.source:
@@ -180,47 +196,17 @@ def new_POST(owner, project_name):
                 break
         if not list_name:
             search = valid.optional("search")
-            mls = lists.get_lists(owner)
+            lists = sorted(lists, key=lambda r: r.updated, reverse=True)
             # TODO: Search properly
-            mls = filter(lambda r: search.lower() in r["name"].lower(), mls)
-            mls = sorted(mls, key=lambda r: r["updated"], reverse=True)
+            lists = filter(lambda r: search.lower() in r.name.lower(), lists)
             existing = [l.remote_id for l in (MailingList.query
                     .filter(MailingList.project_id == project.id)).all()]
-            return render_template("mailing-list-new.html",
-                    view="new-resource", owner=owner, project=project,
-                    lists=mls, existing=existing, search=search)
-        mailing_list = lists.get_list(owner, list_name)
+            return render_template("mailing-list-new.html", view="new-resource",
+                    owner=owner, project=project, lists=lists,
+                    existing=existing, **valid.kwargs)
+        mailing_list = client.get_list(list_name).me.list
 
-    ml = MailingList()
-    ml.remote_id = mailing_list["id"]
-    ml.project_id = project.id
-    ml.owner_id = project.owner_id
-    ml.name = mailing_list["name"]
-    ml.description = mailing_list["description"]
-    if mailing_list["defaultACL"]["browse"]:
-        ml.visibility = Visibility.PUBLIC
-    else:
-        ml.visibility = Visibility.UNLISTED
-    ml.webhook_id = -1
-    ml.webhook_version = 0
-    db.session.add(ml)
-    db.session.flush()
-
-    try:
-        ml.webhook_id, ml.webhook_version = lists.create_list_webhook(
-                owner, mailing_list["id"], ml.id)
-    except:
-        lists.delete_list(owner, mailing_list["id"])
-        raise
-
-    event = Event()
-    event.event_type = EventType.mailing_list_added 
-    event.mailing_list_id = ml.id
-    event.project_id = project.id
-    event.user_id = project.owner_id
-    db.session.add(event)
-    db.session.commit()
-
+    finalize_add_list(client, owner, project, mailing_list)
     return redirect(url_for("projects.summary_GET",
         owner=owner.canonical_name, project_name=project.name))
 
@@ -278,12 +264,13 @@ def delete_POST(owner, project_name, list_id):
     db.session.delete(mailing_list)
     db.session.commit()
 
-    lists.delete_list_webhook(owner, hook_id)
+    client = ListsClient()
+    client.delete_list_webhook(hook_id)
 
     valid = Validation(request)
     delete_remote = valid.optional("delete-remote") == "on"
     if delete_remote:
-        lists.delete_list(owner, list_id)
+        client.delete_list(list_id)
 
     return redirect(url_for("projects.summary_GET",
         owner=owner.canonical_name, project_name=project.name))

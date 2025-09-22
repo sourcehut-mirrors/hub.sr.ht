@@ -1,0 +1,58 @@
+query GetRepos($cursor: Cursor) {
+  me {
+    repositories(cursor: $cursor) {
+      results {
+        id
+        name
+        updated
+        owner {
+          canonicalName
+        }
+      }
+      cursor
+    }
+  }
+}
+
+query GetRepo($repoName: String!) {
+  me {
+    repository(name: $repoName) {
+      id
+      name
+      description
+      visibility
+    }
+  }
+}
+
+query GetReadme($username: String!, $repoName: String!) {
+  user(username: $username) {
+    repository(name: $repoName) {
+      html: readme
+      md: cat(path: "README.md")
+      markdown: cat(path: "README.markdown")
+      plaintext: cat(path: "README")
+    }
+  }
+}
+
+mutation CreateRepo(
+  $name: String!,
+  $visibility: Visibility!,
+  $description: String,
+) {
+  repository: createRepository(
+    name: $name,
+    description: $description,
+    visibility: $visibility,
+  ) {
+    id
+    name
+    description
+    visibility
+  }
+}
+
+mutation DeleteRepo($repo_id: Int!) {
+  deleteRepository(id: $repo_id) { id }
+}

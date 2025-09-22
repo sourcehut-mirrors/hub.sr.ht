@@ -12,18 +12,50 @@ MIGRATIONDIR=$(ASSETS)/migrations/$(SERVICE)
 SASSC?=sassc
 SASSC_INCLUDE=-I$(ASSETS)/scss/
 
+ARIADNE_CODEGEN=ariadne-codegen
+
 BINARIES=\
 	$(SERVICE)-api
 
-all: all-bin all-share
+all: all-bin all-share all-python
 
 install: install-bin install-share
 
-clean: clean-bin clean-share
+clean: clean-bin clean-share clean-python
 
 all-bin: $(BINARIES)
 
 all-share: static/main.min.css
+
+BUILDS_GRAPHQL_QUERIES != echo hubsrht/services/builds/*.graphql
+GIT_GRAPHQL_QUERIES != echo hubsrht/services/git/*.graphql
+HG_GRAPHQL_QUERIES != echo hubsrht/services/hg/*.graphql
+LISTS_GRAPHQL_QUERIES != echo hubsrht/services/lists/*.graphql
+TODO_GRAPHQL_QUERIES != echo hubsrht/services/todo/*.graphql
+
+ariadne/%.toml: ariadne/%.toml.in
+	sed -e 's:@ASSETS@:$(ASSETS):g' < $< > $@
+
+hubsrht/services/builds/__init__.py: $(BUILDS_GRAPHQL_QUERIES) ariadne/builds.toml
+	$(ARIADNE_CODEGEN) --config ariadne/builds.toml
+
+hubsrht/services/git/__init__.py: $(GIT_GRAPHQL_QUERIES) ariadne/git.toml
+	$(ARIADNE_CODEGEN) --config ariadne/git.toml
+
+hubsrht/services/hg/__init__.py: $(HG_GRAPHQL_QUERIES) ariadne/hg.toml
+	$(ARIADNE_CODEGEN) --config ariadne/hg.toml
+
+hubsrht/services/lists/__init__.py: $(LISTS_GRAPHQL_QUERIES) ariadne/lists.toml
+	$(ARIADNE_CODEGEN) --config ariadne/lists.toml
+
+hubsrht/services/todo/__init__.py: $(TODO_GRAPHQL_QUERIES) ariadne/todo.toml
+	$(ARIADNE_CODEGEN) --config ariadne/todo.toml
+
+all-python: hubsrht/services/builds/__init__.py
+all-python: hubsrht/services/git/__init__.py
+all-python: hubsrht/services/hg/__init__.py
+all-python: hubsrht/services/lists/__init__.py
+all-python: hubsrht/services/todo/__init__.py
 
 install-bin: all-bin
 	mkdir -p $(BINDIR)
@@ -45,9 +77,24 @@ clean-bin:
 clean-share:
 	rm -f static/main.min.css static/main.css
 
-.PHONY: all all-bin all-share
+clean-python:
+	./scripts/clean-python builds
+	./scripts/clean-python git
+	./scripts/clean-python hg
+	./scripts/clean-python lists
+	./scripts/clean-python todo
+	# TODO: Replace the script with the following once legacy webhook
+	# support is removed:
+	# rm -rf hubsrht/services/builds/*.py hubsrht/services/builds/__pycache__
+	# rm -rf hubsrht/services/git/*.py hubsrht/services/git/__pycache__
+	# rm -rf hubsrht/services/hg/*.py hubsrht/services/hg/__pycache__
+	# rm -rf hubsrht/services/lists/*.py hubsrht/services/lists/__pycache__
+	# rm -rf hubsrht/services/todo/*.py hubsrht/services/todo/__pycache__
+	rm -f ariadne/*.toml
+
+.PHONY: all all-bin all-share all-python
 .PHONY: install install-bin install-share
-.PHONY: clean clean-bin clean-share
+.PHONY: clean clean-bin clean-share clean-python
 
 static/main.css: scss/main.scss
 	mkdir -p $(@D)

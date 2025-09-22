@@ -1,6 +1,9 @@
+import hubsrht.services.git.webhooks as git_webhooks # XXX Legacy webhooks
+import hubsrht.services.hg.webhooks as hg_webhooks # XXX Legacy webhooks
 from flask import Blueprint, render_template, request, redirect, url_for, abort
 from hubsrht.projects import ProjectAccess, get_project, get_project_or_redir
-from hubsrht.services import git, hg
+from hubsrht.services.hg import HgClient, Visibility as HgVisibility
+from hubsrht.services.git import GitClient, Visibility as GitVisibility
 from hubsrht.types import Event, EventType
 from hubsrht.types import RepoType, SourceRepo, Visibility
 from srht.config import get_origin
@@ -11,6 +14,29 @@ from srht.search import search_by
 from srht.validation import Validation
 
 sources = Blueprint("sources", __name__)
+
+def get_repos(owner, project, repo_type):
+    match repo_type:
+        case RepoType.git:
+            client = GitClient()
+        case RepoType.hg:
+            client = HgClient()
+
+    # TODO: Pagination
+    cursor = None
+    repos = []
+    while True:
+        batch = client.get_repos(cursor).me.repositories
+        repos.extend(batch.results)
+        cursor = batch.cursor
+        if not cursor:
+            break
+
+    repos = sorted(repos, key=lambda r: r.updated, reverse=True)
+    existing = [r.remote_id for r in (SourceRepo.query
+            .filter(SourceRepo.project_id == project.id)
+            .filter(SourceRepo.repo_type == repo_type)).all()]
+    return repos, existing
 
 @sources.route("/<owner>/<project_name>/sources")
 def sources_GET(owner, project_name):
@@ -43,28 +69,25 @@ def new_GET(owner, project_name):
     return render_template("sources-new.html", view="new-resource",
             owner=owner, project=project)
 
-def src_new_GET(owner, project_name, vcs, service, repo_type):
-    owner, project = get_project_or_redir(owner, project_name, ProjectAccess.write)
-    # TODO: Pagination
-    repos = service.get_repos(owner)
-    repos = sorted(repos, key=lambda r: r["updated"], reverse=True)
-    existing = [r.remote_id for r in (SourceRepo.query
-            .filter(SourceRepo.project_id == project.id)
-            .filter(SourceRepo.repo_type == repo_type)).all()]
-    return render_template("sources-select.html",
-            view="new-resource", vcs=vcs,
-            owner=owner, project=project, repos=repos,
-            existing=existing, origin=get_origin(f"{vcs}.sr.ht", external=True))
-
 @sources.route("/<owner>/<project_name>/git/new")
 @loginrequired
 def git_new_GET(owner, project_name):
-    return src_new_GET(owner, project_name, "git", git, RepoType.git)
+    owner, project = get_project(owner, project_name, ProjectAccess.write)
+    repos, existing = get_repos(owner, project, RepoType.git)
+    return render_template("sources-select.html",
+            view="new-resource", vcs="git",
+            owner=owner, project=project, repos=repos, existing=existing,
+            origin=get_origin("git.sr.ht", external=True))
 
 @sources.route("/<owner>/<project_name>/hg/new")
 @loginrequired
 def hg_new_GET(owner, project_name):
-    return src_new_GET(owner, project_name, "hg", hg, RepoType.hg)
+    owner, project = get_project(owner, project_name, ProjectAccess.write)
+    repos, existing = get_repos(owner, project, RepoType.hg)
+    return render_template("sources-select.html",
+            view="new-resource", vcs="hg",
+            owner=owner, project=project, repos=repos, existing=existing,
+            origin=get_origin("hg.sr.ht", external=True))
 
 @sources.route("/<owner>/<project_name>/git/new", methods=["POST"])
 @loginrequired
@@ -72,14 +95,18 @@ def git_new_POST(owner, project_name):
     owner, project = get_project(owner, project_name, ProjectAccess.write)
     if project is None:
         abort(404)
+
+    git_client = GitClient()
     valid = Validation(request)
+    visibility = GitVisibility(project.visibility.value)
+
     if "create" in valid:
-        git_repo = git.create_repo(owner, valid, project.visibility)
+        name = valid.require("name")
+        desc = valid.optional("description")
+        with valid:
+            git_repo = git_client.create_repo(name, visibility, desc).repository
         if not valid.ok:
-            repos = git.get_repos(owner)
-            existing = [r.remote_id for r in (SourceRepo.query
-                    .filter(SourceRepo.project_id == project.id)
-                    .filter(SourceRepo.repo_type == RepoType.git)).all()]
+            repos, existing = get_repos(owner, project, RepoType.git)
             return render_template("sources-select.html",
                     view="new-resource", vcs="git",
                     owner=owner, project=project, repos=repos,
@@ -93,28 +120,24 @@ def git_new_POST(owner, project_name):
 
         if not repo_name:
             search = valid.optional("search")
-            repos = git.get_repos(owner)
+            repos, existing = get_repos(owner, project, RepoType.git)
             # TODO: Search properly
-            repos = filter(lambda r: search.lower() in r["name"].lower(), repos)
-            repos = sorted(repos, key=lambda r: r["updated"], reverse=True)
-            existing = [r.remote_id for r in (SourceRepo.query
-                    .filter(SourceRepo.project_id == project.id)
-                    .filter(SourceRepo.repo_type == RepoType.git)).all()]
+            repos = filter(lambda r: search.lower() in r.name.lower(), repos)
             return render_template("sources-select.html",
                     view="new-resource", vcs="git",
                     owner=owner, project=project, repos=repos,
                     existing=existing, search=search)
 
-        git_repo = git.get_repo(owner, repo_name)
+        git_repo = GitClient().get_repo(repo_name).me.repository
 
     repo = SourceRepo()
-    repo.remote_id = git_repo["id"]
+    repo.remote_id = git_repo.id
     repo.project_id = project.id
     repo.owner_id = owner.id
-    repo.name = git_repo["name"]
-    repo.description = git_repo["description"]
+    repo.name = git_repo.name
+    repo.description = git_repo.description
     repo.repo_type = RepoType.git
-    repo.visibility = Visibility(git_repo["visibility"].upper())
+    repo.visibility = Visibility(git_repo.visibility.value)
     db.session.add(repo)
     db.session.flush()
 
@@ -125,8 +148,8 @@ def git_new_POST(owner, project_name):
     event.user_id = project.owner_id
     db.session.add(event)
 
-    git.ensure_user_webhooks(owner)
-    git.ensure_repo_webhooks(repo)
+    git_webhooks.ensure_user_webhooks(owner)
+    git_webhooks.ensure_repo_webhooks(repo)
 
     db.session.commit()
 
@@ -139,14 +162,18 @@ def hg_new_POST(owner, project_name):
     owner, project = get_project(owner, project_name, ProjectAccess.write)
     if project is None:
         abort(404)
+
+    hg_client = HgClient()
     valid = Validation(request)
+    visibility = HgVisibility(project.visibility.value)
+
     if "create" in valid:
-        hg_repo = hg.create_repo(owner, valid, project.visibility)
+        name = valid.require("name")
+        desc = valid.require("description")
+        with valid:
+            hg_repo = hg_client.create_repo(name, visibility, desc).repository
         if not valid.ok:
-            repos = hg.get_repos(owner)
-            existing = [r.remote_id for r in (SourceRepo.query
-                    .filter(SourceRepo.project_id == project.id)
-                    .filter(SourceRepo.repo_type == RepoType.hg)).all()]
+            repos, existing = get_repos(owner, project, RepoType.hg)
             return render_template("sources-select.html",
                     view="new-resource", vcs="hg",
                     owner=owner, project=project, repos=repos,
@@ -160,28 +187,24 @@ def hg_new_POST(owner, project_name):
 
         if not repo_name:
             search = valid.optional("search")
-            repos = hg.get_repos(owner)
+            repos, existing = get_repos(owner, project, RepoType.git)
             # TODO: Search properly
-            repos = filter(lambda r: search.lower() in r["name"].lower(), repos)
-            repos = sorted(repos, key=lambda r: r["updated"], reverse=True)
-            existing = [r.remote_id for r in (SourceRepo.query
-                    .filter(SourceRepo.project_id == project.id)
-                    .filter(SourceRepo.repo_type == RepoType.hg)).all()]
+            repos = filter(lambda r: search.lower() in r.name.lower(), repos)
             return render_template("sources-select.html",
                     view="new-resource", vcs="hg",
                     owner=owner, project=project, repos=repos,
-                    existing=existing, search=search)
+                    existing=existing, **valid.kwargs)
 
-        hg_repo = hg.get_repo(owner, repo_name)
+        hg_repo = hg_client.get_repo(repo_name).me.repository
 
     repo = SourceRepo()
-    repo.remote_id = hg_repo["id"]
+    repo.remote_id = hg_repo.id
     repo.project_id = project.id
     repo.owner_id = owner.id
-    repo.name = hg_repo["name"]
-    repo.description = hg_repo["description"]
+    repo.name = hg_repo.name
+    repo.description = hg_repo.description
     repo.repo_type = RepoType.hg
-    repo.visibility = Visibility(hg_repo["visibility"].upper())
+    repo.visibility = Visibility(hg_repo.visibility.value)
     db.session.add(repo)
     db.session.flush()
 
@@ -192,8 +215,8 @@ def hg_new_POST(owner, project_name):
     event.user_id = project.owner_id
     db.session.add(event)
 
-    hg.ensure_user_webhooks(owner)
-    #hg.ensure_repo_webhooks(repo) # TODO
+    hg_webhooks.ensure_user_webhooks(owner)
+    #hg_webhooks.ensure_repo_webhooks(repo) # TODO
 
     db.session.commit()
 
@@ -270,7 +293,7 @@ def delete_POST(owner, project_name, repo_id):
         db.session.commit()
 
     if repo.repo_type == RepoType.git:
-        git.unensure_repo_webhooks(repo)
+        git_webhooks.unensure_repo_webhooks(repo)
 
     repo_name = repo.name
     repo_id = repo.remote_id
@@ -280,12 +303,12 @@ def delete_POST(owner, project_name, repo_id):
     valid = Validation(request)
     delete_remote = valid.optional("delete-remote") == "on"
     if delete_remote:
-        if repo.repo_type == RepoType.git:
-            git.delete_repo(owner, repo_id)
-        elif repo.repo_type == RepoType.hg: 
-            hg.delete_repo(owner, repo_id)
-        else:
-            assert False
+        match repo.repo_type:
+            case RepoType.git:
+                client = GitClient()
+            case RepoType.hg:
+                client = HgClient()
+        client.delete_repo(repo_id)
 
     return redirect(url_for("projects.summary_GET",
         owner=owner.canonical_name, project_name=project.name))

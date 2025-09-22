@@ -1,0 +1,157 @@
+query GetLists($cursor: Cursor) {
+  me {
+    lists(cursor: $cursor) {
+      results {
+        id
+        name
+        description
+        updated
+        owner {
+          canonicalName
+        }
+      }
+      cursor
+    }
+  }
+}
+
+query GetList($listName: String!) {
+  me {
+    list(name: $listName) {
+      id
+      name
+      description
+      visibility
+      defaultACL {
+        browse
+      }
+    }
+  }
+}
+
+mutation CreateList(
+  $name: String!,
+  $description: String!,
+  $visibility: Visibility!,
+) {
+  mailingList: createMailingList(
+    name: $name,
+    description: $description,
+    visibility: $visibility,
+  ) {
+    id
+    name
+    description
+    visibility
+    defaultACL {
+      browse
+    }
+  }
+}
+
+mutation CreateTool(
+  $patchsetID: Int!,
+  $details: String!,
+  $icon: ToolIcon!,
+) {
+  createTool(patchsetID: $patchsetID, details: $details, icon: $icon) {
+    id
+  }
+}
+
+mutation UpdateTool(
+  $toolID: Int!,
+  $details: String!,
+  $icon: ToolIcon!,
+) {
+  updateTool(id: $toolID, details: $details, icon: $icon) {
+    id
+  }
+}
+
+mutation CreateListWebhook(
+  $listId: Int!,
+  $payload: String!
+  $url: String!,
+) {
+  webhook: createMailingListWebhook(
+    listId: $listId,
+    config: {
+      url: $url,
+      query: $payload,
+      events: [
+        LIST_UPDATED,
+        LIST_DELETED,
+        EMAIL_RECEIVED,
+        PATCHSET_RECEIVED,
+      ],
+    },
+  ) { id }
+}
+
+mutation DeleteListWebhook($id: Int!) {
+  deleteMailingListWebhook(id: $id) { id }
+}
+
+query EventWebhook {
+  webhook {
+    uuid
+    event
+    date
+
+    ... on MailingListEvent {
+      list {
+        id
+        name
+        description
+        visibility
+      }
+    }
+
+    ... on EmailEvent {
+      email {
+        id
+        list { id }
+        messageID
+        subject
+
+        sender {
+          canonicalName
+
+          ... on User {
+            username
+          }
+        }
+      }
+    }
+
+    ... on PatchsetEvent {
+      patchset {
+        id
+        subject
+        prefix
+        version
+        list { id }
+
+        thread {
+          root {
+            messageID
+            reply_to: header(want: "In-Reply-To")
+          }
+        }
+
+        submitter {
+          ... on User {
+            name: canonicalName
+            address: email
+          }
+
+          ... on Mailbox {
+            name
+            address
+          }
+        }
+      }
+    }
+  }
+}

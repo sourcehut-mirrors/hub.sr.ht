@@ -1,0 +1,115 @@
+query GetRepos($cursor: Cursor) {
+  me {
+    repositories(cursor: $cursor) {
+      results {
+        id
+        name
+        updated
+        owner {
+          canonicalName
+        }
+      }
+      cursor
+    }
+  }
+}
+
+query GetRepo($repoName: String!) {
+  me {
+    repository(name: $repoName) {
+      id
+      name
+      description
+      visibility
+    }
+  }
+}
+
+query GetReadme($username: String!, $repoName: String!) {
+  user(username: $username) {
+    repository(name: $repoName) {
+      html: readme
+      md: path(path: "README.md") { ...textData }
+      markdown: path(path: "README.markdown") { ...textData }
+      plaintext: path(path: "README") { ...textData }
+    }
+  }
+}
+
+fragment textData on TreeEntry {
+  object {
+    __typename
+    ... on TextBlob {
+      text
+    }
+  }
+}
+
+query GetManifests($username: String!, $repo_name: String!) {
+  user(username: $username) {
+    repository(name: $repo_name) {
+      name
+      visibility
+
+      multiple: path(path:".builds") {
+        object {
+          ... on Tree {
+            entries {
+              results {
+                name
+                object { ... on TextBlob { text } }
+              }
+            }
+          }
+        }
+      },
+      singleYML: path(path:".build.yml") {
+        object {
+          ... on TextBlob { text }
+        }
+      },
+      singleYAML: path(path:".build.yaml") {
+        object {
+          ... on TextBlob { text }
+        }
+      }
+    }
+  }
+}
+
+query GetLog($username: String!, $repo: String!, $from: String!) {
+  user(username: $username) {
+    repository(name: $repo) {
+      log(from: $from) {
+        results {
+          id
+          message
+          author {
+            name
+          }
+        }
+      }
+    }
+  }
+}
+
+mutation CreateRepo(
+  $name: String!,
+  $visibility: Visibility!,
+  $description: String,
+) {
+  repository: createRepository(
+    name: $name,
+    description: $description,
+    visibility: $visibility,
+  ) {
+    id
+    name
+    description
+    visibility
+  }
+}
+
+mutation DeleteRepo($repo_id: Int!) {
+  deleteRepository(id: $repo_id) { id }
+}

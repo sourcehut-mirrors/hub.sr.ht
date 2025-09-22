@@ -1,0 +1,91 @@
+query GetTrackers($cursor: Cursor) {
+  me {
+    trackers(cursor: $cursor) {
+      results {
+        ... trackerDetails
+      }
+      cursor
+    }
+  }
+}
+
+query GetTracker($trackerName: String!) {
+  me {
+    tracker(name: $trackerName) {
+      ... trackerDetails
+    }
+  }
+}
+
+mutation CreateTracker(
+  $name: String!,
+  $description: String!,
+  $visibility: Visibility!,
+) {
+  tracker: createTracker(
+    name: $name,
+    description: $description,
+    visibility: $visibility,
+  ) {
+    ... trackerDetails
+  }
+}
+
+fragment trackerDetails on Tracker {
+  id
+  name
+  description
+  visibility
+  updated
+
+  defaultACL {
+    browse
+  }
+
+  owner {
+    __typename
+    canonicalName
+  }
+}
+
+mutation DeleteTracker($trackerId: Int!) {
+  deleteTracker(id: $trackerId) { id }
+}
+
+query GetTicketComments(
+  $username: String!,
+  $tracker: String!,
+  $ticketId: Int!,
+) {
+  user(username: $username) {
+    tracker(name: $tracker) {
+      id
+
+      ticket(id: $ticketId) {
+        id
+
+        events {
+          results {
+            changes {
+              ... on Comment {
+                text
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
+mutation SubmitComment(
+  $trackerId: Int!,
+  $ticketId: Int!,
+  $comment: SubmitCommentInput!
+) {
+  submitComment(
+    trackerId: $trackerId,
+    ticketId: $ticketId,
+    input: $comment,
+  ) { id }
+}
