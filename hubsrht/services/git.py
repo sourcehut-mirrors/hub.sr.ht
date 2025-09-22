@@ -179,6 +179,8 @@ class GitService(SrhtService):
             })
 
         commits = []
+        if not resp["user"]["repository"]["log"]:
+            return commits
         for c in resp["user"]["repository"]["log"]["results"]:
             if c["id"] == old:
                 break
