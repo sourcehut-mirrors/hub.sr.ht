@@ -56,7 +56,7 @@ def submit_patchset(ml, patchset):
         for dirent in repo.multiple.object.entries.results:
             if not dirent.object:
                 continue
-            manifests[dirent.name] = ent.object.text
+            manifests[dirent.name] = dirent.object.text
     elif repo.single_yml:
         manifests[".build.yml"] = repo.single_yml.object.text
     elif repo.single_yaml:
