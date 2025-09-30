@@ -69,7 +69,7 @@ def finalize_add_list(client, owner, project, mailing_list):
     ml.owner_id = project.owner_id
     ml.name = mailing_list.name
     ml.webhook_id = -1
-    ml.webhook_version = 0
+    ml.webhook_version = LIST_WEBHOOK_VERSION
     ml.description = mailing_list.description
     ml.visibility = Visibility(mailing_list.visibility.value)
     db.session.add(ml)
@@ -78,7 +78,7 @@ def finalize_add_list(client, owner, project, mailing_list):
     webhook_url = (get_origin("hub.sr.ht", external=True) +
            url_for("webhooks.project_mailing_list", list_id=ml.id))
     ml.webhook_id = client.create_list_webhook(
-            list_id=mailing_list.id,
+            list_id=mailing_list.remote_id,
             payload=ListsClient.event_webhook_query,
             url=webhook_url).webhook.id
 
