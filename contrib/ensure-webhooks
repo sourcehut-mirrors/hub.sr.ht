@@ -1,19 +1,15 @@
 #!/usr/bin/env python3
 #
-# This contrib script makes sure that all of the webhooks are properly
-# configured for all projects.
-#
-# It is intended to be run between migrations e4b380a0eb98 and 2e24bd9655ce.
-#
-# $ hub.sr.ht-migrate upgrade e4b380a0eb98
-# $ ./contrib/ensure-webhooks
-# $ hub.sr.ht-migrate upgrade 2e24bd9655ce
+# This contrib script ensures that all webhooks are configured with the latest
+# version of the webhook payload.
 
+from flask import url_for
 from hubsrht.app import app
-from hubsrht.services import lists
-from srht.api import ensure_webhooks
+from hubsrht.services.lists import ListsClient
+from hubsrht.blueprints.mailing_lists import LIST_WEBHOOK_VERSION
 from srht.config import cfg, get_origin
 from srht.database import DbSession
+from srht.graphql import InternalAuth
 
 connection_string = cfg("hub.sr.ht", "connection-string")
 db = DbSession(connection_string)
@@ -24,54 +20,43 @@ from hubsrht.types import MailingList
 _listsrht = get_origin("lists.sr.ht", default=None)
 _hubsrht = get_origin("hub.sr.ht", default=None)
 
-def unensure_legacy_webhooks(mailing_list):
-    config = { f"{_hubsrht}/webhooks/mailing-list/{mailing_list.id}": None }
-    owner = mailing_list.owner
-    url = f"{_listsrht}/api/user/{owner.canonical_name}/lists/{mailing_list.name}/webhooks"
-    try:
-        ensure_webhooks(owner, url, config)
-    except Exception as ex:
-        print(f"Warning: failed to remove legacy webhook for mailing list ID {mailing_list.id}")
-        print(ex)
-
-def unensure_previous_gql_webhook(mailing_list):
-    if mailing_list.webhook_id == -1:
+def remove_previous_gql_webhook(client, mailing_list):
+    if (mailing_list.webhook_id == -1
+        and mailing_list.webhook_version == LIST_WEBHOOK_VERSION):
         return
+
     try:
-        lists.delete_list_webhook(
-                mailing_list.owner, mailing_list.webhook_id)
+        client = ListsClient(auth=InternalAuth(mailing_list.owner))
+        client.delete_list_webhook(mailing_list.webhook_id)
         mailing_list.webhook_id = -1
         mailing_list.webhook_version = 0
     except Exception as ex:
         print(f"Warning: failed to remove previous webhook ID {mailing_list.webhook_id} for mailing list ID {mailing_list.id}")
         print(ex)
 
-print("Updating mailing list webhooks...")
-
-failed = 0
+print("Updating webhooks...")
 
 app.config['SERVER_NAME'] = get_origin("hub.sr.ht", external=True)
 with app.app_context():
     for mailing_list in MailingList.query.all():
-        unensure_legacy_webhooks(mailing_list)
-        if mailing_list.webhook_id:
-            unensure_previous_gql_webhook(mailing_list)
+        client = ListsClient(auth=InternalAuth(mailing_list.owner))
 
-        try:
-            hook_id, hook_ver = lists.create_list_webhook(
-                    mailing_list.owner, mailing_list.remote_id,
-                    mailing_list.id)
-            mailing_list.webhook_id = hook_id
-            mailing_list.webhook_version = hook_ver
-        except Exception as ex:
-            mailing_list.webhook_id = -1
-            mailing_list.webhook_version = 0
-            print(f"Warning: mailing list ID {mailing_list.id} failed to create new webhook")
-            print(ex)
-            failed += 1
+        if (mailing_list.webhook_id != -1
+            and mailing_list.webhook_version == LIST_WEBHOOK_VERSION):
+            continue
+
+        if mailing_list.webhook_id != -1:
+            remove_previous_gql_webhook(client, mailing_list)
+
+        print(f"Update {mailing_list.owner.canonical_name}/{mailing_list.name} (ID: {mailing_list.remote_id})")
+        webhook_url = (get_origin("hub.sr.ht", external=True) +
+               url_for("webhooks.project_mailing_list", list_id=mailing_list.id))
+        mailing_list.webhook_id = client.create_list_webhook(
+                list_id=mailing_list.remote_id,
+                payload=ListsClient.event_webhook_query,
+                url=webhook_url).webhook.id
+        mailing_list.webhook_version = LIST_WEBHOOK_VERSION
 
     db.session.commit()
 
-print("Done. You can run migration 2e24bd9655ce now.")
-if failed != 0:
-    print(f"Warning: {failed} webhooks failed to update. Manual intervention is required. See 'SELECT ... FROM mailing_list WHERE webhook_id = -1")
+print("Done.")
