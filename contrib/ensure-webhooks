@@ -36,7 +36,10 @@ def remove_previous_gql_webhook(client, mailing_list):
 
 print("Updating webhooks...")
 
-app.config['SERVER_NAME'] = get_origin("hub.sr.ht", external=True)
+external_origin = get_origin("hub.sr.ht", external=True)
+external_origin = external_origin.removeprefix("http://")
+external_origin = external_origin.removeprefix("https://")
+app.config['SERVER_NAME'] = external_origin
 with app.app_context():
     for mailing_list in MailingList.query.all():
         client = ListsClient(auth=InternalAuth(mailing_list.owner))
@@ -49,13 +52,15 @@ with app.app_context():
             remove_previous_gql_webhook(client, mailing_list)
 
         print(f"Update {mailing_list.owner.canonical_name}/{mailing_list.name} (ID: {mailing_list.remote_id})")
-        webhook_url = (get_origin("hub.sr.ht", external=True) +
-               url_for("webhooks.project_mailing_list", list_id=mailing_list.id))
-        mailing_list.webhook_id = client.create_list_webhook(
-                list_id=mailing_list.remote_id,
-                payload=ListsClient.event_webhook_query,
-                url=webhook_url).webhook.id
-        mailing_list.webhook_version = LIST_WEBHOOK_VERSION
+        try:
+            webhook_url = url_for("webhooks.project_mailing_list", list_id=mailing_list.id)
+            mailing_list.webhook_id = client.create_list_webhook(
+                    list_id=mailing_list.remote_id,
+                    payload=ListsClient.event_webhook_query,
+                    url=webhook_url).webhook.id
+            mailing_list.webhook_version = LIST_WEBHOOK_VERSION
+        except Exception as ex:
+            print(f"Warning: failed to update mailing list {mailing_list.remote_id}: {ex}")
 
     db.session.commit()
 
