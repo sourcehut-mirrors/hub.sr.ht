@@ -37,6 +37,9 @@ def remove_previous_gql_webhook(client, mailing_list):
 print("Updating webhooks...")
 
 external_origin = get_origin("hub.sr.ht", external=True)
+if external_origin.startswith("https"):
+    app.config['PREFERRED_URL_SCHEME'] = 'https'
+
 external_origin = external_origin.removeprefix("http://")
 external_origin = external_origin.removeprefix("https://")
 app.config['SERVER_NAME'] = external_origin
