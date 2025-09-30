@@ -78,7 +78,7 @@ def finalize_add_list(client, owner, project, mailing_list):
     webhook_url = (get_origin("hub.sr.ht", external=True) +
            url_for("webhooks.project_mailing_list", list_id=ml.id))
     ml.webhook_id = client.create_list_webhook(
-            list_id=mailing_list.remote_id,
+            list_id=ml.remote_id,
             payload=ListsClient.event_webhook_query,
             url=webhook_url).webhook.id
 
