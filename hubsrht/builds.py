@@ -3,6 +3,7 @@ import json
 import random
 import yaml
 from flask import url_for
+from fnmatch import fnmatch
 from hubsrht.services.builds import BuildsClient, GraphQLClientGraphQLMultiError
 from hubsrht.services.builds import TriggerInput, EmailTriggerInput, TriggerType
 from hubsrht.services.builds import TriggerCondition, Visibility
@@ -55,6 +56,8 @@ def submit_patchset(ml, patchset):
     if repo.multiple:
         for dirent in repo.multiple.object.entries.results:
             if not dirent.object:
+                continue
+            if not any(fnmatch(dirent.name, pat) for pat in ["*.yml", "*.yaml"]):
                 continue
             manifests[dirent.name] = dirent.object.text
     elif repo.single_yml:
