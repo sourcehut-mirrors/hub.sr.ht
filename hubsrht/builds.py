@@ -14,6 +14,7 @@ from sqlalchemy import func
 from srht.config import get_origin
 from srht.crypto import fernet
 from srht.graphql import InternalAuth
+from yaml.error import YAMLError
 
 def submit_patchset(ml, patchset):
     buildsrht = get_origin("builds.sr.ht", external=True, default=None)
@@ -100,7 +101,15 @@ def submit_patchset(ml, patchset):
                 icon=ToolIcon.PENDING,
                 details=f"build pending: {key}").create_tool.id
 
-        manifest = Manifest(yaml.safe_load(value))
+        try:
+            manifest = Manifest(yaml.safe_load(value))
+        except YAMLError:
+            lists_client.update_tool(
+                    tool_id=tool_id,
+                    icon=ToolIcon.FAILED,
+                    details=f"Failed to submit build: error parsing YAML")
+            continue
+
         # TODO: https://todo.sr.ht/~sircmpwn/builds.sr.ht/291
         task = Task({
             "_apply_patch": f"""echo Applying patch from lists.sr.ht
