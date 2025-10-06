@@ -75,7 +75,7 @@ def finalize_add_list(client, owner, project, mailing_list):
     db.session.add(ml)
     db.session.flush()
 
-    webhook_url = (get_origin("hub.sr.ht", external=True) +
+    webhook_url = (get_origin("hub.sr.ht", external=False) +
            url_for("webhooks.project_mailing_list", list_id=ml.id))
     ml.webhook_id = client.create_list_webhook(
             list_id=ml.remote_id,
