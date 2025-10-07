@@ -65,7 +65,7 @@ def get_readme(owner, repo):
             raise Exception(f"git.sr.ht returned no repository for {owner.username}/{repo_name}")
         html = git_repo.html
         if git_repo.plaintext:
-            plaintext = plaintext.object.text
+            plaintext = git_repo.plaintext.object.text
         if git_repo.md or git_repo.markdown:
             md = (git_repo.md or git_repo.markdown).object.text
     elif repo.repo_type == RepoType.hg:
@@ -86,7 +86,7 @@ def get_readme(owner, repo):
         return Markup(html)
 
     if plaintext:
-        return Markup(f"<pre>{escape(content)}</pre>")
+        return Markup(f"<pre>{escape(plaintext)}</pre>")
 
     return None
 
