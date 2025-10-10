@@ -11,6 +11,7 @@ class Visibility(Enum):
     UNLISTED = "UNLISTED"
 
 from hubsrht.types.event import Event, EventType
+from hubsrht.types.eventprojectassoc import EventProjectAssociation
 from hubsrht.types.feature import Feature
 from hubsrht.types.mailinglist import MailingList
 from hubsrht.types.project import Project

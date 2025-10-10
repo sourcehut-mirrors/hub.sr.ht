@@ -3,6 +3,7 @@ from sqlalchemy.sql import operators
 from flask import Blueprint, render_template, request, abort
 from hubsrht.types import User, Project, Visibility, Event, EventType
 from hubsrht.types import SourceRepo, MailingList, Tracker
+from hubsrht.types.eventprojectassoc import EventProjectAssociation
 from srht.flask import paginate_query
 from srht.oauth import current_user, UserType
 from srht.search import search_by
@@ -27,7 +28,9 @@ def summary_GET(username):
         # TODO: ACLs
         projects = projects.filter(Project.visibility == Visibility.PUBLIC)
         events = (events
-                .join(Project, Event.project_id == Project.id)
+                .outerjoin(EventProjectAssociation)
+                .filter(EventProjectAssociation.project_id == Project.id)
+                .outerjoin(Project)
                 .filter(Project.visibility == Visibility.PUBLIC))
         events = (events
             .outerjoin(SourceRepo, Event.source_repo_id == SourceRepo.id)

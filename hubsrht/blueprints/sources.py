@@ -6,6 +6,7 @@ from hubsrht.services.hg import HgClient, Visibility as HgVisibility
 from hubsrht.services.git import GitClient, Visibility as GitVisibility
 from hubsrht.types import Event, EventType
 from hubsrht.types import RepoType, SourceRepo, Visibility
+from hubsrht.types.eventprojectassoc import EventProjectAssociation
 from srht.config import get_origin
 from srht.database import db
 from srht.flask import paginate_query
@@ -144,9 +145,14 @@ def git_new_POST(owner, project_name):
     event = Event()
     event.event_type = EventType.source_repo_added
     event.source_repo_id = repo.id
-    event.project_id = project.id
     event.user_id = project.owner_id
     db.session.add(event)
+    db.session.flush()
+
+    assoc = EventProjectAssociation()
+    assoc.event_id = event.id
+    assoc.project_id = project.id
+    db.session.add(assoc)
 
     git_webhooks.ensure_user_webhooks(owner)
     git_webhooks.ensure_repo_webhooks(repo)
@@ -211,9 +217,14 @@ def hg_new_POST(owner, project_name):
     event = Event()
     event.event_type = EventType.source_repo_added
     event.source_repo_id = repo.id
-    event.project_id = project.id
     event.user_id = project.owner_id
     db.session.add(event)
+    db.session.flush()
+
+    assoc = EventProjectAssociation()
+    assoc.event_id = event.id
+    assoc.project_id = project.id
+    db.session.add(assoc)
 
     hg_webhooks.ensure_user_webhooks(owner)
     #hg_webhooks.ensure_repo_webhooks(repo) # TODO

@@ -24,9 +24,12 @@ TODO: implement event type {{event.event_type}}
   <small class="text-muted">
     {{event.created | date}}
     {% if project %}
-    via <a href="{{url_for("projects.summary_GET",
-      owner=event.project.owner.canonical_name,
-      project_name=event.project.name)}}">{{event.project.name}}</a>
+    via
+    {% for p in event.projects %}
+    <a href="{{url_for("projects.summary_GET",
+      owner=p.owner.canonical_name,
+      project_name=p.name)}}">{{p.name}}</a>{% if not loop.last %}, {% endif %}
+    {% endfor %}
     {% endif %}
   </small>
 </div>

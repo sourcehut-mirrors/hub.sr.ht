@@ -14,6 +14,7 @@ from hubsrht.types import Feature, Event, EventType
 from hubsrht.types import Project, RepoType, Visibility
 from hubsrht.types import Redirect
 from hubsrht.types import SourceRepo, MailingList, Tracker
+from hubsrht.types.eventprojectassoc import EventProjectAssociation
 from markupsafe import Markup, escape
 from sqlalchemy import or_
 from sqlalchemy.sql import text
@@ -117,7 +118,8 @@ def summary_GET(owner, project_name):
             summary_error = True
 
     events = (Event.query
-        .filter(Event.project_id == project.id)
+        .outerjoin(EventProjectAssociation)
+        .filter(EventProjectAssociation.project_id == project.id)
         .order_by(Event.created.desc()))
     if not current_user or current_user.id != owner.id:
         events = (events
@@ -160,7 +162,8 @@ def feed_GET(owner, project_name):
     owner, project = get_project_or_redir(owner, project_name, ProjectAccess.read)
 
     events = (Event.query
-        .filter(Event.project_id == project.id)
+        .outerjoin(EventProjectAssociation)
+        .filter(EventProjectAssociation.project_id == project.id)
         .order_by(Event.created.desc()))
 
     if not current_user or current_user.id != owner.id:
@@ -183,7 +186,8 @@ def feed_rss_GET(owner, project_name):
     owner, project = get_project_or_redir(owner, project_name, ProjectAccess.read)
 
     events = (Event.query
-        .filter(Event.project_id == project.id)
+        .outerjoin(EventProjectAssociation)
+        .filter(EventProjectAssociation.project_id == project.id)
         .order_by(Event.created.desc()))
 
     if not current_user or current_user.id != owner.id:

@@ -4,6 +4,7 @@ from flask import abort
 from hubsrht.projects import ProjectAccess, get_project, get_project_or_redir
 from hubsrht.services.todo import TodoClient, Visibility as TrackerVisibility
 from hubsrht.types import Event, EventType, Tracker, Visibility
+from hubsrht.types.eventprojectassoc import EventProjectAssociation
 from srht.database import db
 from srht.flask import paginate_query
 from srht.oauth import current_user, loginrequired
@@ -113,9 +114,14 @@ def new_POST(owner, project_name):
     event = Event()
     event.event_type = EventType.tracker_added
     event.tracker_id = tracker.id
-    event.project_id = project.id
     event.user_id = project.owner_id
     db.session.add(event)
+    db.session.flush()
+
+    assoc = EventProjectAssociation()
+    assoc.event_id = event.id
+    assoc.project_id = project.id
+    db.session.add(assoc)
 
     todo_webhooks.ensure_user_webhooks(owner)
     todo_webhooks.ensure_tracker_webhooks(tracker)

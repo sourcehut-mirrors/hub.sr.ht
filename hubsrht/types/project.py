@@ -2,6 +2,7 @@ import sqlalchemy as sa
 import sqlalchemy_utils as sau
 from sqlalchemy.dialects import postgresql
 from hubsrht.types import Visibility
+from hubsrht.types.eventprojectassoc import EventProjectAssociation
 from srht.database import Base
 
 class Project(Base):
@@ -32,3 +33,9 @@ class Project(Base):
     summary_repo = sa.orm.relationship("SourceRepo",
             foreign_keys=[summary_repo_id],
             cascade="all, delete")
+
+    events = sa.orm.relationship(
+        "Event",
+        secondary=EventProjectAssociation.__table__,
+        back_populates="projects",
+    )

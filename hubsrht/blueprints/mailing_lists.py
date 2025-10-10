@@ -4,6 +4,7 @@ from hubsrht.projects import ProjectAccess, get_project, get_project_or_redir
 from hubsrht.services.lists import ListsClient, Visibility as ListVisibility
 from hubsrht.types import Event, EventType
 from hubsrht.types import MailingList, Visibility
+from hubsrht.types.eventprojectassoc import EventProjectAssociation
 from srht.config import get_origin
 from srht.database import db
 from srht.flask import paginate_query
@@ -85,9 +86,15 @@ def finalize_add_list(client, owner, project, mailing_list):
     event = Event()
     event.event_type = EventType.mailing_list_added 
     event.mailing_list_id = ml.id
-    event.project_id = project.id
     event.user_id = project.owner_id
     db.session.add(event)
+    db.session.flush()
+
+    assoc = EventProjectAssociation()
+    assoc.event_id = event.id
+    assoc.project_id = project.id
+    db.session.add(assoc)
+
     db.session.commit()
 
 def lists_from_template(owner, project, template):

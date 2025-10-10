@@ -16,6 +16,7 @@ from hubsrht.services.lists import WebhookEvent as ListWebhookEvent
 from hubsrht.trailers import commit_trailers
 from hubsrht.types import Event, EventType, MailingList, SourceRepo, RepoType
 from hubsrht.types import Tracker, User, Visibility
+from hubsrht.types.eventprojectassoc import EventProjectAssociation
 from srht.config import get_origin
 from srht.crypto import fernet, verify_request_signature
 from srht.database import db
@@ -96,7 +97,6 @@ def git_repo(repo_id):
         event = Event()
         event.event_type = EventType.external_event
         event.source_repo_id = repo.id
-        event.project_id = repo.project_id
         event.user_id = pusher.id
 
         event.external_source = "git.sr.ht"
@@ -112,6 +112,13 @@ def git_repo(repo_id):
 
         repo.project.updated = datetime.utcnow()
         db.session.add(event)
+        db.session.flush()
+
+        assoc = EventProjectAssociation()
+        assoc.event_id = event.id
+        assoc.project_id = repo.project_id
+        db.session.add(assoc)
+
         db.session.commit()
 
         git_client = GitClient(auth=InternalAuth(pusher))
@@ -327,7 +334,6 @@ def project_mailing_list(list_id):
 
             event.event_type = EventType.external_event
             event.mailing_list_id = mailing_list.id
-            event.project_id = mailing_list.project_id
 
             event.external_source = "lists.sr.ht"
             event.external_summary = f"<a href='{archive_url}'>{html.escape(subject)}</a>"
@@ -336,6 +342,13 @@ def project_mailing_list(list_id):
             event.external_url = archive_url
 
             db.session.add(event)
+            db.session.flush()
+
+            assoc = EventProjectAssociation()
+            assoc.event_id = event.id
+            assoc.project_id = mailing_list.project_id
+            db.session.add(assoc)
+
             db.session.commit()
             return f"Assigned event ID {event.id}"
         case ListWebhookEvent.PATCHSET_RECEIVED:
@@ -416,7 +429,6 @@ def todo_tracker(tracker_id):
 
         event.event_type = EventType.external_event
         event.tracker_id = tracker.id
-        event.project_id = tracker.project_id
 
         ticket_id = payload["id"]
         ticket_url = tracker.url() + f"/{ticket_id}"
@@ -438,6 +450,13 @@ def todo_tracker(tracker_id):
         event.external_url = ticket_url
 
         db.session.add(event)
+        db.session.flush()
+
+        assoc = EventProjectAssociation()
+        assoc.event_id = event.id
+        assoc.project_id = tracker.project_id
+        db.session.add(assoc)
+
         db.session.commit()
         todo_webhooks.ensure_ticket_webhooks(tracker, ticket_id)
         return "Thanks!"
@@ -476,7 +495,6 @@ def todo_ticket(tracker_id):
 
         event.event_type = EventType.external_event
         event.tracker_id = tracker.id
-        event.project_id = tracker.project_id
 
         ticket_id = payload["ticket"]["id"]
         ticket_url = tracker.url() + f"/{ticket_id}"
@@ -498,6 +516,13 @@ def todo_ticket(tracker_id):
         event.external_url = ticket_url
 
         db.session.add(event)
+        db.session.flush()
+
+        assoc = EventProjectAssociation()
+        assoc.event_id = event.id
+        assoc.project_id = tracker.project_id
+        db.session.add(assoc)
+
         db.session.commit()
         return "Thanks!"
     else:

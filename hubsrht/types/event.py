@@ -1,6 +1,7 @@
 import sqlalchemy as sa
 import sqlalchemy_utils as sau
 from enum import Enum
+from hubsrht.types.eventprojectassoc import EventProjectAssociation
 from srht.database import Base
 
 class EventType(Enum):
@@ -13,13 +14,6 @@ class Event(Base):
     __tablename__ = "event"
     id = sa.Column(sa.Integer, primary_key=True)
     created = sa.Column(sa.DateTime, nullable=False)
-
-    project_id = sa.Column(sa.Integer,
-            sa.ForeignKey("project.id", ondelete="CASCADE"),
-            nullable=False)
-    project = sa.orm.relationship("Project",
-            backref=sa.orm.backref("events", cascade="all, delete"))
-    """The project implicated in this event"""
 
     user_id = sa.Column(sa.Integer,
             sa.ForeignKey("user.id", ondelete="CASCADE"))
@@ -51,3 +45,9 @@ class Event(Base):
     external_summary_plain = sa.Column(sa.Unicode) # plaintext
     external_details_plain = sa.Column(sa.Unicode) # plaintext
     external_url = sa.Column(sa.Unicode)
+
+    projects = sa.orm.relationship(
+        "Project",
+        secondary=EventProjectAssociation.__table__,
+        back_populates="events",
+    )

@@ -98,7 +98,6 @@ CREATE TABLE tracker (
 CREATE TABLE event (
 	id serial PRIMARY KEY,
 	created timestamp without time zone NOT NULL,
-	project_id integer NOT NULL REFERENCES project(id) ON DELETE CASCADE,
 	user_id integer REFERENCES "user"(id) ON DELETE CASCADE,
 	event_type character varying NOT NULL,
 	source_repo_id integer REFERENCES source_repo(id) ON DELETE CASCADE,
@@ -110,6 +109,11 @@ CREATE TABLE event (
 	external_summary_plain character varying,
 	external_details_plain character varying,
 	external_url character varying
+);
+
+CREATE TABLE event_project_association (
+	event_id integer NOT NULL REFERENCES event(id) ON DELETE CASCADE,
+	project_id integer NOT NULL REFERENCES project(id) ON DELETE CASCADE
 );
 
 CREATE TABLE redirect (
