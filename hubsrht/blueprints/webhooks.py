@@ -14,7 +14,7 @@ from hubsrht.services.lists import ListsClient, ToolIcon
 from hubsrht.services.lists import EventWebhook as ListEventWebhook
 from hubsrht.services.lists import WebhookEvent as ListWebhookEvent
 from hubsrht.trailers import commit_trailers
-from hubsrht.types import Event, EventType, MailingList, SourceRepo, RepoType
+from hubsrht.types import Event, EventType, MailingList, SourceRepo, RepoType, EventProjectAssociation
 from hubsrht.types import Tracker, User, Visibility
 from hubsrht.types.eventprojectassoc import EventProjectAssociation
 from srht.config import get_origin
@@ -95,29 +95,32 @@ def git_repo(repo_id):
         pusher = current_app.oauth_service.lookup_user(payload['pusher']['name'])
 
         event = Event()
-        event.event_type = EventType.external_event
-        event.source_repo_id = repo.id
-        event.user_id = pusher.id
+        event.id = dedupe_event("git.sr.ht", pusher, repo, commit_url)
+        if event.id is None:
+            # This is a brand new event.
+            event.event_type = EventType.external_event
+            event.source_repo_id = repo.id
+            event.user_id = pusher.id
 
-        event.external_source = "git.sr.ht"
-        event.external_summary = (
-            f"<a href='{commit_url}'>{commit_sha}</a> " +
-            f"<code>{html.escape(commit_message)}</code>")
-        event.external_summary_plain = f"{commit_sha} - {commit_message}"
-        event.external_details = (
-            f"<a href='{pusher_url}'>{pusher_name}</a> pushed to " +
-            f"<a href='{repo.url()}'>{repo_name}</a> git")
-        event.external_details_plain = f"{pusher_name} pushed to {repo_name} git"
-        event.external_url = commit_url
+            event.external_source = "git.sr.ht"
+            event.external_summary = (
+                f"<a href='{commit_url}'>{commit_sha}</a> " +
+                f"<code>{html.escape(commit_message)}</code>")
+            event.external_summary_plain = f"{commit_sha} - {commit_message}"
+            event.external_details = (
+                f"<a href='{pusher_url}'>{pusher_name}</a> pushed to " +
+                f"<a href='{repo.url()}'>{repo_name}</a> git")
+            event.external_details_plain = f"{pusher_name} pushed to {repo_name} git"
+            event.external_url = commit_url
+            repo.project.updated = datetime.utcnow()
+            db.session.add(event)
+            db.session.flush()
 
-        repo.project.updated = datetime.utcnow()
-        db.session.add(event)
-        db.session.flush()
-
-        assoc = EventProjectAssociation()
-        assoc.event_id = event.id
-        assoc.project_id = repo.project_id
-        db.session.add(assoc)
+            # That needs associating to the project.
+            assoc = EventProjectAssociation()
+            assoc.event_id = event.id
+            assoc.project_id = repo.project_id
+            db.session.add(assoc)
 
         db.session.commit()
 
@@ -332,22 +335,24 @@ def project_mailing_list(list_id):
             else:
                 attrib = sender_canon
 
-            event.event_type = EventType.external_event
-            event.mailing_list_id = mailing_list.id
+            event.id = dedupe_event("lists.sr.ht", sender, mailing_list, archive_url)
+            if event.id is None:
+                # This is a brand new event.
+                event.event_type = EventType.external_event
+                event.mailing_list_id = mailing_list.id
+                event.external_source = "lists.sr.ht"
+                event.external_summary = f"<a href='{archive_url}'>{html.escape(subject)}</a>"
+                event.external_details = (f"{attrib} via " +
+                        f"<a href='{mailing_list.url()}'>{mailing_list.name}</a>")
+                event.external_url = archive_url
+                db.session.add(event)
+                db.session.flush()
 
-            event.external_source = "lists.sr.ht"
-            event.external_summary = f"<a href='{archive_url}'>{html.escape(subject)}</a>"
-            event.external_details = (f"{attrib} via " +
-                    f"<a href='{mailing_list.url()}'>{mailing_list.name}</a>")
-            event.external_url = archive_url
-
-            db.session.add(event)
-            db.session.flush()
-
-            assoc = EventProjectAssociation()
-            assoc.event_id = event.id
-            assoc.project_id = mailing_list.project_id
-            db.session.add(assoc)
+                # That needs associating to the project.
+                assoc = EventProjectAssociation()
+                assoc.event_id = event.id
+                assoc.project_id = mailing_list.project_id
+                db.session.add(assoc)
 
             db.session.commit()
             return f"Assigned event ID {event.id}"
@@ -567,3 +572,23 @@ def build_complete(details):
             icon=icon, details=status_details)
 
     return "Thanks!"
+
+# If we already have an event from source and sender on resource for the same
+# event_key (this can happen for lists/repositories/trackers shared by several
+# projects), add a new mapping in the event/project association table and
+# return the ID of the event deduped into; otherwise return None.
+def dedupe_event(source, sender, resource, event_key):
+    existing_evt = (Event.query
+        .filter(Event.event_type == EventType.external_event)
+        .filter(Event.external_source == source)
+        .filter(Event.user_id == sender.id)
+        .filter(Event.external_url == event_key)).one_or_none()
+
+    if existing_evt:
+        assoc = EventProjectAssociation()
+        assoc.event_id = existing_evt.id
+        assoc.project_id = resource.project_id
+        db.session.add(assoc)
+        return existing_evt.id
+
+    return None
