@@ -69,6 +69,12 @@ mutation UpdateTool(
   }
 }
 
+mutation DeleteList($id: Int!) {
+  deleteMailingList(id: $id) {
+    id
+  }
+}
+
 mutation CreateListWebhook(
   $listId: Int!,
   $payload: String!
