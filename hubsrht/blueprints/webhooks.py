@@ -523,7 +523,7 @@ def build_complete(details):
     builds_origin = get_origin("builds.sr.ht", external=True)
     build_url = f"{builds_origin}/{project.owner.canonical_name}/job/{payload['id']}"
 
-    lists_client = ListsClient()
+    lists_client = ListsClient(InternalAuth(project.owner))
     # TODO: Update me once builds.sr.ht adds a native enum for this
     match payload["status"]:
         case 'pending':
