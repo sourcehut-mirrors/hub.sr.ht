@@ -579,11 +579,14 @@ def build_complete(details):
 # projects), add a new mapping in the event/project association table and
 # return the ID of the event deduped into; otherwise return None.
 def dedupe_event(source, sender, resource, event_key):
-    existing_evt = (Event.query
+    q = (Event.query
         .filter(Event.event_type == EventType.external_event)
         .filter(Event.external_source == source)
-        .filter(Event.user_id == sender.id)
-        .filter(Event.external_url == event_key)).one_or_none()
+        .filter(Event.external_url == event_key))
+    if sender:
+        q = q.filter(Event.user_id == sender.id)
+
+    existing_evt = q.one_or_none()
 
     if existing_evt:
         assoc = EventProjectAssociation()
