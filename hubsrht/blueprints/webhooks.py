@@ -334,6 +334,7 @@ def project_mailing_list(list_id):
                 attrib = f"<a href='{_listssrht}/{sender_canon}'>{sender_canon}</a>"
             else:
                 attrib = sender_canon
+                sender = None
 
             event.id = dedupe_event("lists.sr.ht", sender, mailing_list, archive_url)
             if event.id is None:
