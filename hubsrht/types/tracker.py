@@ -30,5 +30,11 @@ class Tracker(Base):
     visibility = sa.Column(postgresql.ENUM(Visibility),
             nullable=False, server_default="UNLISTED")
 
+    webhook_id = sa.Column(sa.Integer, nullable=False)
+    webhook_version = sa.Column(sa.Integer, nullable=False)
+
+    def __repr__(self):
+        return f"<Tracker {self.id}>"
+
     def url(self):
         return f"{_todosrht}/{self.owner.canonical_name}/{self.name}"

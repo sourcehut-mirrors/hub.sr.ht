@@ -23,3 +23,6 @@ class Repository(Base):
     description = sa.Column(sa.Unicode(512), nullable=False)
     visibility = sa.Column(postgresql.ENUM(Visibility),
             nullable=False, server_default="UNLISTED")
+
+    webhook_id = sa.Column(sa.Integer, nullable=False)
+    webhook_version = sa.Column(sa.Integer, nullable=False)

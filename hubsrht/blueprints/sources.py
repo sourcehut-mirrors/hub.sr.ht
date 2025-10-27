@@ -1,5 +1,3 @@
-import hubsrht.services.git.webhooks as git_webhooks # XXX Legacy webhooks
-import hubsrht.services.hg.webhooks as hg_webhooks # XXX Legacy webhooks
 from flask import Blueprint, render_template, request, redirect, url_for, abort
 from hubsrht.projects import ProjectAccess, get_project, get_project_or_redir
 from hubsrht.services.hg import HgClient, Visibility as HgVisibility
@@ -7,6 +5,7 @@ from hubsrht.services.git import GitClient, Visibility as GitVisibility
 from hubsrht.types import Event, EventType
 from hubsrht.types import RepoType, SourceRepo, Visibility
 from hubsrht.types.eventprojectassoc import EventProjectAssociation
+from hubsrht.webhooks import get_user_webhooks
 from srht.config import get_origin
 from srht.database import db
 from srht.flask import paginate_query
@@ -15,6 +14,9 @@ from srht.search import search_by
 from srht.validation import Validation
 
 sources = Blueprint("sources", __name__)
+
+GIT_WEBHOOK_VERSION = 1
+HG_WEBHOOK_VERSION = 1
 
 def get_repos(owner, project, repo_type):
     match repo_type:
@@ -139,8 +141,26 @@ def git_new_POST(owner, project_name):
     repo.description = git_repo.description
     repo.repo_type = RepoType.git
     repo.visibility = Visibility(git_repo.visibility.value)
+    repo.webhook_id = -1
+    repo.webhook_version = GIT_WEBHOOK_VERSION
     db.session.add(repo)
     db.session.flush()
+
+    webhook_url = (get_origin("hub.sr.ht", external=False) +
+           url_for("webhooks.git_repo", repo_id=repo.id))
+    repo.webhook_id = git_client.create_repo_webhook(
+            repo_id=repo.remote_id,
+            payload=GitClient.event_webhook_query,
+            url=webhook_url).webhook.id
+
+    uwh = get_user_webhooks(owner)
+    if uwh.git_webhook_id is None:
+        user_webhook_url = (get_origin("hub.sr.ht", external=False) +
+               url_for("webhooks.git_user", user_id=owner.id))
+        uwh.git_webhook_id = git_client.create_user_webhook(
+                payload=GitClient.event_webhook_query,
+                url=user_webhook_url).webhook.id
+        uwh.git_webhook_version = GIT_WEBHOOK_VERSION
 
     event = Event()
     event.event_type = EventType.source_repo_added
@@ -153,9 +173,6 @@ def git_new_POST(owner, project_name):
     assoc.event_id = event.id
     assoc.project_id = project.id
     db.session.add(assoc)
-
-    git_webhooks.ensure_user_webhooks(owner)
-    git_webhooks.ensure_repo_webhooks(repo)
 
     db.session.commit()
 
@@ -211,8 +228,19 @@ def hg_new_POST(owner, project_name):
     repo.description = hg_repo.description
     repo.repo_type = RepoType.hg
     repo.visibility = Visibility(hg_repo.visibility.value)
+    repo.webhook_id = -1
+    repo.webhook_version = HG_WEBHOOK_VERSION
     db.session.add(repo)
     db.session.flush()
+
+    uwh = get_user_webhooks(owner)
+    if uwh.hg_webhook_id is None:
+        user_webhook_url = (get_origin("hub.sr.ht", external=False) +
+               url_for("webhooks.hg_user", user_id=owner.id))
+        uwh.hg_webhook_id = hg_client.create_user_webhook(
+                payload=HgClient.event_webhook_query,
+                url=user_webhook_url).webhook.id
+        uwh.hg_webhook_version = HG_WEBHOOK_VERSION
 
     event = Event()
     event.event_type = EventType.source_repo_added
@@ -225,9 +253,6 @@ def hg_new_POST(owner, project_name):
     assoc.event_id = event.id
     assoc.project_id = project.id
     db.session.add(assoc)
-
-    hg_webhooks.ensure_user_webhooks(owner)
-    #hg_webhooks.ensure_repo_webhooks(repo) # TODO
 
     db.session.commit()
 
@@ -303,8 +328,14 @@ def delete_POST(owner, project_name, repo_id):
         project.summary_repo_id = None
         db.session.commit()
 
+    match repo.repo_type:
+        case RepoType.git:
+            client = GitClient()
+        case RepoType.hg:
+            client = HgClient()
+
     if repo.repo_type == RepoType.git:
-        git_webhooks.unensure_repo_webhooks(repo)
+        client.delete_repo_webhook(repo.webhook_id)
 
     repo_name = repo.name
     repo_id = repo.remote_id
@@ -314,11 +345,6 @@ def delete_POST(owner, project_name, repo_id):
     valid = Validation(request)
     delete_remote = valid.optional("delete-remote") == "on"
     if delete_remote:
-        match repo.repo_type:
-            case RepoType.git:
-                client = GitClient()
-            case RepoType.hg:
-                client = HgClient()
         client.delete_repo(repo_id)
 
     return redirect(url_for("projects.summary_GET",

@@ -1,6 +1,3 @@
-import hubsrht.services.git.webhooks as git_webhooks # XXX Legacy webhooks
-import hubsrht.services.hg.webhooks as hg_webhooks # XXX Legacy webhooks
-import hubsrht.services.todo.webhooks as todo_webhooks # XXX Legacy webhooks
 import re
 import string
 from flask import Blueprint, Response, render_template, request, redirect, url_for
@@ -10,6 +7,7 @@ from hubsrht.projects import ProjectAccess, get_project, get_project_or_redir
 from hubsrht.services.git import GitClient
 from hubsrht.services.hg import HgClient
 from hubsrht.services.lists import ListsClient
+from hubsrht.services.todo import TodoClient
 from hubsrht.types import Feature, Event, EventType
 from hubsrht.types import Project, RepoType, Visibility
 from hubsrht.types import Redirect
@@ -365,7 +363,10 @@ def delete_POST(owner, project_name):
         abort(404)
     session["notice"] = f"{project.name} has been deleted."
 
+    git_client = GitClient()
+    hg_client = HgClient()
     lists_client = ListsClient()
+    todo_client = TodoClient()
 
     # Any mailing list, repository or tracker associated to the project will
     # be deleted via the foreign key it has on project.id; we need to clean-up
@@ -379,16 +380,14 @@ def delete_POST(owner, project_name):
         .filter(SourceRepo.project_id == project.id))
     for r in associated_repos:
         if r.repo_type == RepoType.git:
-            git_webhooks.unensure_user_webhooks(owner)
-            git_webhooks.unensure_repo_webhooks(r)
+            git_client.delete_repo_webhook(r.webhook_id)
         else:
-            hg_webhooks.unensure_user_webhooks(owner)
+            hg_client.delete_repo_webhook(r.webhook_id)
 
     associated_trackers = (Tracker.query
         .filter(Tracker.project_id == project.id))
     for t in associated_trackers:
-        todo_webhooks.unensure_user_webhooks(owner)
-        todo_webhooks.unensure_tracker_webhooks(t)
+        todo_client.delete_tracker_webhook(r.webhook_id)
 
     with db.engine.connect() as conn:
         conn.execute(text(f"DELETE FROM project WHERE id = {project.id}"))

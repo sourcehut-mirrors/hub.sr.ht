@@ -19,9 +19,6 @@ api/graph/api/generated.go
 ariadne/*.toml
 hubsrht/services/builds/*.py
 hubsrht/services/git/*.py
-!hubsrht/services/git/webhooks.py
 hubsrht/services/hg/*.py
-!hubsrht/services/hg/webhooks.py
 hubsrht/services/lists/*.py
 hubsrht/services/todo/*.py
-!hubsrht/services/todo/webhooks.py

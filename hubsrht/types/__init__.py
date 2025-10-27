@@ -1,9 +1,11 @@
+import sqlalchemy as sa
 from srht.database import Base
 from srht.oauth import ExternalUserMixin
 from enum import Enum
 
 class User(Base, ExternalUserMixin):
-    pass
+    webhooks = sa.orm.relationship("UserWebhooks",
+            backref="user", uselist=False)
 
 class Visibility(Enum):
     PUBLIC = "PUBLIC"
@@ -18,3 +20,4 @@ from hubsrht.types.project import Project
 from hubsrht.types.redirect import Redirect
 from hubsrht.types.sourcerepo import SourceRepo, RepoType
 from hubsrht.types.tracker import Tracker
+from hubsrht.types.webhooks import UserWebhooks

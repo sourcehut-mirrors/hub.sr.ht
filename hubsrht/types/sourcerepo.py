@@ -44,6 +44,12 @@ class SourceRepo(Base):
     visibility = sa.Column(postgresql.ENUM(Visibility),
             nullable=False, server_default="UNLISTED")
 
+    webhook_id = sa.Column(sa.Integer, nullable=False)
+    webhook_version = sa.Column(sa.Integer, nullable=False)
+
+    def __repr__(self):
+        return f"<SourceRepo {self.id}>"
+
     def url(self):
         origin = _gitsrht if self.repo_type == RepoType.git else _hgsrht
         return f"{origin}/{self.owner.canonical_name}/{self.name}"

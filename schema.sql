@@ -29,6 +29,19 @@ CREATE TABLE "user" (
 
 CREATE UNIQUE INDEX ix_user_username ON "user" USING btree (username);
 
+CREATE TABLE user_webhooks (
+	id serial PRIMARY KEY,
+	user_id integer NOT NULL UNIQUE REFERENCES "user"(id) ON DELETE CASCADE,
+	git_webhook_id integer,
+	git_webhook_version integer,
+	hg_webhook_id integer,
+	hg_webhook_version integer,
+	lists_webhook_id integer,
+	lists_webhook_version integer,
+	todo_webhook_id integer,
+	todo_webhook_version integer
+);
+
 CREATE TABLE project (
 	id serial PRIMARY KEY,
 	created timestamp without time zone NOT NULL,
@@ -61,7 +74,7 @@ CREATE TABLE mailing_list (
 	name character varying(128) NOT NULL,
 	description character varying,
 	visibility visibility DEFAULT 'UNLISTED'::visibility NOT NULL,
-	-- lists.sr.ht-assigned webhook ID
+	-- Remote webhook ID
 	webhook_id integer NOT NULL,
 	webhook_version integer NOT NULL
 );
@@ -77,6 +90,9 @@ CREATE TABLE source_repo (
 	description character varying,
 	repo_type character varying NOT NULL,
 	visibility visibility DEFAULT 'UNLISTED'::visibility NOT NULL,
+	-- Remote webhook ID
+	webhook_id integer NOT NULL,
+	webhook_version integer NOT NULL,
 	CONSTRAINT project_source_repo_unique UNIQUE (project_id, remote_id, repo_type)
 );
 
@@ -92,7 +108,10 @@ CREATE TABLE tracker (
 	owner_id integer NOT NULL REFERENCES "user"(id) ON DELETE CASCADE,
 	name character varying(128) NOT NULL,
 	description character varying,
-	visibility visibility DEFAULT 'UNLISTED'::visibility NOT NULL
+	visibility visibility DEFAULT 'UNLISTED'::visibility NOT NULL,
+	-- Remote webhook ID
+	webhook_id integer NOT NULL,
+	webhook_version integer NOT NULL
 );
 
 CREATE TABLE event (
@@ -117,9 +136,9 @@ CREATE TABLE event_project_association (
 );
 
 CREATE TABLE redirect (
-   id serial PRIMARY KEY,
-   created timestamp without time zone NOT NULL,
-   name character varying(256) NOT NULL,
-   owner_id integer NOT NULL REFERENCES "user"(id) ON DELETE CASCADE,
-   new_project_id integer NOT NULL REFERENCES project(id) ON DELETE CASCADE
+	id serial PRIMARY KEY,
+	created timestamp without time zone NOT NULL,
+	name character varying(256) NOT NULL,
+	owner_id integer NOT NULL REFERENCES "user"(id) ON DELETE CASCADE,
+	new_project_id integer NOT NULL REFERENCES project(id) ON DELETE CASCADE
 );

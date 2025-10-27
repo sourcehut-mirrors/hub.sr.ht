@@ -1,28 +1,31 @@
-import email
 import html
 import json
 import re
-import hubsrht.services.todo.webhooks as todo_webhooks # XXX Legacy webhooks
 from datetime import datetime
 from flask import Blueprint, request, current_app
 from hubsrht.builds import submit_patchset
+from hubsrht.services.hg import EventWebhook as HgEventWebhook
+from hubsrht.services.hg import WebhookEvent as HgWebhookEvent
 from hubsrht.services.todo import TodoClient, SubmitCommentInput
 from hubsrht.services.todo import TicketStatus, TicketResolution
 from hubsrht.services.todo import GraphQLClientGraphQLMultiError
-from hubsrht.services.git import GitClient
+from hubsrht.services.todo import EventWebhook as TodoEventWebhook
+from hubsrht.services.todo import WebhookEvent as TodoWebhookEvent
+from hubsrht.services.todo import EventType as TodoEventType
+from hubsrht.services.git import EventWebhook as GitEventWebhook
+from hubsrht.services.git import WebhookEvent as GitWebhookEvent
 from hubsrht.services.lists import ListsClient, ToolIcon
 from hubsrht.services.lists import EventWebhook as ListEventWebhook
 from hubsrht.services.lists import WebhookEvent as ListWebhookEvent
 from hubsrht.trailers import commit_trailers
-from hubsrht.types import Event, EventType, MailingList, SourceRepo, RepoType, EventProjectAssociation
-from hubsrht.types import Tracker, User, Visibility
-from hubsrht.types.eventprojectassoc import EventProjectAssociation
+from hubsrht.types import Event, EventType, EventProjectAssociation
+from hubsrht.types import Tracker, MailingList, SourceRepo, RepoType
+from hubsrht.types import User, Visibility
 from srht.config import get_origin
 from srht.crypto import fernet, verify_request_signature
 from srht.database import db
 from srht.flask import csrf_bypass
-from srht.graphql import InternalAuth, Error
-from srht.validation import Validation
+from srht.graphql import InternalAuth, Error, has_error
 from urllib.parse import quote
 
 webhooks = Blueprint("webhooks", __name__)
@@ -32,67 +35,78 @@ _hgsrht = get_origin("hg.sr.ht", external=True, default=None)
 _todosrht = get_origin("todo.sr.ht", external=True, default=None)
 _listssrht = get_origin("lists.sr.ht", external=True, default=None)
 
+_ticket_url_re = re.compile(
+    rf"""
+    ^
+    {re.escape(_todosrht)}
+    /(?P<owner>~[a-z_][a-z0-9_-]+)
+    /(?P<tracker>[\w.-]+)
+    /(?P<ticket>\d+)
+    $
+    """,
+    re.VERBOSE,
+) if _todosrht else None
+
 @csrf_bypass
-@webhooks.route("/webhooks/git-user/<int:user_id>", methods=["POST"])
+@webhooks.route("/webhooks/gql/git-user/<int:user_id>", methods=["POST"])
 def git_user(user_id):
-    event = request.headers.get("X-Webhook-Event")
     payload = verify_request_signature(request)
-    payload = json.loads(payload.decode('utf-8'))
-    user = User.query.get(user_id)
-    if not user:
-        return "I don't recognize this user.", 404
+    payload = json.loads(payload.decode('utf-8'))["data"]
+    webhook = GitEventWebhook.model_validate(payload).webhook
+    repo = webhook.repository
 
-    if event == "repo:update":
-        repos = (SourceRepo.query
-                .filter(SourceRepo.remote_id == payload["id"])
-                .filter(SourceRepo.repo_type == RepoType.git))
-        summary = ""
-        for repo in repos:
-            repo.name = payload["name"]
-            repo.description = payload["description"]
-            repo.visibility = Visibility(payload["visibility"].upper())
-            repo.project.updated = datetime.utcnow()
-            db.session.commit()
-            summary += f"Updated local:{repo.id}/remote:{repo.remote_id}. Thanks!\n"
-        return summary, 200
-    elif event == "repo:delete":
-        repos = (SourceRepo.query
-                .filter(SourceRepo.remote_id == payload["id"])
-                .filter(SourceRepo.repo_type == RepoType.git))
-        summary = ""
-        for repo in repos:
-            if repo.project.summary_repo_id == repo.id:
-                repo.project.summary_repo = None
+    match webhook.event:
+        case GitWebhookEvent.REPO_DELETED:
+            source_repos = (SourceRepo.query
+                .filter(SourceRepo.repo_type == RepoType.git)
+                .filter(SourceRepo.remote_id == repo.id)
+            )
+            for source_repo in source_repos:
+                if source_repo.project.summary_repo_id == repo.id:
+                    source_repo.project_summary_repo = None
+                    db.session.commit()
+                db.session.delete(source_repo)
                 db.session.commit()
-            db.session.delete(repo)
-            repo.project.updated = datetime.utcnow()
-            db.session.commit()
-            summary += f"Deleted local:{repo.id}/remote:{repo.remote_id}. Thanks!\n"
-        return summary, 200
-    else:
-        raise NotImplementedError
+            return f"Deleted repository with remote ID {webhook.repository.id}"
+        case GitWebhookEvent.REPO_UPDATE:
+            source_repos = (SourceRepo.query
+                .filter(SourceRepo.repo_type == RepoType.git)
+                .filter(SourceRepo.remote_id == repo.id)
+            )
+            for source_repo in source_repos:
+                source_repo.name = repo.name
+                source_repo.description = repo.description
+                source_repo.visibility = Visibility(repo.visibility.value)
+                source_repo.project.updated = datetime.utcnow()
+                db.session.commit()
+            return f"Updated repository with remote ID {webhook.repository.id}"
+
+    return "No action required"
 
 @csrf_bypass
-@webhooks.route("/webhooks/git-repo/<int:repo_id>", methods=["POST"])
+@webhooks.route("/webhooks/gql/git-repo/<int:repo_id>", methods=["POST"])
 def git_repo(repo_id):
-    event = request.headers.get("X-Webhook-Event")
     payload = verify_request_signature(request)
-    payload = json.loads(payload.decode('utf-8'))
+    payload = json.loads(payload.decode('utf-8'))["data"]
+    webhook = GitEventWebhook.model_validate(payload).webhook
     repo = SourceRepo.query.get(repo_id)
     if not repo:
-        return "I don't recognize that repository.", 404
+        return "No action required; unknown repository"
+    if webhook.event != GitWebhookEvent.GIT_POST_RECEIVE:
+        return "No action required; unknown event"
 
-    if event == "repo:post-update":
-        if not payload["refs"][0]["new"]:
-            return "Thanks!"
-        commit_sha = payload["refs"][0]["new"]["id"][:7]
+    repo_name = repo.owner.canonical_name + "/" + repo.name
+    pusher_name = webhook.pusher.canonical_name
+    pusher_url = f"{_gitsrht}/{pusher_name}"
+    pusher = current_app.oauth_service.lookup_user(webhook.pusher.username)
+
+    for update in webhook.updates:
+        if not update.new:
+            continue
+
+        commit_sha = update.new.short_id
         commit_url = repo.url() + f"/commit/{commit_sha}"
-        commit_message = payload["refs"][0]["new"]["message"].split("\n")[0]
-        pusher_name = payload['pusher']['canonical_name']
-        pusher_url = f"{_gitsrht}/{pusher_name}"
-        repo_name = repo.owner.canonical_name + "/" + repo.name
-
-        pusher = current_app.oauth_service.lookup_user(payload['pusher']['name'])
+        commit_message = update.new.message.split("\n")[0]
 
         event = Event()
         event.id = dedupe_event("git.sr.ht", pusher, repo, commit_url)
@@ -122,47 +136,20 @@ def git_repo(repo_id):
             assoc.project_id = repo.project_id
             db.session.add(assoc)
 
-        db.session.commit()
+    db.session.commit()
 
-        git_client = GitClient(auth=InternalAuth(pusher))
-        for ref in payload["refs"]:
-            old = (ref["old"] or {}).get("id")
-            new = (ref["new"] or {}).get("id")
-            if not old or not new:
-                continue # New ref, or ref deleted
+    for upd in webhook.updates:
+        if not upd.old or not upd.new:
+            continue # New ref, or ref deleted
 
-            log = git_client.get_log(
-                username=repo.owner.username,
-                repo=repo.name,
-                from_=new,
-            ).user.repository.log
-            if not log or not any(log.results):
-                continue
-            commits = []
-            for c in log.results:
-                if c.id == old:
-                    break
-                commits.append(c)
+        if not upd.log.results or not any(upd.log.results):
+            continue
 
-            for commit in reversed(commits):
-                for trailer, value in commit_trailers(commit.message):
-                    _handle_commit_trailer(trailer, value, pusher, repo, commit)
+        for commit in reversed(upd.log.results):
+            for trailer, value in commit_trailers(commit.message):
+                _handle_commit_trailer(trailer, value, pusher, repo, commit)
 
-        return "Thanks!"
-    else:
-        raise NotImplementedError
-
-_ticket_url_re = re.compile(
-    rf"""
-    ^
-    {re.escape(_todosrht)}
-    /(?P<owner>~[a-z_][a-z0-9_-]+)
-    /(?P<tracker>[\w.-]+)
-    /(?P<ticket>\d+)
-    $
-    """,
-    re.VERBOSE,
-) if _todosrht else None
+    return f"Processed push event for local repo ID {repo.id}"
 
 def _handle_commit_trailer(trailer, value, pusher, repo, commit):
     if not _todosrht:
@@ -221,12 +208,7 @@ def _handle_commit_trailer(trailer, value, pusher, repo, commit):
                 ticket_id=ticket.id,
                 comment=comment)
     except GraphQLClientGraphQLMultiError as err:
-        print(err)
-        is_access_denied = False
-        for err in err.errors:
-            if err.extensions.get("code") == Error.ACCESS_DENIED:
-                is_access_denied = True
-        if not is_access_denied:
+        if not has_error(err, Error.ACCESS_DENIED):
             raise
 
         # Try again without resolving the ticket, in case this user has comment
@@ -238,51 +220,72 @@ def _handle_commit_trailer(trailer, value, pusher, repo, commit):
                     comment=SubmitCommentInput(text=comment),
             )
         except GraphQLClientGraphQLMultiError as err:
-            is_access_denied = False
-            for err in err.errors:
-                if err.extensions.get("code") == Error.ACCESS_DENIED:
-                    is_access_denied = True
-            # Silently discard further access denied errors
-            if not is_access_denied:
+            if not has_error(Error.ACCESS_DENIED):
+                # Silently discard further access denied errors
                 raise
 
 @csrf_bypass
-@webhooks.route("/webhooks/hg-user/<int:user_id>", methods=["POST"])
+@webhooks.route("/webhooks/gql/hg-user/<int:user_id>", methods=["POST"])
 def hg_user(user_id):
-    event = request.headers.get("X-Webhook-Event")
     payload = verify_request_signature(request)
-    payload = json.loads(payload.decode('utf-8'))
-    user = User.query.get(user_id)
-    if not user:
-        return "I don't recognize this user.", 404
+    payload = json.loads(payload.decode('utf-8'))["data"]
+    webhook = HgEventWebhook.model_validate(payload).webhook
+    repo = webhook.repository
 
-    if event == "repo:update":
-        repo = (SourceRepo.query
-                .filter(SourceRepo.id == payload["id"])
-                .filter(SourceRepo.repo_type == RepoType.hg)).one_or_none()
-        if not repo:
-            return "I don't recognize that repository.", 404
-        repo.name = payload["name"]
-        repo.description = payload["description"]
-        repo.project.updated = datetime.utcnow()
-        repo.visibility = Visibility(payload["visibility"].upper())
-        db.session.commit()
-        return f"Updated local:{repo.id}/remote:{repo.remote_id}. Thanks!", 200
-    elif event == "repo:delete":
-        repo = (SourceRepo.query
-                .filter(SourceRepo.remote_id == payload["id"])
-                .filter(SourceRepo.repo_type == RepoType.hg)).one_or_none()
-        if not repo:
-            return "I don't recognize this hg repo.", 404
-        if repo.project.summary_repo_id == repo.id:
-            repo.project.summary_repo = None
-            db.session.commit()
-        db.session.delete(repo)
-        repo.project.updated = datetime.utcnow()
-        db.session.commit()
-        return f"Deleted local:{repo.id}/remote:{repo.remote_id}. Thanks!", 200
-    else:
-        raise NotImplementedError()
+    match webhook.event:
+        case HgWebhookEvent.REPO_DELETED:
+            source_repos = (SourceRepo.query
+                .filter(SourceRepo.repo_type == RepoType.hg)
+                .filter(SourceRepo.remote_id == repo.id)
+            )
+            for source_repo in source_repos:
+                if source_repo.project.summary_repo_id == repo.id:
+                    source_repo.project_summary_repo = None
+                    db.session.commit()
+                db.session.delete(source_repo)
+                db.session.commit()
+            return f"Deleted repository with remote ID {webhook.repository.id}"
+        case HgWebhookEvent.REPO_UPDATE:
+            source_repos = (SourceRepo.query
+                .filter(SourceRepo.repo_type == RepoType.hg)
+                .filter(SourceRepo.remote_id == repo.id)
+            )
+            for source_repo in source_repos:
+                source_repo.name = repo.name
+                source_repo.description = repo.description
+                source_repo.visibility = Visibility(repo.visibility.value)
+                source_repo.project.updated = datetime.utcnow()
+                db.session.commit()
+            return f"Updated repository with remote ID {webhook.repository.id}"
+
+    return "No action required"
+
+@csrf_bypass
+@webhooks.route("/webhooks/gql/mailing-list-user/<int:user_id>", methods=["POST"])
+def mailing_list_user(user_id):
+    payload = verify_request_signature(request)
+    payload = json.loads(payload.decode('utf-8'))["data"]
+    webhook = ListEventWebhook.model_validate(payload).webhook
+    mlist = webhook.list
+
+    match webhook.event:
+        case ListWebhookEvent.LIST_DELETED:
+            mailing_lists = (MailingList.query
+                .filter(MailingList.remote_id == mlist.id))
+            for mailing_list in mailing_lists:
+                db.session.delete(mailing_list)
+                db.session.commit()
+            return f"Deleted mailing list with remote ID {mlist.id}"
+        case ListWebhookEvent.LIST_UPDATED:
+            mailing_lists = (MailingList.query
+                .filter(MailingList.remote_id == webhook.list.id))
+            for mailing_list in mailing_lists:
+                mailing_list.name = mlist.name
+                mailing_list.description = mlist.description
+                mailing_list.visibility = Visibility(mlist.visibility.value)
+            return f"Updated mailing list with remote ID {mlist.id}"
+
+    return "No action required"
 
 @csrf_bypass
 @webhooks.route("/webhooks/gql/mailing-list/<int:list_id>", methods=["POST"])
@@ -298,23 +301,6 @@ def project_mailing_list(list_id):
         return "I don't recognize that mailing list.", 404
 
     match webhook.event:
-        case ListWebhookEvent.LIST_UPDATED:
-            mailing_list.name = webhook.list.name
-            mailing_list.description = webhook.list.description
-            mailing_list.visibility = Visibility(webhook.list.visibility.value)
-            mailing_list.project.updated = datetime.utcnow()
-            db.session.commit()
-
-            local_id = mailing_list.id
-            remote_id = mailing_list.remote_id
-            return f"Updated local:{local_id}/remote:{remote_id}", 200
-        case ListWebhookEvent.LIST_DELETED:
-            local_id = mailing_list.id
-            remote_id = mailing_list.remote_id
-            mailing_list.project.updated = datetime.utcnow()
-            db.session.delete(mailing_list)
-            db.session.commit()
-            return f"Deleted mailing lists local:{local_id}/remote:{remote_id}", 200
         case ListWebhookEvent.EMAIL_RECEIVED:
             email = webhook.email
             sender_canon = email.sender.canonical_name
@@ -372,167 +358,136 @@ def project_mailing_list(list_id):
             return "Submitted builds: " + ", ".join([str(x) for x in job_ids])
 
 @csrf_bypass
-@webhooks.route("/webhooks/todo-user/<int:user_id>", methods=["POST"])
+@webhooks.route("/webhooks/gql/todo-user/<int:user_id>", methods=["POST"])
 def todo_user(user_id):
-    event = request.headers.get("X-Webhook-Event")
     payload = verify_request_signature(request)
-    payload = json.loads(payload.decode('utf-8'))
+    payload = json.loads(payload.decode('utf-8'))["data"]
+    webhook = TodoEventWebhook.model_validate(payload).webhook
+    tracker = webhook.tracker
 
-    user = User.query.get(user_id)
-    if not user:
-        return "I don't recognize this tracker.", 404
-
-    summary = ""
-    if event == "tracker:update":
-        trackers = Tracker.query.filter(Tracker.remote_id == payload["id"])
-        for tracker in trackers:
-            tracker.name = payload["name"]
-            tracker.description = payload["description"]
-            if any(payload["default_access"]):
-                tracker.visibility = Visibility.PUBLIC
-            else:
-                tracker.visibility = Visibility.UNLISTED
-            tracker.project.updated = datetime.utcnow()
-            summary += f"Updated local:{tracker.id}/remote:{tracker.remote_id}\n"
-        db.session.commit()
-        return summary, 200
-    elif event == "tracker:delete":
-        trackers = Tracker.query.filter(Tracker.remote_id == payload["id"])
-        for tracker in trackers:
-            tracker.project.updated = datetime.utcnow()
-            db.session.delete(tracker)
+    match webhook.event:
+        case TodoWebhookEvent.TRACKER_DELETED:
+            trackers = Tracker.query.filter(Tracker.remote_id == tracker.id)
+            for tr in trackers:
+                tr.project.updated = datetime.utcnow()
+                db.session.delete(tr)
             db.session.commit()
-            summary += f"Deleted local:{tracker.id}/remote:{tracker.remote_id}\n"
-        return summary, 200
-    else:
-        raise NotImplementedError()
+            return f"Deleted local trackers corresponding to remote ID {tracker.id}"
+        case TodoWebhookEvent.TRACKER_UPDATE:
+            trackers = Tracker.query.filter(Tracker.remote_id == tracker.id)
+            for tr in trackers:
+                tr.name = tracker.name
+                tr.description = tracker.description
+                tr.visibility = Visibility(tracker.visibility.value)
+                tr.project.updated = datetime.utcnow()
+            db.session.commit()
+            return f"Updated local trackers corresponding to remote ID {tracker.id}"
+
+    return "No action required"
 
 @csrf_bypass
-@webhooks.route("/webhooks/todo-tracker/<int:tracker_id>", methods=["POST"])
+@webhooks.route("/webhooks/gql/todo-tracker/<int:tracker_id>", methods=["POST"])
 def todo_tracker(tracker_id):
-    event = request.headers.get("X-Webhook-Event")
     payload = verify_request_signature(request)
-    payload = json.loads(payload.decode('utf-8'))
+    payload = json.loads(payload.decode('utf-8'))["data"]
+    webhook = TodoEventWebhook.model_validate(payload).webhook
 
     tracker = Tracker.query.get(tracker_id)
     if not tracker:
-        return "I don't recognize this tracker.", 404
+        return "Unknown tracker", 404
 
-    if event == "ticket:create":
-        event = Event()
-        submitter = payload["submitter"]
-        if submitter["type"] == "user":
-            event.user_id = current_app.oauth_service.lookup_user(submitter['name']).id
-            # TODO: Move this to a hub.sr.ht user page
-            submitter_url = f"{_todosrht}/{submitter['canonical_name']}"
-            submitter_url = f"<a href='{submitter_url}'>{submitter['canonical_name']}</a>"
-        elif submitter["type"] == "email" and 'name' in submitter:
-            submitter_url = f"{submitter['name']}"
-        elif submitter["type"] == "email":
-            submitter_url = f"{submitter['email']}"
-        else:
-            submitter_url = f"{submitter['external_id']}"
+    event = Event()
+    event.event_type = EventType.external_event
+    event.tracker_id = tracker.id
 
-        event.event_type = EventType.external_event
-        event.tracker_id = tracker.id
+    match webhook.event:
+        case TodoWebhookEvent.TICKET_CREATED:
+            submitter = webhook.ticket.submitter
+        case TodoWebhookEvent.EVENT_CREATED:
+            comments = [
+                ch for ch in webhook.new_event.changes
+                if ch.event_type == TodoEventType.COMMENT
+            ]
+            if not any(comments):
+                return "No action required"
+            assert len(comments) == 1
+            comment = comments[0]
+            submitter = comment.author
 
-        ticket_id = payload["id"]
-        ticket_url = tracker.url() + f"/{ticket_id}"
-        ticket_subject = payload["title"]
-
-        event.external_source = "todo.sr.ht"
-        event.external_summary = (
-            f"<a href='{ticket_url}'>#{ticket_id}</a> " +
-            f"{html.escape(ticket_subject)}")
-        event.external_summary_plain = f"#{ticket_id} {ticket_subject}"
-        event.external_details = (
-            f"{submitter_url} filed ticket on " +
-            f"<a href='{tracker.url()}'>{tracker.name}</a> todo")
-        assert submitter['type'] in ['user', 'email']
-        if submitter['type'] == 'user':
-            event.external_details_plain = f"{submitter['canonical_name']} filed ticket on {tracker.name} todo"
-        elif submitter['type'] == 'email':
-            event.external_details_plain = f"{submitter['name']} filed ticket on {tracker.name} todo"
-        event.external_url = ticket_url
-
-        db.session.add(event)
-        db.session.flush()
-
-        assoc = EventProjectAssociation()
-        assoc.event_id = event.id
-        assoc.project_id = tracker.project_id
-        db.session.add(assoc)
-
-        db.session.commit()
-        todo_webhooks.ensure_ticket_webhooks(tracker, ticket_id)
-        return "Thanks!"
-    else:
-        raise NotImplementedError()
-
-@csrf_bypass
-@webhooks.route("/webhooks/todo-ticket/<int:tracker_id>/ticket", methods=["POST"])
-def todo_ticket(tracker_id):
-    event = request.headers.get("X-Webhook-Event")
-    payload = verify_request_signature(request)
-    payload = json.loads(payload.decode('utf-8'))
-
-    tracker = Tracker.query.get(tracker_id)
-    if not tracker:
-        return "I don't recognize this tracker.", 404
-
-    if event == "event:create":
-        event = Event()
-        participant = payload["user"]
-        if participant["type"] == "user":
-            event.user_id = current_app.oauth_service.lookup_user(participant['name']).id
-            # TODO: Move this to a hub.sr.ht user page
-            participant_url = f"{_todosrht}/{participant['canonical_name']}"
-            participant_url = f"<a href='{participant_url}'>{participant['canonical_name']}</a>"
-        elif participant["type"] == "email":
-            if 'name' in participant:
-                participant_url = participant['name']
+    match submitter.typename__:
+        case "User":
+            event.user_id = (current_app.oauth_service
+                .lookup_user(submitter.username).id)
+            canonical_name = submitter.canonical_name
+            submitter_url = f"{_todosrht}/{canonical_name}"
+            submitter_url = f"<a href='{submitter_url}'>{canonical_name}</a>"
+        case "EmailAddress":
+            mailbox = html.escape(submitter.mailbox)
+            if submitter.name:
+                name = html.escape(submitter.name)
+                submitter_url = f"<a href='mailto:{mailbox}'>{name}</a>"
             else:
-                participant_url = participant['email']
-        else:
-            participant_url = f"{participant['external_id']}"
+                submitter_url = f"<a href='mailto:{mailbox}'>{mailbox}</a>"
+        case "ExternalUser":
+            external_id = html.escape(submitter.external_id)
+            if submitter.external_url:
+                external_url = html.escape(submitter.external_url)
+                submitter_url = f"<a href='{external_url}' rel='nofollow noopener'>{external_id}</a>"
+            else:
+                submitter_url = f"{external_id}"
 
-        if not "comment" in payload["event_type"]:
-            return "Thanks!"
+    match webhook.event:
+        case TodoWebhookEvent.TICKET_CREATED:
+            ticket = webhook.ticket
+            ticket_url = tracker.url() + f"/{ticket.id}"
+            event.external_source = "todo.sr.ht"
+            event.external_summary = (
+                f"<a href='{ticket_url}'>#{ticket.id}</a> " +
+                f"{html.escape(ticket.subject)}")
+            event.external_summary_plain = f"#{ticket.id} {ticket.subject}"
+            event.external_details = (
+                f"{submitter_url} filed ticket on " +
+                f"<a href='{tracker.url()}'>{tracker.name}</a> todo")
+            event.external_details_plain = f"{submitter.canonical_name} filed ticket on {tracker.name} todo"
+            event.external_url = ticket_url
 
-        event.event_type = EventType.external_event
-        event.tracker_id = tracker.id
+            db.session.add(event)
+            db.session.flush()
 
-        ticket_id = payload["ticket"]["id"]
-        ticket_url = tracker.url() + f"/{ticket_id}"
-        ticket_subject = payload["ticket"]["title"]
+            assoc = EventProjectAssociation()
+            assoc.event_id = event.id
+            assoc.project_id = tracker.project_id
+            db.session.add(assoc)
+            db.session.commit()
 
-        event.external_source = "todo.sr.ht"
-        event.external_summary = (
-            f"<a href='{ticket_url}'>#{ticket_id}</a> " +
-            f"{html.escape(ticket_subject)}")
-        event.external_summary_plain = f"#{ticket_id} {ticket_subject}"
-        event.external_details = (
-            f"{participant_url} commented on " +
-            f"<a href='{tracker.url()}'>{tracker.name}</a> todo")
+            return "Processed new ticket"
+        case TodoWebhookEvent.EVENT_CREATED:
+            ticket = webhook.new_event.ticket
+            ticket_url = tracker.url() + f"/{ticket.id}"
 
-        if participant['type'] == 'user':
-            event.external_details_plain = f"{participant['canonical_name']} commented on {tracker.name} todo"
-        elif participant['type'] == 'email':
-            event.external_details_plain = f"{participant_url} commented on {tracker.name} todo"
-        event.external_url = ticket_url
+            event.external_source = "todo.sr.ht"
+            event.external_summary = (
+                f"<a href='{ticket_url}'>#{ticket.id}</a> " +
+                f"{html.escape(ticket.subject)}")
+            event.external_summary_plain = f"#{ticket.id} {ticket.subject}"
+            event.external_details = (
+                f"{submitter_url} commented on " +
+                f"<a href='{tracker.url()}'>{tracker.name}</a> todo")
 
-        db.session.add(event)
-        db.session.flush()
+            event.external_details_plain = f"{submitter.canonical_name} commented on {tracker.name} todo"
+            event.external_url = ticket_url
 
-        assoc = EventProjectAssociation()
-        assoc.event_id = event.id
-        assoc.project_id = tracker.project_id
-        db.session.add(assoc)
+            db.session.add(event)
+            db.session.flush()
 
-        db.session.commit()
-        return "Thanks!"
-    else:
-        raise NotImplementedError()
+            assoc = EventProjectAssociation()
+            assoc.event_id = event.id
+            assoc.project_id = tracker.project_id
+            db.session.add(assoc)
+            db.session.commit()
+            return "Processed new comment"
+
+    return "No action required"
 
 @csrf_bypass
 @webhooks.route("/webhooks/build-complete/<details>", methods=["POST"])

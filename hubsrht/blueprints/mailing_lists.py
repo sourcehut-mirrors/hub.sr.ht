@@ -5,6 +5,7 @@ from hubsrht.services.lists import ListsClient, Visibility as ListVisibility
 from hubsrht.types import Event, EventType
 from hubsrht.types import MailingList, Visibility
 from hubsrht.types.eventprojectassoc import EventProjectAssociation
+from hubsrht.webhooks import get_user_webhooks
 from srht.config import get_origin
 from srht.database import db
 from srht.flask import paginate_query
@@ -82,6 +83,15 @@ def finalize_add_list(client, owner, project, mailing_list):
             list_id=ml.remote_id,
             payload=ListsClient.event_webhook_query,
             url=webhook_url).webhook.id
+
+    uwh = get_user_webhooks(owner)
+    if uwh.lists_webhook_id is None:
+        user_webhook_url = (get_origin("hub.sr.ht", external=False) +
+               url_for("webhooks.mailing_list_user", user_id=owner.id))
+        uwh.lists_webhook_id = client.create_user_webhook(
+                payload=ListsClient.event_webhook_query,
+                url=user_webhook_url).webhook.id
+        uwh.lists_webhook_version = LIST_WEBHOOK_VERSION
 
     event = Event()
     event.event_type = EventType.mailing_list_added 

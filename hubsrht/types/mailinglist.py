@@ -34,6 +34,9 @@ class MailingList(Base):
     webhook_id = sa.Column(sa.Integer, nullable=False)
     webhook_version = sa.Column(sa.Integer, nullable=False)
 
+    def __repr__(self):
+        return f"<MailingList {self.id}>"
+
     def url(self):
         return f"{_listsrht}/{self.owner.canonical_name}/{self.name}"
 

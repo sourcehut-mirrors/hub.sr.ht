@@ -1,10 +1,11 @@
-import hubsrht.services.todo.webhooks as todo_webhooks # XXX Legacy webhooks
 from flask import Blueprint, render_template, request, redirect, url_for
 from flask import abort
 from hubsrht.projects import ProjectAccess, get_project, get_project_or_redir
 from hubsrht.services.todo import TodoClient, Visibility as TrackerVisibility
 from hubsrht.types import Event, EventType, Tracker, Visibility
 from hubsrht.types.eventprojectassoc import EventProjectAssociation
+from hubsrht.webhooks import get_user_webhooks
+from srht.config import get_origin
 from srht.database import db
 from srht.flask import paginate_query
 from srht.oauth import current_user, loginrequired
@@ -12,6 +13,8 @@ from srht.search import search_by
 from srht.validation import Validation
 
 trackers = Blueprint("trackers", __name__)
+
+TODO_WEBHOOK_VERSION = 1
 
 @trackers.route("/<owner>/<project_name>/trackers")
 def trackers_GET(owner, project_name):
@@ -108,8 +111,27 @@ def new_POST(owner, project_name):
     tracker.name = remote_tracker.name
     tracker.description = remote_tracker.description
     tracker.visibility = Visibility(remote_tracker.visibility.value)
+    tracker.webhook_id = -1
+    tracker.webhook_version = TODO_WEBHOOK_VERSION
     db.session.add(tracker)
     db.session.flush()
+
+    webhook_url = (get_origin("hub.sr.ht", external=False) +
+           url_for("webhooks.todo_tracker", tracker_id=tracker.id))
+    tracker.webhook_id = todo_client.create_tracker_webhook(
+            tracker_id=tracker.remote_id,
+            payload=TodoClient.event_webhook_query,
+            url=webhook_url).webhook.id
+    tracker.webhook_version = TODO_WEBHOOK_VERSION
+
+    uwh = get_user_webhooks(owner)
+    if uwh.todo_webhook_id is None:
+        user_webhook_url = (get_origin("hub.sr.ht", external=False) +
+               url_for("webhooks.todo_user", user_id=owner.id))
+        uwh.todo_webhook_id = todo_client.create_user_webhook(
+                payload=TodoClient.event_webhook_query,
+                url=user_webhook_url).webhook.id
+        uwh.todo_webhook_version = TODO_WEBHOOK_VERSION
 
     event = Event()
     event.event_type = EventType.tracker_added
@@ -122,9 +144,6 @@ def new_POST(owner, project_name):
     assoc.event_id = event.id
     assoc.project_id = project.id
     db.session.add(assoc)
-
-    todo_webhooks.ensure_user_webhooks(owner)
-    todo_webhooks.ensure_tracker_webhooks(tracker)
 
     db.session.commit()
 
@@ -182,12 +201,13 @@ def delete_POST(owner, project_name, tracker_id):
     db.session.delete(tracker)
     db.session.commit()
 
-    todo_webhooks.unensure_tracker_webhooks(tracker)
+    client = TodoClient()
+    client.delete_tracker_webhook(tracker.webhook_id)
 
     valid = Validation(request)
     delete_remote = valid.optional("delete-remote") == "on"
     if delete_remote:
-        TodoClient().delete_tracker(remote_id)
+        client.delete_tracker(remote_id)
 
     return redirect(url_for("projects.summary_GET",
         owner=owner.canonical_name, project_name=project.name))
