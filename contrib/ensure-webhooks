@@ -68,7 +68,7 @@ with app.app_context():
         client = ListsClient(auth=InternalAuth(res.owner))
         webhook_url = url_for("webhooks.project_mailing_list", list_id=res.id)
         update_resource_hook(res, webhook_url, LIST_WEBHOOK_VERSION,
-            delete=lambda: client.delete_list_webhook(res.remote_id),
+            delete=lambda: client.delete_list_webhook(res.webhook_id),
             create=lambda: client.create_list_webhook(
                 list_id=res.remote_id,
                 payload=ListsClient.event_webhook_query,
@@ -93,7 +93,7 @@ with app.app_context():
         client = GitClient(auth=InternalAuth(res.owner))
         webhook_url = url_for("webhooks.git_repo", repo_id=res.id)
         update_resource_hook(res, webhook_url, GIT_WEBHOOK_VERSION,
-            delete=lambda: client.delete_repo_webhook(res.remote_id),
+            delete=lambda: client.delete_repo_webhook(res.webhook_id),
             create=lambda: client.create_repo_webhook(
                 repo_id=res.remote_id,
                 payload=GitClient.event_webhook_query,
@@ -137,7 +137,7 @@ with app.app_context():
         client = TodoClient(auth=InternalAuth(res.owner))
         webhook_url = url_for("webhooks.todo_tracker", tracker_id=res.id)
         update_resource_hook(res, webhook_url, TODO_WEBHOOK_VERSION,
-            delete=lambda: client.delete_tracker_webhook(res.remote_id),
+            delete=lambda: client.delete_tracker_webhook(res.webhook_id),
             create=lambda: client.create_tracker_webhook(
                 tracker_id=res.remote_id,
                 payload=TodoClient.event_webhook_query,
