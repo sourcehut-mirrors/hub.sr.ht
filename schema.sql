@@ -91,8 +91,8 @@ CREATE TABLE source_repo (
 	repo_type character varying NOT NULL,
 	visibility visibility DEFAULT 'UNLISTED'::visibility NOT NULL,
 	-- Remote webhook ID
-	webhook_id integer NOT NULL,
-	webhook_version integer NOT NULL,
+	webhook_id integer,
+	webhook_version integer,
 	CONSTRAINT project_source_repo_unique UNIQUE (project_id, remote_id, repo_type)
 );
 

@@ -377,12 +377,10 @@ def delete_POST(owner, project_name):
         lists_client.delete_list_webhook(i.webhook_id)
 
     associated_repos = (SourceRepo.query
-        .filter(SourceRepo.project_id == project.id))
+        .filter(SourceRepo.project_id == project.id)
+        .filter(SourceRepo.repo_type == RepoType.git))
     for r in associated_repos:
-        if r.repo_type == RepoType.git:
-            git_client.delete_repo_webhook(r.webhook_id)
-        else:
-            hg_client.delete_repo_webhook(r.webhook_id)
+        git_client.delete_repo_webhook(r.webhook_id)
 
     associated_trackers = (Tracker.query
         .filter(Tracker.project_id == project.id))
