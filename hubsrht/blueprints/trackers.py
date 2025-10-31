@@ -77,11 +77,12 @@ def new_POST(owner, project_name):
     visibility = TrackerVisibility(project.visibility.value)
 
     if "create" in valid:
-        remote_tracker = todo_client.create_tracker(
-                name=valid.require("name"),
-                description=valid.optional("description"),
-                visibility=visibility,
-        ).tracker
+        with valid:
+            remote_tracker = todo_client.create_tracker(
+                    name=valid.require("name"),
+                    description=valid.optional("description"),
+                    visibility=visibility,
+            ).tracker
         if not valid.ok:
             trackers, existing = get_trackers(owner, project)
             return render_template("tracker-new.html",

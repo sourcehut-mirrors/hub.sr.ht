@@ -193,11 +193,12 @@ def new_POST(owner, project_name):
                     existing=existing, **valid.kwargs)
         return lists_from_template(owner, project, template)
     elif "create" in valid:
-        mailing_list = client.create_list(
-            name=valid.require("name"),
-            description=valid.optional("description"),
-            visibility=ListVisibility(project.visibility.value)
-        ).mailing_list
+        with valid:
+            mailing_list = client.create_list(
+                name=valid.require("name"),
+                description=valid.optional("description"),
+                visibility=ListVisibility(project.visibility.value)
+            ).mailing_list
         if not valid.ok:
             lists = sorted(lists, key=lambda r: r.updated, reverse=True)
             existing = [l.remote_id for l in (MailingList.query
