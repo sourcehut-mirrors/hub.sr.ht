@@ -2,6 +2,7 @@ from flask import Blueprint, render_template, request, redirect, url_for, abort
 from hubsrht.projects import ProjectAccess, get_project, get_project_or_redir
 from hubsrht.services.hg import HgClient, Visibility as HgVisibility
 from hubsrht.services.git import GitClient, Visibility as GitVisibility
+from hubsrht.services.git import GraphQLClientGraphQLMultiError
 from hubsrht.types import Event, EventType
 from hubsrht.types import RepoType, SourceRepo, Visibility
 from hubsrht.types.eventprojectassoc import EventProjectAssociation
@@ -334,18 +335,23 @@ def delete_POST(owner, project_name, repo_id):
         case RepoType.hg:
             client = HgClient()
 
-    if repo.repo_type == RepoType.git:
-        client.delete_repo_webhook(repo.webhook_id)
+    try:
+        if repo.repo_type == RepoType.git:
+            client.delete_repo_webhook(repo.webhook_id)
+
+        valid = Validation(request)
+        delete_remote = valid.optional("delete-remote") == "on"
+        if delete_remote:
+            client.delete_repo(repo_id)
+    except GraphQLClientGraphQLMultiError:
+        # This generally occurs if the remote repo (or webhook) was deleted and
+        # we didn't hear about it. TODO: Replace me with semantic errors
+        pass
 
     repo_name = repo.name
     repo_id = repo.remote_id
     db.session.delete(repo)
     db.session.commit()
-
-    valid = Validation(request)
-    delete_remote = valid.optional("delete-remote") == "on"
-    if delete_remote:
-        client.delete_repo(repo_id)
 
     return redirect(url_for("projects.summary_GET",
         owner=owner.canonical_name, project_name=project.name))
