@@ -364,7 +364,6 @@ def delete_POST(owner, project_name):
     session["notice"] = f"{project.name} has been deleted."
 
     git_client = GitClient()
-    hg_client = HgClient()
     lists_client = ListsClient()
     todo_client = TodoClient()
 
@@ -385,7 +384,7 @@ def delete_POST(owner, project_name):
     associated_trackers = (Tracker.query
         .filter(Tracker.project_id == project.id))
     for t in associated_trackers:
-        todo_client.delete_tracker_webhook(r.webhook_id)
+        todo_client.delete_tracker_webhook(t.webhook_id)
 
     with db.engine.connect() as conn:
         conn.execute(text(f"DELETE FROM project WHERE id = {project.id}"))
