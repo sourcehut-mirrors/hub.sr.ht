@@ -169,6 +169,9 @@ query EventWebhook {
           ... on Commit {
             message
           }
+          ... on Tag {
+            message
+          }
         }
 
         log {
