@@ -198,15 +198,15 @@ def _handle_commit_trailer(trailer, value, pusher, repo, commit):
                 return
 
     try:
-        comment = SubmitCommentInput(text=comment)
+        comment_input = SubmitCommentInput(text=comment)
         if resolution is not None:
-            comment.status = TicketStatus.RESOLVED
-            comment.resolution = resolution
+            comment_input.status = TicketStatus.RESOLVED
+            comment_input.resolution = resolution
 
         todo_client.submit_comment(
                 tracker_id=tracker.id,
                 ticket_id=ticket.id,
-                comment=comment)
+                comment=comment_input)
     except GraphQLClientGraphQLMultiError as err:
         if not has_error(err, Error.ACCESS_DENIED):
             raise
