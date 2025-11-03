@@ -357,6 +357,8 @@ def project_mailing_list(list_id):
 
             return "Submitted builds: " + ", ".join([str(x) for x in job_ids])
 
+    return "No action required"
+
 @csrf_bypass
 @webhooks.route("/webhooks/gql/todo-user/<int:user_id>", methods=["POST"])
 def todo_user(user_id):
