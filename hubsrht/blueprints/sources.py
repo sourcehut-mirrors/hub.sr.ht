@@ -16,7 +16,7 @@ from srht.validation import Validation
 
 sources = Blueprint("sources", __name__)
 
-GIT_WEBHOOK_VERSION = 1
+GIT_WEBHOOK_VERSION = 2
 HG_WEBHOOK_VERSION = 1
 
 def get_repos(owner, project, repo_type):
