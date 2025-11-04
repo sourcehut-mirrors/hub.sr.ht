@@ -79,7 +79,7 @@ with app.app_context():
         if up_to_date(uwh.lists_webhook_version, LIST_WEBHOOK_VERSION):
             continue
         print(f"Configuring lists user webhook for {user}")
-        client = ListsClient(auth=InternalAuth(res.owner))
+        client = ListsClient(auth=InternalAuth(user))
         webhook_url = url_for("webhooks.mailing_list_user", user_id=user.id)
         if uwh.lists_webhook_id is not None:
             client.delete_user_webhook(uwh.lists_webhook_id)
@@ -106,7 +106,7 @@ with app.app_context():
         if up_to_date(uwh.git_webhook_version, GIT_WEBHOOK_VERSION):
             continue
         print(f"Configuring git user webhook for {user}")
-        client = GitClient(auth=InternalAuth(res.owner))
+        client = GitClient(auth=InternalAuth(user))
         webhook_url = url_for("webhooks.git_user", user_id=user.id)
         if uwh.git_webhook_id is not None:
             client.delete_user_webhook(uwh.git_webhook_id)
@@ -123,7 +123,7 @@ with app.app_context():
         if up_to_date(uwh.hg_webhook_version, HG_WEBHOOK_VERSION):
             continue
         print(f"Configuring hg user webhook for {user}")
-        client = HgClient(auth=InternalAuth(res.owner))
+        client = HgClient(auth=InternalAuth(user))
         webhook_url = url_for("webhooks.hg_user", user_id=user.id)
         if uwh.hg_webhook_id is not None:
             client.delete_user_webhook(uwh.hg_webhook_id)
@@ -148,7 +148,7 @@ with app.app_context():
         if up_to_date(uwh.todo_webhook_version, TODO_WEBHOOK_VERSION):
             continue
         print(f"Configuring todo user webhook for {user}")
-        client = TodoClient(auth=InternalAuth(res.owner))
+        client = TodoClient(auth=InternalAuth(user))
         webhook_url = url_for("webhooks.todo_user", user_id=user.id)
         if uwh.todo_webhook_id is not None:
             client.delete_user_webhook(uwh.todo_webhook_id)
