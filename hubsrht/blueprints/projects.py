@@ -373,18 +373,27 @@ def delete_POST(owner, project_name):
     associated_lists = (MailingList.query
         .filter(MailingList.project_id == project.id))
     for i in associated_lists:
-        lists_client.delete_list_webhook(i.webhook_id)
+        try:
+            lists_client.delete_list_webhook(i.webhook_id)
+        except:
+            pass # Resource likely removed by user
 
     associated_repos = (SourceRepo.query
         .filter(SourceRepo.project_id == project.id)
         .filter(SourceRepo.repo_type == RepoType.git))
     for r in associated_repos:
-        git_client.delete_repo_webhook(r.webhook_id)
+        try:
+            git_client.delete_repo_webhook(r.webhook_id)
+        except:
+            pass # Resource likely removed by user
 
     associated_trackers = (Tracker.query
         .filter(Tracker.project_id == project.id))
     for t in associated_trackers:
-        todo_client.delete_tracker_webhook(t.webhook_id)
+        try:
+            todo_client.delete_tracker_webhook(t.webhook_id)
+        except:
+            pass # Resource likely removed by user
 
     with db.engine.connect() as conn:
         conn.execute(text(f"DELETE FROM project WHERE id = {project.id}"))
