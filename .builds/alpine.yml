@@ -6,6 +6,8 @@ repositories:
     alpine@sr.ht.rsa.pub
 packages:
   - rsync
+  - go
+  - golangci-lint
 sources:
   - https://git.sr.ht/~sircmpwn/hub.sr.ht
   - https://git.sr.ht/~sircmpwn/sr.ht-apkbuilds
@@ -18,6 +20,10 @@ secrets:
   - fa00a8d3-7b63-42d5-8060-3bb31c3e3018 # ssh deploy key
   - d0adc1d4-af78-4852-920f-1134392f5d10 # package signing key
 tasks:
+  - lint: |
+      cd $project
+      make all-bin # to generate all .go files
+      golangci-lint run
   - archive: |
       cd $project
       pkgver=$(~/sr.ht-apkbuilds/pkgkit pkgver)
