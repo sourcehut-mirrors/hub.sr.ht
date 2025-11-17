@@ -4,7 +4,7 @@ from flask import Blueprint, render_template, request, abort
 from hubsrht.types import User, Project, Visibility, Event, EventType
 from hubsrht.types import SourceRepo, MailingList, Tracker
 from hubsrht.types.eventprojectassoc import EventProjectAssociation
-from srht.flask import paginate_query
+from srht.app import paginate_query
 from srht.oauth import current_user, UserType
 from srht.search import search_by
 

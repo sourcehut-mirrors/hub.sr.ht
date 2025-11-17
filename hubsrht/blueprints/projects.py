@@ -16,9 +16,9 @@ from hubsrht.types.eventprojectassoc import EventProjectAssociation
 from markupsafe import Markup, escape
 from sqlalchemy import or_
 from sqlalchemy.sql import text
+from srht.app import csrf_bypass, paginate_query
 from srht.config import cfg, get_origin
 from srht.database import db
-from srht.flask import csrf_bypass, paginate_query
 from srht.graphql import InternalAuth
 from srht.markdown import markdown, sanitize
 from srht.oauth import current_user, loginrequired

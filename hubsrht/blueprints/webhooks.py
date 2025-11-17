@@ -21,10 +21,10 @@ from hubsrht.trailers import commit_trailers
 from hubsrht.types import Event, EventType, EventProjectAssociation
 from hubsrht.types import Tracker, MailingList, SourceRepo, RepoType
 from hubsrht.types import User, Visibility
+from srht.app import csrf_bypass
 from srht.config import get_origin
 from srht.crypto import fernet, verify_request_signature
 from srht.database import db
-from srht.flask import csrf_bypass
 from srht.graphql import InternalAuth, Error, has_error
 from urllib.parse import quote
 

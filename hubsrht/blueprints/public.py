@@ -1,8 +1,8 @@
 from sqlalchemy.sql import operators
 from flask import Blueprint, render_template, request, session
 from hubsrht.types import Project, Feature, Event, EventType, Visibility, User
+from srht.app import paginate_query
 from srht.database import db
-from srht.flask import paginate_query
 from srht.oauth import UserType, current_user, loginrequired
 from srht.search import search_by
 

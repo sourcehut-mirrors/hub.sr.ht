@@ -7,9 +7,9 @@ from hubsrht.types import Event, EventType
 from hubsrht.types import RepoType, SourceRepo, Visibility
 from hubsrht.types.eventprojectassoc import EventProjectAssociation
 from hubsrht.webhooks import get_user_webhooks
+from srht.app import paginate_query
 from srht.config import get_origin
 from srht.database import db
-from srht.flask import paginate_query
 from srht.oauth import current_user, loginrequired
 from srht.search import search_by
 from srht.validation import Validation

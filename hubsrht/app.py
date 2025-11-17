@@ -1,12 +1,12 @@
 from hubsrht.types import User
+from srht.app import Flask
 from srht.config import cfg
 from srht.database import DbSession
-from srht.flask import SrhtFlask
 
 db = DbSession(cfg("hub.sr.ht", "connection-string"))
 db.init()
 
-class HubApp(SrhtFlask):
+class HubApp(Flask):
     def __init__(self):
         super().__init__("hub.sr.ht", __name__, user_class=User)
 
