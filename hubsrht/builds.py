@@ -96,19 +96,28 @@ def submit_patchset(ml, patchset):
 [1]: mailto:{submitter[1]}"""
 
     for key, value in manifests.items():
+        try:
+            manifest = Manifest(yaml.safe_load(value))
+        except YAMLError:
+            lists_client.create_tool(
+                    patchset_id=patch_id,
+                    icon=ToolIcon.FAILED,
+                    details=f"Failed to submit build: error parsing YAML")
+            continue
+
+        submit_build = True
+        sub = manifest.submitter
+        if sub != None and "hub.sr.ht" in sub:
+            hub_sub = sub["hub.sr.ht"]
+            if "enabled" in hub_sub:
+                submit_build = hub_sub["enabled"]
+        if not submit_build:
+            continue
+
         tool_id = lists_client.create_tool(
                 patchset_id=patch_id,
                 icon=ToolIcon.PENDING,
                 details=f"build pending: {key}").create_tool.id
-
-        try:
-            manifest = Manifest(yaml.safe_load(value))
-        except YAMLError:
-            lists_client.update_tool(
-                    tool_id=tool_id,
-                    icon=ToolIcon.FAILED,
-                    details=f"Failed to submit build: error parsing YAML")
-            continue
 
         # TODO: https://todo.sr.ht/~sircmpwn/builds.sr.ht/291
         task = Task({
