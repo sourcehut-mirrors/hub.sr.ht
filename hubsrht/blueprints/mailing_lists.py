@@ -17,6 +17,27 @@ mailing_lists = Blueprint("mailing_lists", __name__)
 
 LIST_WEBHOOK_VERSION = 2
 
+def get_user_lists(project, client, search=None):
+    # TODO: Pagination
+    cursor = None
+    lists = []
+    while True:
+        batch = client.get_lists(cursor).me.lists
+        lists.extend(batch.results)
+        cursor = batch.cursor
+        if not cursor:
+            break
+
+    lists = sorted(lists, key=lambda r: r.updated, reverse=True)
+    existing = [l.remote_id for l in (MailingList.query
+            .filter(MailingList.project_id == project.id)).all()]
+
+    if search:
+        # TODO: Better searching
+        lists = [l for l in lists if search.lower() in l.name.lower()]
+
+    return (lists, existing)
+
 @mailing_lists.route("/<owner>/<project_name>/lists")
 def lists_GET(owner, project_name):
     owner, project = get_project_or_redir(owner, project_name, ProjectAccess.read)
@@ -47,20 +68,7 @@ def lists_GET(owner, project_name):
 def new_GET(owner, project_name):
     owner, project = get_project_or_redir(owner, project_name, ProjectAccess.write)
     client = ListsClient()
-
-    # TODO: Pagination
-    cursor = None
-    lists = []
-    while True:
-        batch = client.get_lists(cursor).me.lists
-        lists.extend(batch.results)
-        cursor = batch.cursor
-        if not cursor:
-            break
-
-    lists = sorted(lists, key=lambda r: r.updated, reverse=True)
-    existing = [l.remote_id for l in (MailingList.query
-            .filter(MailingList.project_id == project.id)).all()]
+    lists, existing = get_user_lists(project, client)
     return render_template("mailing-list-new.html", view="new-resource",
             owner=owner, project=project, lists=lists, existing=existing)
 
@@ -185,9 +193,7 @@ def new_POST(owner, project_name):
                 "announce-devel", "announce-devel-discuss"],
             "Invalid template selection")
         if not valid.ok:
-            lists = sorted(lists, key=lambda r: r.updated, reverse=True)
-            existing = [l.remote_id for l in (MailingList.query
-                    .filter(MailingList.project_id == project.id)).all()]
+            lists, existing = get_user_lists(project, client)
             return render_template("mailing-list-new.html", view="new-resource",
                     owner=owner, project=project, lists=lists,
                     existing=existing, **valid.kwargs)
@@ -200,9 +206,7 @@ def new_POST(owner, project_name):
                 visibility=ListVisibility(project.visibility.value)
             ).mailing_list
         if not valid.ok:
-            lists = sorted(lists, key=lambda r: r.updated, reverse=True)
-            existing = [l.remote_id for l in (MailingList.query
-                    .filter(MailingList.project_id == project.id)).all()]
+            lists, existing = get_user_lists(project, client)
             return render_template("mailing-list-new.html", view="new-resource",
                     owner=owner, project=project, lists=lists,
                     existing=existing, **valid.kwargs)
@@ -214,11 +218,7 @@ def new_POST(owner, project_name):
                 break
         if not list_name:
             search = valid.optional("search")
-            lists = sorted(lists, key=lambda r: r.updated, reverse=True)
-            # TODO: Search properly
-            lists = filter(lambda r: search.lower() in r.name.lower(), lists)
-            existing = [l.remote_id for l in (MailingList.query
-                    .filter(MailingList.project_id == project.id)).all()]
+            lists, existing = get_user_lists(project, client, search)
             return render_template("mailing-list-new.html", view="new-resource",
                     owner=owner, project=project, lists=lists,
                     existing=existing, **valid.kwargs)
