@@ -109,7 +109,7 @@ def git_repo(repo_id):
         commit_message = update.new.message.split("\n")[0]
 
         event = Event()
-        event.id = dedupe_event("git.sr.ht", pusher, repo, commit_url)
+        event.id = _dedupe_event("git.sr.ht", pusher, repo, commit_url)
         if event.id is None:
             # This is a brand new event.
             event.event_type = EventType.external_event
@@ -150,79 +150,6 @@ def git_repo(repo_id):
                 _handle_commit_trailer(trailer, value, pusher, repo, commit)
 
     return f"Processed push event for local repo ID {repo.id}"
-
-def _handle_commit_trailer(trailer, value, pusher, repo, commit):
-    if not _todosrht:
-        return
-
-    if trailer == "Closes":
-        resolution = TicketResolution.CLOSED
-    elif trailer == "Fixes":
-        resolution = TicketResolution.FIXED
-    elif trailer == "Implements":
-        resolution = TicketResolution.IMPLEMENTED
-    elif trailer == "References":
-        resolution = None
-    else:
-        return
-
-    match = _ticket_url_re.match(value.strip())
-    if not match:
-        return
-
-    commit_message = html.escape(commit.message.split("\n")[0])
-    commit_author = html.escape(commit.author.name.strip())
-    commit_sha = commit.id[:7]
-    commit_url = repo.url() + f"/commit/{commit_sha}"
-    comment = f"""\
-*{commit_author} referenced this ticket in commit [{commit_sha}].*
-
-[{commit_sha}]: {commit_url} "{commit_message}"\
-"""
-
-    auth = InternalAuth(pusher)
-    todo_client = TodoClient(auth)
-
-    # Don't create duplicate comments
-    tracker = todo_client.get_ticket_comments(
-            username=match["owner"][1:],
-            tracker=match["tracker"],
-            ticket_id=int(match["ticket"]),
-    ).user.tracker
-    ticket = tracker.ticket
-    for event in ticket.events.results:
-        for change in event.changes:
-            if not hasattr(change, "text"):
-                continue
-            if change.text == comment:
-                return
-
-    try:
-        comment_input = SubmitCommentInput(text=comment)
-        if resolution is not None:
-            comment_input.status = TicketStatus.RESOLVED
-            comment_input.resolution = resolution
-
-        todo_client.submit_comment(
-                tracker_id=tracker.id,
-                ticket_id=ticket.id,
-                comment=comment_input)
-    except GraphQLClientGraphQLMultiError as err:
-        if not has_error(err, Error.ACCESS_DENIED):
-            raise
-
-        # Try again without resolving the ticket, in case this user has comment
-        # access but not triage access
-        try:
-            todo_client.submit_comment(
-                    tracker_id=tracker.id,
-                    ticket_id=ticket.id,
-                    comment=SubmitCommentInput(text=comment),
-            )
-        except GraphQLClientGraphQLMultiError as err:
-            if not has_error(Error.ACCESS_DENIED):
-                # Silently discard further access denied errors
-                raise
 
 @csrf_bypass
 @webhooks.route("/webhooks/gql/hg-user/<int:user_id>", methods=["POST"])
@@ -322,7 +249,10 @@ def project_mailing_list(list_id):
                 attrib = sender_canon
                 sender = None
 
-            event.id = dedupe_event("lists.sr.ht", sender, mailing_list, archive_url)
+            if email.patch and email.patch.trailers:
+                _handle_patch_trailers(sender, mailing_list, email)
+
+            event.id = _dedupe_event("lists.sr.ht", sender, mailing_list, archive_url)
             if event.id is None:
                 # This is a brand new event.
                 event.event_type = EventType.external_event
@@ -535,7 +465,7 @@ def build_complete(details):
 # event_key (this can happen for lists/repositories/trackers shared by several
 # projects), add a new mapping in the event/project association table and
 # return the ID of the event deduped into; otherwise return None.
-def dedupe_event(source, sender, resource, event_key):
+def _dedupe_event(source, sender, resource, event_key):
     q = (Event.query
         .filter(Event.event_type == EventType.external_event)
         .filter(Event.external_source == source)
@@ -553,3 +483,124 @@ def dedupe_event(source, sender, resource, event_key):
         return existing_evt.id
 
     return None
+
+def _handle_commit_trailer(trailer, value, pusher, repo, commit):
+    if not _todosrht:
+        return
+
+    if trailer == "Closes":
+        resolution = TicketResolution.CLOSED
+    elif trailer == "Fixes":
+        resolution = TicketResolution.FIXED
+    elif trailer == "Implements":
+        resolution = TicketResolution.IMPLEMENTED
+    elif trailer == "References":
+        resolution = None
+    else:
+        return
+
+    match = _ticket_url_re.match(value.strip())
+    if not match:
+        return
+
+    commit_message = html.escape(commit.message.split("\n")[0])
+    commit_author = html.escape(commit.author.name.strip())
+    commit_sha = commit.id[:7]
+    commit_url = repo.url() + f"/commit/{commit_sha}"
+    comment = f"""\
+*{commit_author} referenced this ticket in commit [{commit_sha}].*
+
+[{commit_sha}]: {commit_url} "{commit_message}"\
+"""
+
+    auth = InternalAuth(pusher)
+    todo_client = TodoClient(auth)
+
+    tracker = todo_client.get_ticket_comments(
+            username=match["owner"][1:],
+            tracker=match["tracker"],
+            ticket_id=int(match["ticket"])
+    ).user.tracker
+    ticket = tracker.ticket
+    if _ticket_has_comment(ticket, comment):
+        return
+
+    try:
+        comment_input = SubmitCommentInput(text=comment)
+        if resolution is not None:
+            comment_input.status = TicketStatus.RESOLVED
+            comment_input.resolution = resolution
+
+        todo_client.submit_comment(
+                tracker_id=tracker.id,
+                ticket_id=ticket.id,
+                comment=comment_input)
+    except GraphQLClientGraphQLMultiError as err:
+        if not has_error(err, Error.ACCESS_DENIED):
+            raise
+
+        # Try again without resolving the ticket, in case this user has comment
+        # access but not triage access
+        try:
+            todo_client.submit_comment(
+                    tracker_id=tracker.id,
+                    ticket_id=ticket.id,
+                    comment=SubmitCommentInput(text=comment),
+            )
+        except GraphQLClientGraphQLMultiError as err:
+            if not has_error(Error.ACCESS_DENIED):
+                # Silently discard further access denied errors
+                raise
+
+def _handle_patch_trailers(sender, mailing_list, email):
+    if not _todosrht:
+        return
+
+    subject = email.subject
+    message_id = f"<{email.message_id}>"
+    archive_url = f"{mailing_list.url()}/patches/{email.patchset.id}#{quote(message_id)}"
+
+    if email.sender.username:
+        sender_name = email.sender.canonical_name
+    else:
+        sender_name = email.sender.name
+
+    for trailer in email.patch.trailers:
+        match trailer.name:
+            case "References" | "Implements" | "Fixes" | "Closes":
+                match = _ticket_url_re.match(trailer.value.strip())
+                if not match:
+                    return
+
+                auth = InternalAuth(sender or mailing_list.owner)
+                todo_client = TodoClient(auth)
+
+                comment = f"""\
+*{sender_name} referenced this ticket in a patch:*
+
+[{subject}]({archive_url})\
+"""
+
+                tracker = todo_client.get_ticket_comments(
+                        username=match["owner"][1:],
+                        tracker=match["tracker"],
+                        ticket_id=int(match["ticket"])
+                ).user.tracker
+                ticket = tracker.ticket
+                if _ticket_has_comment(ticket, comment):
+                    continue
+
+                todo_client.submit_comment(
+                        tracker_id=tracker.id,
+                        ticket_id=ticket.id,
+                        comment=SubmitCommentInput(text=comment),
+                )
+
+def _ticket_has_comment(ticket, comment):
+    for event in ticket.events.results:
+        for change in event.changes:
+            if not hasattr(change, "text"):
+                continue
+            if change.text == comment:
+                return True
+    return False

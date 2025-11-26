@@ -15,7 +15,7 @@ from srht.validation import Validation
 
 mailing_lists = Blueprint("mailing_lists", __name__)
 
-LIST_WEBHOOK_VERSION = 2
+LIST_WEBHOOK_VERSION = 3
 
 def get_user_lists(project, client, search=None):
     # TODO: Pagination

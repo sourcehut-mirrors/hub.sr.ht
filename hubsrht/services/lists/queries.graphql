@@ -143,6 +143,21 @@ query EventWebhook {
           ... on User {
             username
           }
+
+          ... on Mailbox {
+            name
+          }
+        }
+
+        patch {
+          trailers {
+            name
+            value
+          }
+        }
+
+        patchset {
+          id
         }
       }
     }
@@ -159,6 +174,19 @@ query EventWebhook {
           root {
             messageID
             reply_to: header(want: "In-Reply-To")
+          }
+        }
+
+        patches {
+          results {
+            patch {
+              prefix
+
+              trailers {
+                name
+                value
+              }
+            }
           }
         }
 
