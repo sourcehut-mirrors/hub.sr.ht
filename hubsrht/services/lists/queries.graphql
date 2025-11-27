@@ -29,6 +29,13 @@ query GetList($listName: String!) {
   }
 }
 
+query GetPatchset($id: Int!) {
+  patchset(id: $id) {
+    subject
+    prefix
+  }
+}
+
 mutation CreateList(
   $name: String!,
   $description: String!,

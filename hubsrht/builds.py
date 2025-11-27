@@ -1,20 +1,37 @@
 import email.utils
 import json
 import random
+import re
 import yaml
 from flask import url_for
 from fnmatch import fnmatch
 from hubsrht.services.builds import BuildsClient, GraphQLClientGraphQLMultiError
-from hubsrht.services.builds import TriggerInput, EmailTriggerInput, TriggerType
 from hubsrht.services.builds import TriggerCondition, Visibility
+from hubsrht.services.builds import TriggerInput, EmailTriggerInput, TriggerType
 from hubsrht.services.git import GitClient
 from hubsrht.services.lists import ListsClient, ToolIcon
 from hubsrht.types import SourceRepo, RepoType
+from shlex import quote
 from sqlalchemy import func
 from srht.config import get_origin
 from srht.crypto import fernet
 from srht.graphql import InternalAuth
 from yaml.error import YAMLError
+
+_listssrht = get_origin("lists.sr.ht", external=True, default=None)
+
+_patchset_url_re = re.compile(
+    rf"""
+    ^
+    {re.escape(_listssrht)}
+    /(?P<owner>~[a-z_][a-z0-9_-]+)
+    /(?P<list>[\w.-]+)
+    /patches
+    /(?P<patchset_id>\d+)
+    $
+    """,
+    re.VERBOSE,
+) if _listssrht else None
 
 def submit_patchset(ml, patchset):
     buildsrht = get_origin("builds.sr.ht", external=True, default=None)
@@ -30,7 +47,6 @@ def submit_patchset(ml, patchset):
 
     patch_id = patchset.id
     patch_url = f"{ml.url()}/patches/{patch_id}"
-    patch_mbox = f"{ml.url()}/patches/{patch_id}/mbox"
     subject = patchset.subject
     prefix = patchset.prefix
 
@@ -119,14 +135,9 @@ def submit_patchset(ml, patchset):
                 icon=ToolIcon.PENDING,
                 details=f"build pending: {key}").create_tool.id
 
-        # TODO: https://todo.sr.ht/~sircmpwn/builds.sr.ht/291
+        apply_script = _gen_apply_script(lists_client, ml, patchset)
         task = Task({
-            "_apply_patch": f"""echo Applying patch from lists.sr.ht
-git config --global user.name 'builds.sr.ht'
-git config --global user.email builds@sr.ht
-cd {repo.name}
-curl -sS {patch_mbox} >/tmp/{patch_id}.patch
-git am -3 /tmp/{patch_id}.patch"""
+            "_apply_patch": apply_script,
         })
         manifest.tasks.insert(0, task)
 
@@ -190,3 +201,39 @@ git am -3 /tmp/{patch_id}.patch"""
         triggers=[trigger],
         note=build_note)
     return ids
+
+def _gen_apply_script(client, ml, patchset):
+    # Note: one may be tempted to replace the temporary file by piping curl
+    # into git directly. Do not be misled! It is necessary to have two separate
+    # commands so that a patch which fails to apply fails the build. pipefail
+    # is a bashism.
+    patch_mbox = f"{ml.url()}/patches/{patchset.id}/mbox"
+    # TODO: https://todo.sr.ht/~sircmpwn/builds.sr.ht/291
+    script = f"""echo "Applying patch(es) from lists.sr.ht"
+git config --global user.name 'builds.sr.ht'
+git config --global user.email 'builds@sr.ht'
+curl -sS {quote(patch_mbox)} >/tmp/patch
+git -C {quote(patchset.prefix)} am -3 /tmp/patch
+"""
+
+    deps_seen = set()
+    for email in patchset.patches.results:
+        for trailer in email.patch.trailers:
+            key, value = trailer.name, trailer.value
+            if key != "Depends-on":
+                continue
+            patchset_url = value.strip()
+            match = _patchset_url_re.match(patchset_url)
+            if not match:
+                continue
+            if patchset_url in deps_seen:
+                continue
+            deps_seen.add(patchset_url)
+            patch = client.get_patchset(match["patchset_id"]).patchset
+            patchset_mbox = patchset_url + "/mbox"
+            script += f"""echo "Applying" {quote(patch.subject)}
+curl -sS {quote(patchset_mbox)} >/tmp/patch
+git -C {quote(patch.prefix)} am -3 /tmp/patch
+"""
+
+    return script
