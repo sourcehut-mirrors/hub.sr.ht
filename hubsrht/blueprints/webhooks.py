@@ -508,7 +508,7 @@ def _handle_commit_trailer(trailer, value, pusher, repo, commit):
     commit_sha = commit.id[:7]
     commit_url = repo.url() + f"/commit/{commit_sha}"
     comment = f"""\
-*{commit_author} referenced this ticket in commit [{commit_sha}].*
+*{commit_author} referenced this ticket in commit [{commit_sha}] on [{repo.name}]({repo.url()}).*
 
 [{commit_sha}]: {commit_url} "{commit_message}"\
 """
