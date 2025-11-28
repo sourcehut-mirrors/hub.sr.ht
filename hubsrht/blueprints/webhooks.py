@@ -249,7 +249,7 @@ def project_mailing_list(list_id):
                 attrib = sender_canon
                 sender = None
 
-            if email.patch and email.patch.trailers:
+            if email.patch and email.patch.trailers and email.patchset:
                 _handle_patch_trailers(sender, mailing_list, email)
 
             event.id = _dedupe_event("lists.sr.ht", sender, mailing_list, archive_url)
