@@ -249,9 +249,6 @@ def project_mailing_list(list_id):
                 attrib = sender_canon
                 sender = None
 
-            if email.patch and email.patch.trailers and email.patchset:
-                _handle_patch_trailers(sender, mailing_list, email)
-
             event.id = _dedupe_event("lists.sr.ht", sender, mailing_list, archive_url)
             if event.id is None:
                 # This is a brand new event.
@@ -275,8 +272,16 @@ def project_mailing_list(list_id):
             return f"Assigned event ID {event.id}"
         case ListWebhookEvent.PATCHSET_RECEIVED:
             patchset = webhook.patchset
-            job_ids = []
 
+            sender = None
+            if hasattr(patchset.submitter, "username"):
+                sender = current_app.oauth_service.lookup_user(patchset.submitter.username)
+
+            for email in patchset.patches.results:
+                if email.patch.trailers:
+                    _handle_patch_trailers(sender, mailing_list, email)
+
+            job_ids = []
             ids = submit_patchset(mailing_list, patchset)
             if ids is not None:
                 job_ids.extend(ids)

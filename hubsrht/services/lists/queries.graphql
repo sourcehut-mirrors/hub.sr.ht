@@ -186,6 +186,25 @@ query EventWebhook {
 
         patches {
           results {
+            subject
+            messageID
+
+            patchset {
+              id
+            }
+
+            sender {
+              canonicalName
+
+              ... on User {
+                username
+              }
+
+              ... on Mailbox {
+                name
+              }
+            }
+
             patch {
               prefix
 
