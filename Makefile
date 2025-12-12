@@ -17,6 +17,10 @@ ARIADNE_CODEGEN=ariadne-codegen
 BINARIES=\
 	$(SERVICE)-api
 
+GO_LDFLAGS += -ldflags " \
+              -X git.sr.ht/~sircmpwn/core-go/server.BuildVersion=$(shell sourcehut-buildver) \
+              -X git.sr.ht/~sircmpwn/core-go/server.BuildDate=$(shell sourcehut-builddate)"
+
 all: all-bin all-share all-python
 
 install: install-bin install-share
@@ -109,7 +113,7 @@ api/graph/api/generated.go: api/graph/schema.graphqls api/graph/generate.go go.s
 	cd api && go generate ./graph
 
 $(SERVICE)-api: api/graph/api/generated.go
-	go build -o $@ ./api
+	go build -o $@ $(GO_LDFLAGS) ./api
 
 # Always rebuild
 .PHONY: $(BINARIES)

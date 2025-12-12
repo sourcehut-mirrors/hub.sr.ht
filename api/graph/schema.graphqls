@@ -15,6 +15,8 @@ type Version {
   major: Int!
   minor: Int!
   patch: Int!
+  buildVersion: String!
+  buildDate: String!
   """
   If this API version is scheduled for deprecation, this is the date on which
   it will stop working; or null if this API version is not scheduled for

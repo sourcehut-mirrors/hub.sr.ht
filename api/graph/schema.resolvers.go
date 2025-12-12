@@ -8,6 +8,7 @@ import (
 	"context"
 
 	"git.sr.ht/~sircmpwn/core-go/auth"
+	"git.sr.ht/~sircmpwn/core-go/server"
 	"git.sr.ht/~sircmpwn/hub.sr.ht/api/account"
 	"git.sr.ht/~sircmpwn/hub.sr.ht/api/graph/api"
 	"git.sr.ht/~sircmpwn/hub.sr.ht/api/graph/model"
@@ -26,6 +27,8 @@ func (r *queryResolver) Version(ctx context.Context) (*model.Version, error) {
 		Major:           0,
 		Minor:           0,
 		Patch:           0,
+		BuildVersion:    server.BuildVersion,
+		BuildDate:       server.BuildDate,
 		DeprecationDate: nil,
 	}, nil
 }
