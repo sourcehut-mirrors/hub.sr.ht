@@ -150,7 +150,7 @@ def submit_patchset(ml, patchset):
         manifest.environment.setdefault("PATCHSET_URL", patch_url)
 
         # Add webhook trigger
-        root = get_origin("hub.sr.ht", external=True)
+        root = get_origin("hub.sr.ht", external=False)
         details = fernet.encrypt(json.dumps({
             "mailing_list": ml.id,
             "patchset_id": patch_id,
