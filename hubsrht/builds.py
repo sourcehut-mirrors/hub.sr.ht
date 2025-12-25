@@ -207,13 +207,10 @@ def _gen_apply_script(client, ml, patchset):
     # into git directly. Do not be misled! It is necessary to have two separate
     # commands so that a patch which fails to apply fails the build. pipefail
     # is a bashism.
-    patch_mbox = f"{ml.url()}/patches/{patchset.id}/mbox"
     # TODO: https://todo.sr.ht/~sircmpwn/builds.sr.ht/291
     script = f"""echo "Applying patch(es) from lists.sr.ht"
 git config --global user.name 'builds.sr.ht'
 git config --global user.email 'builds@sr.ht'
-curl -sS {quote(patch_mbox)} >/tmp/patch
-git -C {quote(patchset.prefix)} am -3 /tmp/patch
 """
 
     deps_seen = set()
@@ -234,6 +231,11 @@ git -C {quote(patchset.prefix)} am -3 /tmp/patch
             script += f"""echo "Applying" {quote(patch.subject)}
 curl -sS {quote(patchset_mbox)} >/tmp/patch
 git -C {quote(patch.prefix)} am -3 /tmp/patch
+"""
+
+    patch_mbox = f"{ml.url()}/patches/{patchset.id}/mbox"
+    script += """curl -sS {quote(patch_mbox)} >/tmp/patch
+git -C {quote(patchset.prefix)} am -3 /tmp/patch
 """
 
     return script
