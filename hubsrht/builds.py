@@ -234,7 +234,7 @@ git -C {quote(patch.prefix)} am -3 /tmp/patch
 """
 
     patch_mbox = f"{ml.url()}/patches/{patchset.id}/mbox"
-    script += """curl -sS {quote(patch_mbox)} >/tmp/patch
+    script += f"""curl -sS {quote(patch_mbox)} >/tmp/patch
 git -C {quote(patchset.prefix)} am -3 /tmp/patch
 """
 
