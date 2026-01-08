@@ -1,10 +1,7 @@
-from sqlalchemy import or_
-from sqlalchemy.sql import operators
 from flask import Blueprint, render_template, request, abort
-from hubsrht.types import User, Project, Visibility, Event, EventType
-from hubsrht.types import SourceRepo, MailingList, Tracker
-from hubsrht.types.eventprojectassoc import EventProjectAssociation
-from srht.app import paginate_query
+from hubsrht.types import User, Project, Visibility
+from sqlalchemy.sql import operators
+from srht.app import paginate_query, get_profile
 from srht.oauth import current_user, UserType
 from srht.search import search_by
 
@@ -20,32 +17,16 @@ def summary_GET(username):
     projects = (Project.query
             .filter(Project.owner_id == user.id)
             .order_by(Project.updated.desc()))
-    events = (Event.query
-            .filter(Event.user_id == user.id)
-            .order_by(Event.created.desc()))
 
     if not current_user or current_user.id != user.id:
         # TODO: ACLs
         projects = projects.filter(Project.visibility == Visibility.PUBLIC)
-        events = (events
-                .outerjoin(EventProjectAssociation)
-                .filter(EventProjectAssociation.project_id == Project.id)
-                .outerjoin(Project)
-                .filter(Project.visibility == Visibility.PUBLIC))
-        events = (events
-            .outerjoin(SourceRepo, Event.source_repo_id == SourceRepo.id)
-            .outerjoin(MailingList, Event.source_repo_id == MailingList.id)
-            .outerjoin(Tracker, Event.source_repo_id == Tracker.id)
-            .filter(or_(Event.source_repo == None, SourceRepo.visibility == Visibility.PUBLIC),
-                or_(Event.mailing_list == None, MailingList.visibility == Visibility.PUBLIC),
-                or_(Event.tracker == None, Tracker.visibility == Visibility.PUBLIC)))
 
-    projects = projects.limit(5).all()
-    events, pagination = paginate_query(events)
+    projects, pagination = paginate_query(projects, results_per_page=5)
 
-    return render_template("profile.html",
-            user=user, projects=projects, EventType=EventType, events=events,
-            **pagination)
+    return render_template("profile-summary.html",
+            user=user, projects=projects,
+            profile=get_profile(user), view="about", **pagination)
 
 @users.route("/projects/<owner>/")
 def projects_GET(owner):
@@ -74,5 +55,7 @@ def projects_GET(owner):
 
     projects, pagination = paginate_query(projects)
 
-    return render_template("projects.html", user=owner, projects=projects,
-            search=search, search_error=search_error, **pagination)
+    return render_template("profile-projects.html",
+            user=owner, projects=projects,
+            search=search, search_error=search_error,
+            profile=get_profile(owner), view="projects", **pagination)
