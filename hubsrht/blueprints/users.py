@@ -36,7 +36,8 @@ def projects_GET(owner):
     if not owner:
         abort(404)
     projects = (Project.query
-        .filter(Project.owner_id == owner.id))
+        .filter(Project.owner_id == owner.id)
+        .order_by(Project.updated.desc()))
     if not current_user or current_user.id != owner.id:
         # TODO: ACLs
         projects = projects.filter(Project.visibility == Visibility.PUBLIC)
