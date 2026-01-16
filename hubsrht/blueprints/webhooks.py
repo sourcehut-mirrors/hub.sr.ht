@@ -142,7 +142,7 @@ def git_repo(repo_id):
         if not upd.old or not upd.new:
             continue # New ref, or ref deleted
 
-        if not upd.log.results or not any(upd.log.results):
+        if not upd.log or not upd.log.results or not any(upd.log.results):
             continue
 
         for commit in reversed(upd.log.results):
