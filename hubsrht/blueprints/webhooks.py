@@ -565,10 +565,11 @@ def _handle_patch_trailers(sender, mailing_list, email):
     message_id = f"<{email.message_id}>"
     archive_url = f"{mailing_list.url()}/patches/{email.patchset.id}#{quote(message_id)}"
 
-    if email.sender.username:
-        sender_name = email.sender.canonical_name
-    else:
-        sender_name = email.sender.name
+    match email.sender.typename__:
+        case "User":
+            sender_name = email.sender.canonical_name
+        case "Mailbox":
+            sender_name = email.sender.name
 
     for trailer in email.patch.trailers:
         match trailer.name:
