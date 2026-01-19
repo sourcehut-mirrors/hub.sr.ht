@@ -210,6 +210,7 @@ def mailing_list_user(user_id):
                 mailing_list.name = mlist.name
                 mailing_list.description = mlist.description
                 mailing_list.visibility = Visibility(mlist.visibility.value)
+                db.session.commit()
             return f"Updated mailing list with remote ID {mlist.id}"
 
     return "No action required"
