@@ -107,6 +107,7 @@ def new_POST(owner, project_name):
 
     tracker = Tracker()
     tracker.remote_id = remote_tracker.id
+    tracker.remote_rid = remote_tracker.rid
     tracker.project_id = project.id
     tracker.owner_id = owner.id
     tracker.name = remote_tracker.name

@@ -3,6 +3,7 @@ query GetRepos($cursor: Cursor) {
     repositories(cursor: $cursor) {
       results {
         id
+        rid
         name
         updated
         owner {
@@ -18,6 +19,7 @@ query GetRepo($repoName: String!) {
   me {
     repository(name: $repoName) {
       id
+      rid
       name
       description
       visibility
@@ -47,6 +49,7 @@ mutation CreateRepo(
     visibility: $visibility,
   ) {
     id
+    rid
     name
     description
     visibility
@@ -84,6 +87,7 @@ query EventWebhook {
     ... on RepositoryEvent {
       repository {
         id
+        rid
         name
         description
         visibility

@@ -75,6 +75,7 @@ def new_GET(owner, project_name):
 def finalize_add_list(client, owner, project, mailing_list):
     ml = MailingList()
     ml.remote_id = mailing_list.id
+    ml.remote_rid = mailing_list.rid
     ml.project_id = project.id
     ml.owner_id = project.owner_id
     ml.name = mailing_list.name

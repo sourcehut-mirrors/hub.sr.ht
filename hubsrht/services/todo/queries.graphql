@@ -33,6 +33,7 @@ mutation CreateTracker(
 
 fragment trackerDetails on Tracker {
   id
+  rid
   name
   description
   visibility
@@ -60,6 +61,7 @@ query GetTicketComments(
   user(username: $username) {
     tracker(name: $tracker) {
       id
+      rid
 
       ticket(id: $ticketId) {
         id

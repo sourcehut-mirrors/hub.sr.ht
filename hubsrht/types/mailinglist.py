@@ -12,6 +12,7 @@ class MailingList(Base):
     __tablename__ = "mailing_list"
     id = sa.Column(sa.Integer, primary_key=True)
     remote_id = sa.Column(sa.Integer, nullable=False)
+    remote_rid = sa.Column(sa.String, nullable=True)
     created = sa.Column(sa.DateTime, nullable=False)
     updated = sa.Column(sa.DateTime, nullable=False)
 

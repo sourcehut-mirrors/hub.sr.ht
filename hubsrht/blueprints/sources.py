@@ -136,6 +136,7 @@ def git_new_POST(owner, project_name):
 
     repo = SourceRepo()
     repo.remote_id = git_repo.id
+    repo.remote_rid = git_repo.rid
     repo.project_id = project.id
     repo.owner_id = owner.id
     repo.name = git_repo.name
@@ -223,6 +224,7 @@ def hg_new_POST(owner, project_name):
 
     repo = SourceRepo()
     repo.remote_id = hg_repo.id
+    repo.remote_rid = hg_repo.rid
     repo.project_id = project.id
     repo.owner_id = owner.id
     repo.name = hg_repo.name

@@ -1,3 +1,19 @@
+CREATE EXTENSION IF NOT EXISTS pgcrypto;
+
+-- Note: PostgreSQL 18 includes native support for UUID v7
+-- Replace this when we roll it out
+CREATE FUNCTION gen_uuidv7() RETURNS uuid
+    AS $$
+        SELECT (
+		lpad(to_hex(floor(extract(epoch FROM clock_timestamp()) * 1000)::bigint), 12, '0')
+		|| '7'
+		|| substring(encode(gen_random_bytes(2), 'hex') from 2)
+		|| '8'
+		|| substring(encode(gen_random_bytes(2), 'hex') from 2)
+		|| encode(gen_random_bytes(6), 'hex')
+	)::uuid;
+    $$ LANGUAGE SQL;
+
 CREATE TYPE visibility AS ENUM (
 	'PUBLIC',
 	'PRIVATE',
@@ -44,6 +60,7 @@ CREATE TABLE user_webhooks (
 
 CREATE TABLE project (
 	id serial PRIMARY KEY,
+	rid uuid UNIQUE NOT NULL DEFAULT gen_uuidv7(),
 	created timestamp without time zone NOT NULL,
 	updated timestamp without time zone NOT NULL,
 	owner_id integer NOT NULL REFERENCES "user"(id) ON DELETE CASCADE,
@@ -67,6 +84,7 @@ CREATE TABLE features (
 CREATE TABLE mailing_list (
 	id serial PRIMARY KEY,
 	remote_id integer NOT NULL,
+	remote_rid text NOT NULL,
 	created timestamp without time zone NOT NULL,
 	updated timestamp without time zone NOT NULL,
 	project_id integer NOT NULL REFERENCES project(id) ON DELETE CASCADE,
@@ -82,6 +100,7 @@ CREATE TABLE mailing_list (
 CREATE TABLE source_repo (
 	id serial PRIMARY KEY,
 	remote_id integer NOT NULL,
+	remote_rid text NOT NULL,
 	created timestamp without time zone NOT NULL,
 	updated timestamp without time zone NOT NULL,
 	project_id integer NOT NULL REFERENCES project(id) ON DELETE CASCADE,
@@ -102,6 +121,7 @@ ALTER TABLE project
 CREATE TABLE tracker (
 	id serial PRIMARY KEY,
 	remote_id integer NOT NULL,
+	remote_rid text NOT NULL,
 	created timestamp without time zone NOT NULL,
 	updated timestamp without time zone NOT NULL,
 	project_id integer NOT NULL REFERENCES project(id) ON DELETE CASCADE,

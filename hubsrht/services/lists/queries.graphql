@@ -3,6 +3,7 @@ query GetLists($cursor: Cursor) {
     lists(cursor: $cursor) {
       results {
         id
+        rid
         name
         description
         updated
@@ -19,6 +20,7 @@ query GetList($listName: String!) {
   me {
     list(name: $listName) {
       id
+      rid
       name
       description
       visibility
@@ -47,6 +49,7 @@ mutation CreateList(
     visibility: $visibility,
   ) {
     id
+    rid
     name
     description
     visibility
@@ -131,6 +134,7 @@ query EventWebhook {
     ... on MailingListEvent {
       list {
         id
+        rid
         name
         description
         visibility
