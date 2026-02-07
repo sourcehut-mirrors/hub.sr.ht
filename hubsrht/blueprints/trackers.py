@@ -89,13 +89,13 @@ def new_POST(owner, project_name):
                     view="new-resource", owner=owner, project=project,
                     trackers=trackers, existing=existing, **valid.kwargs)
     else:
-        tracker_name = None
+        tracker_rid = None
         for field in valid.source:
             if field.startswith("existing-"):
-                tracker_name = field[len("existing-"):]
+                tracker_rid = field[len("existing-"):]
                 break
 
-        if not tracker_name:
+        if not tracker_rid:
             search = valid.optional("search")
             trackers, existing = get_trackers(owner, project)
             trackers = filter(lambda r: search.lower() in r.name.lower(), trackers)
@@ -103,7 +103,7 @@ def new_POST(owner, project_name):
                     view="new-resource", owner=owner, project=project,
                     trackers=trackers, existing=existing, **valid.kwargs)
 
-        remote_tracker = todo_client.get_tracker(tracker_name).me.tracker
+        remote_tracker = todo_client.get_tracker(tracker_rid).tracker
 
     tracker = Tracker()
     tracker.remote_id = remote_tracker.id

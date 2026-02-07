@@ -16,18 +16,28 @@ query GetLists($cursor: Cursor) {
   }
 }
 
-query GetList($listName: String!) {
+query GetListByName($listName: String!) {
   me {
     list(name: $listName) {
-      id
-      rid
-      name
-      description
-      visibility
-      defaultACL {
-        browse
-      }
+      ... listDetails
     }
+  }
+}
+
+query GetList($rid: ID!) {
+  list(rid: $rid) {
+    ... listDetails
+  }
+}
+
+fragment listDetails on MailingList {
+  id
+  rid
+  name
+  description
+  visibility
+  defaultACL {
+    browse
   }
 }
 

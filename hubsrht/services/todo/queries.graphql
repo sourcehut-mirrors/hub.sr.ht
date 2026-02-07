@@ -9,11 +9,9 @@ query GetTrackers($cursor: Cursor) {
   }
 }
 
-query GetTracker($trackerName: String!) {
-  me {
-    tracker(name: $trackerName) {
-      ... trackerDetails
-    }
+query GetTracker($rid: ID!) {
+  tracker(rid: $rid) {
+    ... trackerDetails
   }
 }
 

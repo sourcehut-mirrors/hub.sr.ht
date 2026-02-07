@@ -15,15 +15,13 @@ query GetRepos($cursor: Cursor) {
   }
 }
 
-query GetRepo($repoName: String!) {
-  me {
-    repository(name: $repoName) {
-      id
-      rid
-      name
-      description
-      visibility
-    }
+query GetRepo($rid: ID!) {
+  repository(rid: $rid) {
+    id
+    rid
+    name
+    description
+    visibility
   }
 }
 

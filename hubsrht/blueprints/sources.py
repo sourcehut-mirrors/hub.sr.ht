@@ -116,13 +116,13 @@ def git_new_POST(owner, project_name):
                     owner=owner, project=project, repos=repos,
                     existing=existing, **valid.kwargs)
     else:
-        repo_name = None
+        repo_rid = None
         for field in valid.source:
             if field.startswith("existing-"):
-                repo_name = field[len("existing-"):]
+                repo_rid = field[len("existing-"):]
                 break
 
-        if not repo_name:
+        if not repo_rid:
             search = valid.optional("search")
             repos, existing = get_repos(owner, project, RepoType.git)
             # TODO: Search properly
@@ -132,7 +132,7 @@ def git_new_POST(owner, project_name):
                     owner=owner, project=project, repos=repos,
                     existing=existing, search=search)
 
-        git_repo = GitClient().get_repo(repo_name).me.repository
+        git_repo = GitClient().get_repo(repo_rid).repository
 
     repo = SourceRepo()
     repo.remote_id = git_repo.id
@@ -204,13 +204,13 @@ def hg_new_POST(owner, project_name):
                     owner=owner, project=project, repos=repos,
                     existing=existing, **valid.kwargs)
     else:
-        repo_name = None
+        repo_rid = None
         for field in valid.source:
             if field.startswith("existing-"):
-                repo_name = field[len("existing-"):]
+                repo_rid = field[len("existing-"):]
                 break
 
-        if not repo_name:
+        if not repo_rid:
             search = valid.optional("search")
             repos, existing = get_repos(owner, project, RepoType.git)
             # TODO: Search properly
@@ -220,7 +220,7 @@ def hg_new_POST(owner, project_name):
                     owner=owner, project=project, repos=repos,
                     existing=existing, **valid.kwargs)
 
-        hg_repo = hg_client.get_repo(repo_name).me.repository
+        hg_repo = hg_client.get_repo(repo_rid).repository
 
     repo = SourceRepo()
     repo.remote_id = hg_repo.id
