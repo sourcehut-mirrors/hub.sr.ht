@@ -136,6 +136,8 @@ mutation DeleteRepoWebhook($id: Int!) {
   deleteGitWebhook(id: $id) { id }
 }
 
+# Versioned, see GIT_WEBHOOK_VERSION in hubsrht/blueprints/sources.py and
+# contrib/ensure-webhooks
 query EventWebhook {
   webhook {
     uuid

@@ -129,6 +129,8 @@ mutation DeleteTrackerWebhook($id: Int!) {
   deleteTrackerWebhook(id: $id) { id }
 }
 
+# Versioned, see TODO_WEBHOOK_VERSION in hubsrht/blueprints/trackers.py and
+# contrib/ensure-webhooks
 query EventWebhook {
   webhook {
     uuid

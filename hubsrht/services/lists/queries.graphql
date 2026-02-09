@@ -125,6 +125,8 @@ mutation DeleteListWebhook($id: Int!) {
   deleteMailingListWebhook(id: $id) { id }
 }
 
+# Versioned, see LISTS_WEBHOOK_VERSION in hubsrht/blueprints/mailing_lists.py
+# and contrib/ensure-webhooks
 query EventWebhook {
   webhook {
     uuid
