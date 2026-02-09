@@ -14,7 +14,7 @@ from srht.validation import Validation
 
 trackers = Blueprint("trackers", __name__)
 
-TODO_WEBHOOK_VERSION = 1
+TODO_WEBHOOK_VERSION = 2
 
 @trackers.route("/<owner>/<project_name>/trackers")
 def trackers_GET(owner, project_name):
