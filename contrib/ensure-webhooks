@@ -74,7 +74,9 @@ with app.app_context():
                 payload=ListsClient.event_webhook_query,
                 url=webhook_url).webhook.id)
 
-    for user in User.query.join(MailingList).distinct():
+    for user in (User.query
+             .join(UserWebhooks)
+             .filter(UserWebhooks.lists_webhook_id is not None)):
         uwh = get_user_webhooks(user)
         if up_to_date(uwh.lists_webhook_version, LIST_WEBHOOK_VERSION):
             continue
@@ -99,9 +101,9 @@ with app.app_context():
                 payload=GitClient.event_webhook_query,
                 url=webhook_url).webhook.id)
 
-    for user in (User.query.join(SourceRepo)
-                 .filter(SourceRepo.repo_type == RepoType.git)
-                 .distinct()):
+    for user in (User.query
+             .join(UserWebhooks)
+             .filter(UserWebhooks.git_webhook_id is not None)):
         uwh = get_user_webhooks(user)
         if up_to_date(uwh.git_webhook_version, GIT_WEBHOOK_VERSION):
             continue
@@ -116,9 +118,9 @@ with app.app_context():
         uwh.git_webhook_version = GIT_WEBHOOK_VERSION
         db.session.commit()
 
-    for user in (User.query.join(SourceRepo)
-                 .filter(SourceRepo.repo_type == RepoType.hg)
-                 .distinct()):
+    for user in (User.query
+             .join(UserWebhooks)
+             .filter(UserWebhooks.hg_webhook_id is not None)):
         uwh = get_user_webhooks(user)
         if up_to_date(uwh.hg_webhook_version, HG_WEBHOOK_VERSION):
             continue
@@ -143,7 +145,9 @@ with app.app_context():
                 payload=TodoClient.event_webhook_query,
                 url=webhook_url).webhook.id)
 
-    for user in User.query.join(Tracker).distinct():
+    for user in (User.query
+             .join(UserWebhooks)
+             .filter(UserWebhooks.todo_webhook_id is not None)):
         uwh = get_user_webhooks(user)
         if up_to_date(uwh.todo_webhook_version, TODO_WEBHOOK_VERSION):
             continue
