@@ -18,14 +18,14 @@ query GetLists($cursor: Cursor) {
 
 query GetListByName($listName: String!) {
   me {
-    list(name: $listName) {
+    mailingList: list(name: $listName) {
       ... listDetails
     }
   }
 }
 
 query GetList($rid: ID!) {
-  list(rid: $rid) {
+  mailingList: list(rid: $rid) {
     ... listDetails
   }
 }
@@ -144,7 +144,7 @@ query EventWebhook {
     date
 
     ... on MailingListEvent {
-      list {
+      mailingList: list {
         id
         rid
         name
@@ -156,7 +156,7 @@ query EventWebhook {
     ... on EmailEvent {
       email {
         id
-        list { id }
+        mailingList: list { id }
         messageID
         subject
 
@@ -191,7 +191,7 @@ query EventWebhook {
         subject
         prefix
         version
-        list { id }
+        mailingList: list { id }
 
         thread {
           root {

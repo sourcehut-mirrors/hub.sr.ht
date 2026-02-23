@@ -193,7 +193,7 @@ def mailing_list_user(user_id):
     payload = verify_request_signature(request)
     payload = json.loads(payload.decode('utf-8'))["data"]
     webhook = ListEventWebhook.model_validate(payload).webhook
-    mlist = webhook.list
+    mlist = webhook.mailing_list
 
     match webhook.event:
         case ListWebhookEvent.LIST_DELETED:
@@ -205,7 +205,7 @@ def mailing_list_user(user_id):
             return f"Deleted mailing list with remote ID {mlist.id}"
         case ListWebhookEvent.LIST_UPDATED:
             mailing_lists = (MailingList.query
-                .filter(MailingList.remote_id == webhook.list.id))
+                .filter(MailingList.remote_id == webhook.mailing_list.id))
             for mailing_list in mailing_lists:
                 mailing_list.name = mlist.name
                 mailing_list.description = mlist.description

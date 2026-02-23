@@ -161,7 +161,7 @@ Mailing list for end-user discussion and questions related to the
     for list_name in template:
         desc = descs[list_name]
         list_name = list_name.lower() # Per lists.sr.ht naming rules
-        mailing_list = client.get_list_by_name(list_name).me.list
+        mailing_list = client.get_list_by_name(list_name).me.mailing_list
         if mailing_list is not None:
             in_project = [l.remote_id for l in (MailingList.query
                     .filter(MailingList.project_id == project.id)
@@ -223,7 +223,7 @@ def new_POST(owner, project_name):
             return render_template("mailing-list-new.html", view="new-resource",
                     owner=owner, project=project, lists=lists,
                     existing=existing, **valid.kwargs)
-        mailing_list = client.get_list(list_rid).list
+        mailing_list = client.get_list(list_rid).mailing_list
 
     finalize_add_list(client, owner, project, mailing_list)
     return redirect(url_for("projects.summary_GET",
