@@ -5,7 +5,7 @@ go 1.22.5
 toolchain go1.24.0
 
 require (
-	git.sr.ht/~sircmpwn/core-go v0.0.0-20260120144956-34c2db68235c
+	git.sr.ht/~sircmpwn/core-go v0.0.0-20260206074636-0c56cc143e7d
 	git.sr.ht/~sircmpwn/dowork v0.0.0-20241216125407-2b00aa42322c
 	github.com/99designs/gqlgen v0.17.64
 	github.com/Masterminds/squirrel v1.5.4

@@ -6,8 +6,8 @@ from srht.database import Base
 from enum import Enum
 
 class RepositoryType(Enum):
-    git = "git"
-    hg = "hg"
+    git = "GIT"
+    hg = "HG"
 
 class Repository(Base):
     __tablename__ = "repository"

@@ -17,6 +17,7 @@ class HubApp(Flask):
         from hubsrht.blueprints.trackers import trackers
         from hubsrht.blueprints.users import users
         from hubsrht.blueprints.webhooks import webhooks
+        from srht.graphql import gql_blueprint
 
         self.register_blueprint(mailing_lists)
         self.register_blueprint(projects)
@@ -25,6 +26,7 @@ class HubApp(Flask):
         self.register_blueprint(trackers)
         self.register_blueprint(users)
         self.register_blueprint(webhooks)
+        self.register_blueprint(gql_blueprint)
 
         self.url_map.strict_slashes = False
 

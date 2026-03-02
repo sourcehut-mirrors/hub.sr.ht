@@ -10,8 +10,8 @@ _gitsrht = get_origin("git.sr.ht", external=True, default=None)
 _hgsrht = get_origin("hg.sr.ht", external=True, default=None)
 
 class RepoType(Enum):
-    git = "git"
-    hg = "hg"
+    git = "GIT"
+    hg = "HG"
 
 class SourceRepo(Base):
     __tablename__ = "source_repo"

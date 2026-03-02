@@ -27,6 +27,16 @@ CREATE TYPE user_type AS ENUM (
 	'SUSPENDED'
 );
 
+CREATE TYPE owner_id_project_name AS (
+	owner_id integer,
+	project_name text
+);
+
+CREATE TYPE repo_type AS ENUM (
+	'GIT',
+	'HG'
+);
+
 CREATE TABLE "user" (
 	id serial PRIMARY KEY,
 	created timestamp without time zone NOT NULL,
@@ -107,7 +117,7 @@ CREATE TABLE source_repo (
 	owner_id integer NOT NULL REFERENCES "user"(id) ON DELETE CASCADE,
 	name character varying(128) NOT NULL,
 	description character varying,
-	repo_type character varying NOT NULL,
+	repo_type repo_type NOT NULL,
 	visibility visibility DEFAULT 'UNLISTED'::visibility NOT NULL,
 	-- Remote webhook ID
 	webhook_id integer,

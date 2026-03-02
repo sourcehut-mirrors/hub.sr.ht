@@ -109,7 +109,10 @@ static/main.min.css: static/main.css
 	minify -o $@ $<
 	cp $@ $(@D)/main.min.$$(sha256sum $@ | cut -c1-8).css
 
-api/graph/api/generated.go: api/graph/schema.graphqls api/graph/generate.go go.sum
+api/loaders/*_gen.go &: api/loaders/generate.go api/loaders/gen go.sum
+	cd api && go generate ./loaders
+
+api/graph/api/generated.go: api/graph/schema.graphqls api/graph/generate.go go.sum api/loaders/*_gen.go
 	cd api && go generate ./graph
 
 $(SERVICE)-api: api/graph/api/generated.go
