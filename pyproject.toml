@@ -34,6 +34,7 @@ packages = [
     "hubsrht.types",
 ]
 [tool.setuptools.package-data]
+"hubsrht" = ['default_query.graphql', 'schema.graphqls']
 "hubsrht.templates" = ['*.html']
 
 [tool.setuptools_scm]
