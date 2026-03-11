@@ -528,7 +528,7 @@ def _handle_commit_trailer(trailer, value, pusher, repo, commit):
             ticket_id=int(match["ticket"])
     ).user.tracker
     ticket = tracker.ticket
-    if _ticket_has_comment(ticket, comment):
+    if not ticket or _ticket_has_comment(ticket, comment):
         return
 
     try:
