@@ -8,6 +8,10 @@ packages:
   - rsync
   - go
   - golangci-lint
+  - lists.sr.ht-dev
+  - git.sr.ht-dev
+  - hg.sr.ht-dev
+  - todo.sr.ht-dev
 sources:
   - https://git.sr.ht/~sircmpwn/hub.sr.ht
   - https://git.sr.ht/~sircmpwn/sr.ht-apkbuilds
