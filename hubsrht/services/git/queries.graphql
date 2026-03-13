@@ -37,7 +37,7 @@ query GetReadme($username: String!, $repoName: String!) {
 }
 
 fragment textData on TreeEntry {
-  object {
+  object_: object {
     __typename
     ... on TextBlob {
       text
@@ -52,24 +52,24 @@ query GetManifests($username: String!, $repo_name: String!) {
       visibility
 
       multiple: path(path:".builds") {
-        object {
+        object_: object {
           ... on Tree {
             entries {
               results {
                 name
-                object { ... on TextBlob { text } }
+                object_: object { ... on TextBlob { text } }
               }
             }
           }
         }
       },
       singleYML: path(path:".build.yml") {
-        object {
+        object_: object{
           ... on TextBlob { text }
         }
       },
       singleYAML: path(path:".build.yaml") {
-        object {
+        object_: object {
           ... on TextBlob { text }
         }
       }
