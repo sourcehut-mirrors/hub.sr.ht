@@ -64,9 +64,9 @@ def get_readme(owner, repo):
             raise Exception(f"git.sr.ht returned no repository for {owner.username}/{repo.name}")
         html = git_repo.html
         if git_repo.plaintext:
-            plaintext = git_repo.plaintext.object_.text
+            plaintext = git_repo.plaintext.object.text
         if git_repo.md or git_repo.markdown:
-            md = (git_repo.md or git_repo.markdown).object_.text
+            md = (git_repo.md or git_repo.markdown).object.text
     elif repo.repo_type == RepoType.hg:
         blob_prefix = repo.url() + "/raw/"
         rendered_prefix = repo.url() + "/browse/"

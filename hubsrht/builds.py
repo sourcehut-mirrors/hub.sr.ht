@@ -71,16 +71,16 @@ def submit_patchset(ml, patchset):
 
     manifests = dict()
     if repo.multiple:
-        for dirent in repo.multiple.object_.entries.results:
-            if not dirent.object_:
+        for dirent in repo.multiple.object.entries.results:
+            if not dirent.object:
                 continue
             if not any(fnmatch(dirent.name, pat) for pat in ["*.yml", "*.yaml"]):
                 continue
-            manifests[dirent.name] = dirent.object_.text
+            manifests[dirent.name] = dirent.object.text
     elif repo.single_yml:
-        manifests[".build.yml"] = repo.single_yml.object_.text
+        manifests[".build.yml"] = repo.single_yml.object.text
     elif repo.single_yaml:
-        manifests[".build.yaml"] = repo.single_yaml.object_.text
+        manifests[".build.yaml"] = repo.single_yaml.object.text
     else:
         return None
 
