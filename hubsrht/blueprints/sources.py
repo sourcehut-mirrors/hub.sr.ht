@@ -344,7 +344,7 @@ def delete_POST(owner, project_name, repo_id):
         valid = Validation(request)
         delete_remote = valid.optional("delete-remote") == "on"
         if delete_remote:
-            client.delete_repo(repo_id)
+            client.delete_repo(repo.remote_id)
     except GraphQLClientGraphQLMultiError:
         # This generally occurs if the remote repo (or webhook) was deleted and
         # we didn't hear about it. TODO: Replace me with semantic errors
