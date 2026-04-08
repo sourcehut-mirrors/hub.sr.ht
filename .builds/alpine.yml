@@ -8,6 +8,7 @@ packages:
   - rsync
   - go
   - golangci-lint
+  - builds.sr.ht-dev
   - lists.sr.ht-dev
   - git.sr.ht-dev
   - hg.sr.ht-dev
