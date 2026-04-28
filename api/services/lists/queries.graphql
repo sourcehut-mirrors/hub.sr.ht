@@ -1,28 +1,3 @@
-query GetLists($cursor: Cursor) {
-  me {
-    lists(cursor: $cursor) {
-      results {
-        rid
-        name
-        description
-        updated
-        owner {
-          canonicalName
-        }
-      }
-      cursor
-    }
-  }
-}
-
-query GetListByName($listName: String!) {
-  me {
-    mailingList: list(name: $listName) {
-      ... listDetails
-    }
-  }
-}
-
 query GetList($rid: ID!) {
   mailingList: list(rid: $rid) {
     ... listDetails
@@ -30,6 +5,7 @@ query GetList($rid: ID!) {
 }
 
 fragment listDetails on MailingList {
+  id
   rid
   name
   description
@@ -39,63 +15,51 @@ fragment listDetails on MailingList {
   }
 }
 
-query GetPatchset($id: Int!) {
-  patchset(id: $id) {
-    subject
-    prefix
-  }
-}
-
-mutation CreateList(
-  $name: String!,
-  $description: String!,
-  $visibility: Visibility!,
+mutation CreateUserWebhook(
+  $payload: String!
+  $url: String!,
 ) {
-  mailingList: createMailingList(
-    name: $name,
-    description: $description,
-    visibility: $visibility,
-  ) {
-    rid
-    name
-    description
-    visibility
-    defaultACL {
-      browse
-    }
-  }
+  webhook: createUserWebhook(config: {
+    url: $url,
+    events: [
+      LIST_UPDATED,
+      LIST_DELETED,
+    ],
+    query: $payload
+  }) { id }
 }
 
-mutation CreateTool(
-  $patchsetID: Int!,
-  $details: String!,
-  $icon: ToolIcon!,
+mutation DeleteUserWebhook($id: Int!) {
+  deleteUserWebhook(id: $id) { id }
+}
+
+mutation CreateListWebhook(
+  $listId: Int!,
+  $url: String!,
+  $payload: String!
 ) {
-  createTool(patchsetID: $patchsetID, details: $details, icon: $icon) {
-    id
-  }
+  webhook: createMailingListWebhook(
+    listId: $listId,
+    config: {
+      url: $url,
+      query: $payload,
+      events: [
+        EMAIL_RECEIVED,
+        PATCHSET_RECEIVED,
+      ],
+    },
+  ) { id }
 }
 
-mutation UpdateTool(
-  $toolID: Int!,
-  $details: String!,
-  $icon: ToolIcon!,
-) {
-  updateTool(id: $toolID, details: $details, icon: $icon) {
-    id
-  }
+mutation DeleteListWebhook($id: Int!) {
+  deleteMailingListWebhook(id: $id) { id }
 }
 
-mutation DeleteList($id: Int!) {
-  deleteMailingList(id: $id) {
-    id
-  }
-}
-
-# Versioned, see LISTS_WEBHOOK_VERSION in hubsrht/blueprints/mailing_lists.py
+# Versioned, see LIST_WEBHOOK_VERSION in hubsrht/blueprints/mailing_lists.py
 # and contrib/ensure-webhooks
 query EventWebhook {
   webhook {
+    __typename
     uuid
     event
     date
@@ -118,6 +82,7 @@ query EventWebhook {
         subject
 
         sender {
+          __typename
           canonicalName
 
           ... on User {
@@ -167,6 +132,7 @@ query EventWebhook {
             }
 
             sender {
+              __typename
               canonicalName
 
               ... on User {
@@ -190,6 +156,7 @@ query EventWebhook {
         }
 
         submitter {
+          __typename
           ... on User {
             name: canonicalName
             address: email

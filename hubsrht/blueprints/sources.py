@@ -1,16 +1,16 @@
 from flask import Blueprint, render_template, request, redirect, url_for, abort
 from hubsrht.projects import ProjectAccess, get_project, get_project_or_redir
 from hubsrht.services.hg import HgClient, Visibility as HgVisibility
+from hubsrht.services.hub import HubClient
 from hubsrht.services.git import GitClient, Visibility as GitVisibility
 from hubsrht.services.git import GraphQLClientGraphQLMultiError
 from hubsrht.types import Event, EventType
 from hubsrht.types import RepoType, SourceRepo, Visibility
-from hubsrht.types.eventprojectassoc import EventProjectAssociation
-from hubsrht.webhooks import get_user_webhooks
 from srht.app import paginate_query
 from srht.config import get_origin
 from srht.database import db
 from srht.oauth import current_user, loginrequired
+from srht.rid import to_rid
 from srht.search import search_by
 from srht.validation import Validation
 
@@ -134,49 +134,9 @@ def git_new_POST(owner, project_name):
 
         git_repo = GitClient().get_repo(repo_rid).repository
 
-    repo = SourceRepo()
-    repo.remote_id = git_repo.id
-    repo.remote_rid = git_repo.rid
-    repo.project_id = project.id
-    repo.owner_id = owner.id
-    repo.name = git_repo.name
-    repo.description = git_repo.description
-    repo.repo_type = RepoType.git
-    repo.visibility = Visibility(git_repo.visibility.value)
-    repo.webhook_id = -1
-    repo.webhook_version = GIT_WEBHOOK_VERSION
-    db.session.add(repo)
-    db.session.flush()
-
-    webhook_url = (get_origin("hub.sr.ht", external=False) +
-           url_for("webhooks.git_repo", repo_id=repo.id))
-    repo.webhook_id = git_client.create_repo_webhook(
-            repo_id=repo.remote_id,
-            payload=GitClient.event_webhook_query,
-            url=webhook_url).webhook.id
-
-    uwh = get_user_webhooks(owner)
-    if uwh.git_webhook_id is None:
-        user_webhook_url = (get_origin("hub.sr.ht", external=False) +
-               url_for("webhooks.git_user", user_id=owner.id))
-        uwh.git_webhook_id = git_client.create_user_webhook(
-                payload=GitClient.event_webhook_query,
-                url=user_webhook_url).webhook.id
-        uwh.git_webhook_version = GIT_WEBHOOK_VERSION
-
-    event = Event()
-    event.event_type = EventType.source_repo_added
-    event.source_repo_id = repo.id
-    event.user_id = project.owner_id
-    db.session.add(event)
-    db.session.flush()
-
-    assoc = EventProjectAssociation()
-    assoc.event_id = event.id
-    assoc.project_id = project.id
-    db.session.add(assoc)
-
-    db.session.commit()
+    repo = HubClient().link_source(to_rid(project.rid), git_repo.rid).source
+    if repo is None:
+        return
 
     return redirect(url_for("projects.summary_GET",
         owner=owner.canonical_name, project_name=project.name))
@@ -222,42 +182,9 @@ def hg_new_POST(owner, project_name):
 
         hg_repo = hg_client.get_repo(repo_rid).repository
 
-    repo = SourceRepo()
-    repo.remote_id = hg_repo.id
-    repo.remote_rid = hg_repo.rid
-    repo.project_id = project.id
-    repo.owner_id = owner.id
-    repo.name = hg_repo.name
-    repo.description = hg_repo.description
-    repo.repo_type = RepoType.hg
-    repo.visibility = Visibility(hg_repo.visibility.value)
-    repo.webhook_id = -1
-    repo.webhook_version = HG_WEBHOOK_VERSION
-    db.session.add(repo)
-    db.session.flush()
-
-    uwh = get_user_webhooks(owner)
-    if uwh.hg_webhook_id is None:
-        user_webhook_url = (get_origin("hub.sr.ht", external=False) +
-               url_for("webhooks.hg_user", user_id=owner.id))
-        uwh.hg_webhook_id = hg_client.create_user_webhook(
-                payload=HgClient.event_webhook_query,
-                url=user_webhook_url).webhook.id
-        uwh.hg_webhook_version = HG_WEBHOOK_VERSION
-
-    event = Event()
-    event.event_type = EventType.source_repo_added
-    event.source_repo_id = repo.id
-    event.user_id = project.owner_id
-    db.session.add(event)
-    db.session.flush()
-
-    assoc = EventProjectAssociation()
-    assoc.event_id = event.id
-    assoc.project_id = project.id
-    db.session.add(assoc)
-
-    db.session.commit()
+    repo = HubClient().link_source(to_rid(project.rid), hg_repo.rid).source
+    if repo is None:
+        return
 
     return redirect(url_for("projects.summary_GET",
         owner=owner.canonical_name, project_name=project.name))
@@ -331,29 +258,21 @@ def delete_POST(owner, project_name, repo_id):
         project.summary_repo_id = None
         db.session.commit()
 
-    match repo.repo_type:
-        case RepoType.git:
-            client = GitClient()
-        case RepoType.hg:
-            client = HgClient()
+    HubClient().unlink_source(to_rid(project.rid), repo.remote_rid)
 
-    try:
-        if repo.repo_type == RepoType.git:
-            client.delete_repo_webhook(repo.webhook_id)
-
-        valid = Validation(request)
-        delete_remote = valid.optional("delete-remote") == "on"
-        if delete_remote:
-            client.delete_repo(repo.remote_id)
-    except GraphQLClientGraphQLMultiError:
-        # This generally occurs if the remote repo (or webhook) was deleted and
-        # we didn't hear about it. TODO: Replace me with semantic errors
-        pass
-
-    repo_name = repo.name
-    repo_id = repo.remote_id
-    db.session.delete(repo)
-    db.session.commit()
+    valid = Validation(request)
+    delete_remote = valid.optional("delete-remote") == "on"
+    if delete_remote:
+        try:
+            match repo.repo_type:
+                case RepoType.git:
+                    GitClient().delete_repo(repo.remote_id)
+                case RepoType.hg:
+                    HgClient().delete_repo(repo.remote_id)
+        except GraphQLClientGraphQLMultiError:
+            # This generally occurs if the remote repo (or webhook) was deleted and
+            # we didn't hear about it. TODO: Replace me with semantic errors
+            pass
 
     return redirect(url_for("projects.summary_GET",
         owner=owner.canonical_name, project_name=project.name))

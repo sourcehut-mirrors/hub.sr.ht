@@ -96,12 +96,14 @@ type Project {
   rid: ID!
   created: Time!
   updated: Time!
+  ownerId: Int! @internal
   owner: Entity! @access(scope: PROFILE, kind: RO)
   name: String!
   description: String
   website: String
   visibility: Visibility!
   checklistComplete: Boolean!
+  summaryRepoId: Int @internal
   tags: [String!]!
 
   mailingLists(cursor: Cursor): MailingListCursor! @access(scope: LISTS, kind: RO)
@@ -201,7 +203,61 @@ type Query {
   tracker(rid: ID!): Tracker @access(scope: TRACKERS, kind: RO)
 }
 
+input ProjectInput {
+  name: String
+  visibility: Visibility
+  description: String
+  website: String
+  checklistComplete: Boolean
+  tags: [String!]
+}
+
 type Mutation {
+  """
+  Creates a new project.
+  """
+  createProject(name: String!, visibility: Visibility!, description: String, tags: [String!]): Project @access(scope: PROJECTS, kind: RW)
+
+  """
+  Updates an existing project.
+  """
+  updateProject(rid: ID!, input: ProjectInput!): Project @access(scope: PROJECTS, kind: RW)
+
+  """
+  Deletes an existing project.
+  """
+  deleteProject(rid: ID!): Project @access(scope: PROJECTS, kind: RW)
+
+  """
+  Links an existing mailing list to a project.
+  """
+  linkMailingList(projectID: ID!, listID: ID!): MailingList @access(scope: PROJECTS, kind: RW)
+
+  """
+  Unlinks an existing mailing list from a project.
+  """
+  unlinkMailingList(projectID: ID!, listID: ID!): MailingList @access(scope: PROJECTS, kind: RW)
+
+  """
+  Links an existing source repository to a project.
+  """
+  linkSource(projectID: ID!, sourceRepoID: ID!): SourceRepo @access(scope: PROJECTS, kind: RW)
+
+  """
+  Unlinks an existing source repository from a project.
+  """
+  unlinkSource(projectID: ID!, sourceRepoID: ID!): SourceRepo @access(scope: PROJECTS, kind: RW)
+
+  """
+  Links an existing tracker to a project.
+  """
+  linkTracker(projectID: ID!, trackerID: ID!): Tracker @access(scope: PROJECTS, kind: RW)
+
+  """
+  Unlinks an existing tracker from a project.
+  """
+  unlinkTracker(projectID: ID!, trackerID: ID!): Tracker @access(scope: PROJECTS, kind: RW)
+
   """
   Deletes the authenticated user's account. Internal use only.
   """

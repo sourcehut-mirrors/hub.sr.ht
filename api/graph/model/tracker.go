@@ -23,6 +23,9 @@ type Tracker struct {
 
 	OwnerID int
 
+	WebhookID      int
+	WebhookVersion int
+
 	alias  string
 	fields *database.ModelFields
 }
@@ -58,6 +61,8 @@ func (t *Tracker) Fields() *database.ModelFields {
 			{SQL: "id", GQL: "", Ptr: &t.ID},
 			{SQL: "remote_rid", GQL: "rid", Ptr: &t.RID},
 			{SQL: "owner_id", GQL: "", Ptr: &t.OwnerID},
+			{SQL: "webhook_id", GQL: "", Ptr: &t.WebhookID},
+			{SQL: "webhook_version", GQL: "", Ptr: &t.WebhookVersion},
 		},
 	}
 	return t.fields

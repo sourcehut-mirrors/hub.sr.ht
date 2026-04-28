@@ -1,0 +1,56 @@
+mutation CreateProject($name: String!, $visibility: Visibility!, $description: String, $tags: [String!]) {
+  project: createProject(name: $name, visibility: $visibility, description: $description, tags: $tags) {
+    rid
+    name
+  }
+}
+
+mutation UpdateProject($rid: ID!, $input: ProjectInput!) {
+  project: updateProject(rid: $rid, input: $input) {
+    rid
+    name
+  }
+}
+
+mutation DeleteProject($rid: ID!) {
+  project: deleteProject(rid: $rid) {
+    rid
+    name
+  }
+}
+
+mutation LinkMailingList($projectID: ID!, $listID: ID!) {
+  mailing_list: linkMailingList(projectID: $projectID, listID: $listID) {
+    rid
+  }
+}
+
+mutation UnlinkMailingList($projectID: ID!, $listID: ID!) {
+  mailing_list: unlinkMailingList(projectID: $projectID, listID: $listID) {
+    rid
+  }
+}
+
+mutation LinkSource($projectID: ID!, $sourceRepoID: ID!) {
+  source: linkSource(projectID: $projectID, sourceRepoID: $sourceRepoID) {
+    rid
+  }
+}
+
+mutation UnlinkSource($projectID: ID!, $sourceRepoID: ID!) {
+  source: unlinkSource(projectID: $projectID, sourceRepoID: $sourceRepoID) {
+    rid
+  }
+}
+
+mutation LinkTracker($projectID: ID!, $trackerID: ID!) {
+  tracker: linkTracker(projectID: $projectID, trackerID: $trackerID) {
+    rid
+  }
+}
+
+mutation UnlinkTracker($projectID: ID!, $trackerID: ID!) {
+  tracker: unlinkTracker(projectID: $projectID, trackerID: $trackerID) {
+    rid
+  }
+}

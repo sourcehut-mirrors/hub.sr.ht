@@ -8,6 +8,7 @@ from srht.database import Base
 class Project(Base):
     __tablename__ = "project"
     id = sa.Column(sa.Integer, primary_key=True)
+    rid = sa.Column(postgresql.UUID, unique=True, nullable=False)
     created = sa.Column(sa.DateTime, nullable=False)
     updated = sa.Column(sa.DateTime, nullable=False)
 

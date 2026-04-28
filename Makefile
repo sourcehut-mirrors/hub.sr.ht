@@ -21,6 +21,9 @@ GO_LDFLAGS += -ldflags " \
               -X git.sr.ht/~sircmpwn/core-go/server.BuildVersion=$(shell sourcehut-buildver) \
               -X git.sr.ht/~sircmpwn/core-go/server.BuildDate=$(shell sourcehut-builddate)"
 
+GO_CLIENTS = api/services/lists/gql.go api/services/git/gql.go \
+	     api/services/hg/gql.go api/services/todo/gql.go
+
 all: all-bin all-share all-python
 
 install: install-bin install-share
@@ -34,6 +37,7 @@ all-share: static/main.min.css
 BUILDS_GRAPHQL_QUERIES != echo hubsrht/services/builds/*.graphql
 GIT_GRAPHQL_QUERIES != echo hubsrht/services/git/*.graphql
 HG_GRAPHQL_QUERIES != echo hubsrht/services/hg/*.graphql
+HUB_GRAPHQL_QUERIES != echo hubsrht/services/hub/*.graphql
 LISTS_GRAPHQL_QUERIES != echo hubsrht/services/lists/*.graphql
 TODO_GRAPHQL_QUERIES != echo hubsrht/services/todo/*.graphql
 
@@ -49,6 +53,9 @@ hubsrht/services/git/__init__.py: $(GIT_GRAPHQL_QUERIES) ariadne/git.toml
 hubsrht/services/hg/__init__.py: $(HG_GRAPHQL_QUERIES) ariadne/hg.toml
 	$(ARIADNE_CODEGEN) --config ariadne/hg.toml
 
+hubsrht/services/hub/__init__.py: $(HUB_GRAPHQL_QUERIES) ariadne/hub.toml
+	$(ARIADNE_CODEGEN) --config ariadne/hub.toml
+
 hubsrht/services/lists/__init__.py: $(LISTS_GRAPHQL_QUERIES) ariadne/lists.toml
 	$(ARIADNE_CODEGEN) --config ariadne/lists.toml
 
@@ -58,6 +65,7 @@ hubsrht/services/todo/__init__.py: $(TODO_GRAPHQL_QUERIES) ariadne/todo.toml
 all-python: hubsrht/services/builds/__init__.py
 all-python: hubsrht/services/git/__init__.py
 all-python: hubsrht/services/hg/__init__.py
+all-python: hubsrht/services/hub/__init__.py
 all-python: hubsrht/services/lists/__init__.py
 all-python: hubsrht/services/todo/__init__.py
 
@@ -77,7 +85,7 @@ install-share: all-share
 	install -Dm644 migrations/*.sql $(MIGRATIONDIR)
 
 clean-bin:
-	rm -f $(BINARIES)
+	rm -f $(BINARIES) $(GO_CLIENTS) api/graph/api/generated.go api/loaders/*_gen.go
 
 clean-share:
 	rm -f static/main.min.css static/main.css
@@ -86,6 +94,7 @@ clean-python:
 	./scripts/clean-python builds
 	./scripts/clean-python git
 	./scripts/clean-python hg
+	./scripts/clean-python hub
 	./scripts/clean-python lists
 	./scripts/clean-python todo
 	# TODO: Replace the script with the following once legacy webhook
@@ -115,7 +124,10 @@ api/loaders/*_gen.go &: api/loaders/generate.go api/loaders/gen go.sum
 api/graph/api/generated.go: api/graph/schema.graphqls api/graph/generate.go go.sum api/loaders/*_gen.go
 	cd api && go generate ./graph
 
-$(SERVICE)-api: api/graph/api/generated.go
+api/services/%/gql.go: api/services/%/queries.graphql
+	cd api && go generate ./services
+
+$(SERVICE)-api: $(GO_CLIENTS) api/graph/api/generated.go
 	go build -o $@ $(GO_LDFLAGS) ./api
 
 # Always rebuild

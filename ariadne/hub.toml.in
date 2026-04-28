@@ -1,0 +1,15 @@
+[tool.ariadne-codegen]
+async_client = false
+client_name = "HubClient"
+schema_path = "api/graph/schema.graphqls"
+queries_path = "hubsrht/services/hub/"
+target_package_path = "hubsrht/services/"
+target_package_name = "hub"
+plugins = ["srht.ariadne.AriadnePlugin"]
+
+[tool.ariadne-codegen.sourcehut]
+service_name = "hub.sr.ht"
+
+[tool.ariadne-codegen.scalars.Time]
+type = "datetime.datetime"
+parse = "srht.graphql.gql_time"

@@ -7,6 +7,7 @@ toolchain go1.24.0
 require (
 	git.sr.ht/~sircmpwn/core-go v0.0.0-20260407175657-bbb9e45c5d63
 	git.sr.ht/~sircmpwn/dowork v0.0.0-20241216125407-2b00aa42322c
+	git.sr.ht/~sircmpwn/gqlclient v0.0.0-20260311150237-708bc60b772a
 	github.com/99designs/gqlgen v0.17.64
 	github.com/Masterminds/squirrel v1.5.4
 	github.com/lib/pq v1.10.9
@@ -23,6 +24,7 @@ require (
 	github.com/cespare/xxhash/v2 v2.2.0 // indirect
 	github.com/cloudflare/circl v1.6.0 // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.6 // indirect
+	github.com/dave/jennifer v1.7.0 // indirect
 	github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f // indirect
 	github.com/emersion/go-message v0.18.2 // indirect
 	github.com/emersion/go-pgpmail v0.2.2 // indirect

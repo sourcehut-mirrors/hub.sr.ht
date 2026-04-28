@@ -7,22 +7,589 @@ package graph
 import (
 	"context"
 	"database/sql"
+	"errors"
+	"fmt"
+	"strings"
 
 	"git.sr.ht/~sircmpwn/core-go/auth"
-	"git.sr.ht/~sircmpwn/core-go/config"
 	"git.sr.ht/~sircmpwn/core-go/database"
+	gerrors "git.sr.ht/~sircmpwn/core-go/errors"
 	coremodel "git.sr.ht/~sircmpwn/core-go/model"
 	"git.sr.ht/~sircmpwn/core-go/server"
+	"git.sr.ht/~sircmpwn/core-go/valid"
 	"git.sr.ht/~sircmpwn/hub.sr.ht/api/account"
 	"git.sr.ht/~sircmpwn/hub.sr.ht/api/graph/api"
 	"git.sr.ht/~sircmpwn/hub.sr.ht/api/graph/model"
 	"git.sr.ht/~sircmpwn/hub.sr.ht/api/loaders"
+	gitclient "git.sr.ht/~sircmpwn/hub.sr.ht/api/services/git"
+	hgclient "git.sr.ht/~sircmpwn/hub.sr.ht/api/services/hg"
+	listsclient "git.sr.ht/~sircmpwn/hub.sr.ht/api/services/lists"
+	todoclient "git.sr.ht/~sircmpwn/hub.sr.ht/api/services/todo"
 	sq "github.com/Masterminds/squirrel"
+	"github.com/lib/pq"
 )
 
 // Owner is the resolver for the owner field.
 func (r *mailingListResolver) Owner(ctx context.Context, obj *model.MailingList) (model.Entity, error) {
 	return loaders.ForContext(ctx).UsersByID.Load(obj.OwnerID)
+}
+
+// CreateProject is the resolver for the createProject field.
+func (r *mutationResolver) CreateProject(ctx context.Context, name string, visibility model.Visibility, description *string, tags []string) (*model.Project, error) {
+	if len(tags) > 3 {
+		return nil, valid.Error(ctx, "tags", "At most 3 tags allowed")
+	}
+	var proj model.Project
+	if err := database.WithTx(ctx, nil, func(tx *sql.Tx) error {
+		row := tx.QueryRowContext(ctx, `
+			INSERT INTO project (
+				created, updated, name, description, tags, visibility, owner_id
+			) VALUES (
+				NOW() at time zone 'utc',
+				NOW() at time zone 'utc',
+				$1, $2, $3, $4, $5
+			) RETURNING
+				id, rid,
+				created, updated, name,
+				description, visibility,
+				tags, owner_id;
+		`, name, description, pq.StringArray(tags), visibility, auth.ForContext(ctx).UserID)
+		if err := row.Scan(&proj.ID, &proj.RID,
+			&proj.Created, &proj.Updated, &proj.Name,
+			&proj.Description, &proj.Visibility,
+			pq.Array(&proj.Tags), &proj.OwnerID); err != nil {
+			if strings.Contains(err.Error(), "duplicate key value violates unique constraint") {
+				return valid.Error(ctx, "name", "A project with this name already exists.")
+			}
+			return err
+		}
+		return nil
+	}); err != nil {
+		return nil, err
+	}
+
+	return &proj, nil
+}
+
+// UpdateProject is the resolver for the updateProject field.
+func (r *mutationResolver) UpdateProject(ctx context.Context, rid coremodel.RID, input map[string]interface{}) (*model.Project, error) {
+	projectRow, err := r.Query().Project(ctx, rid)
+	if err != nil {
+		return nil, err
+	} else if projectRow == nil {
+		return nil, gerrors.ErrNotFound
+	}
+
+	var (
+		proj    model.Project
+		newName string
+	)
+	query := sq.Update(proj.Table()).PlaceholderFormat(sq.Dollar)
+
+	validation := valid.New(ctx).WithInput(input)
+	validation.OptionalString("name", func(name string) {
+		query = query.Set(`name`, name)
+		newName = name
+	})
+	validation.Optional("visibility", func(vis interface{}) {
+		query = query.Set(`visibility`, vis)
+	})
+	validation.NullableString("description", func(description *string) {
+		if description == nil {
+			query = query.Set(`description`, nil)
+		} else {
+			query = query.Set(`description`, *description)
+		}
+	})
+	validation.NullableString("website", func(website *string) {
+		if website == nil {
+			query = query.Set(`website`, nil)
+		} else {
+			query = query.Set(`website`, *website)
+		}
+	})
+	validation.OptionalBool("checklistComplete", func(b bool) {
+		query = query.Set(`checklist_complete`, b)
+	})
+	validation.Optional("tags", func(tags interface{}) {
+		switch tags := tags.(type) {
+		case []string:
+			if len(tags) > 3 {
+				validation.Error("At most 3 tags allowed")
+			}
+			query = query.Set(`tags`, pq.StringArray(tags))
+		default:
+			validation.Error(fmt.Sprintf("Invalid type: %s", tags))
+		}
+	})
+	if !validation.Ok() {
+		return nil, errors.New("validation failed") // TODO: Avoid surfacing placeholder error
+	}
+
+	if err := database.WithTx(ctx, nil, func(tx *sql.Tx) error {
+		if len(newName) > 0 && newName != projectRow.Name {
+			_, err = tx.ExecContext(ctx, `
+				INSERT INTO redirect(
+					created, name, owner_id, new_project_id
+				)
+				VALUES (
+					NOW() at time zone 'utc',
+					$1, $2, $3
+				);
+			`, projectRow.Name, projectRow.OwnerID, projectRow.ID)
+			if err != nil {
+				return err
+			}
+		}
+		query = query.
+			Where(`rid = ?`, rid).
+			Where(`owner_id = ?`, auth.ForContext(ctx).UserID).
+			Set(`updated`, sq.Expr(`now() at time zone 'utc'`)).
+			Suffix(`RETURNING
+				rid, created, updated, name, description, visibility,
+				tags`)
+
+		row := query.RunWith(tx).QueryRowContext(ctx)
+		if err := row.Scan(&proj.RID, &proj.Created, &proj.Updated,
+			&proj.Name, &proj.Description, &proj.Visibility,
+			pq.Array(&proj.Tags)); err != nil {
+			if err == sql.ErrNoRows {
+				return gerrors.ErrNotFound
+			}
+			return err
+		}
+
+		return nil
+	}); err != nil {
+		return nil, err
+	}
+
+	return &proj, nil
+}
+
+// DeleteProject is the resolver for the deleteProject field.
+func (r *mutationResolver) DeleteProject(ctx context.Context, rid coremodel.RID) (*model.Project, error) {
+	var proj model.Project
+	var listWebhookIDs, gitWebhookIDs, todoWebhookIDs []int
+	if err := database.WithTx(ctx, nil, func(tx *sql.Tx) error {
+		var projectID int
+		project := tx.QueryRowContext(ctx,
+			"SELECT id FROM project WHERE rid = $1", rid)
+		if err := project.Scan(&projectID); err != nil {
+			if err == sql.ErrNoRows {
+				return gerrors.ErrNotFound
+			}
+			return err
+		}
+
+		// Collect the associated resources' webhook IDs for clean-up
+		// if the project deletion succeeds (note that hg does not
+		// support repository webhooks).
+		listWebhookIDs, _ = collectWebhookIDs(ctx, tx, projectID, MailingList)
+		gitWebhookIDs, _ = collectWebhookIDs(ctx, tx, projectID, GitRepository)
+		todoWebhookIDs, _ = collectWebhookIDs(ctx, tx, projectID, Tracker)
+
+		row := tx.QueryRowContext(ctx, `
+			DELETE FROM project
+			WHERE rid = $1 AND owner_id = $2
+			RETURNING
+				id, rid, created, updated, name, description, visibility,
+				tags, website, checklist_complete;
+		`, rid, auth.ForContext(ctx).UserID)
+
+		if err := row.Scan(&proj.ID, &proj.RID, &proj.Created, &proj.Updated,
+			&proj.Name, &proj.Description, &proj.Visibility,
+			pq.Array(&proj.Tags), &proj.Website, &proj.ChecklistComplete); err != nil {
+			if err == sql.ErrNoRows {
+				return gerrors.ErrNotFound
+			}
+			return err
+		}
+		return nil
+	}); err != nil {
+		return nil, err
+	}
+
+	// Best-effort clean-up of the associated webhooks.
+	for _, whID := range listWebhookIDs {
+		listsclient.DeleteListWebhook(
+			NewListsGQLClient(ctx),
+			ctx, int32(whID),
+		)
+	}
+	for _, whID := range gitWebhookIDs {
+		gitclient.DeleteRepoWebhook(
+			NewGitGQLClient(ctx),
+			ctx, int32(whID),
+		)
+	}
+	for _, whID := range todoWebhookIDs {
+		todoclient.DeleteTrackerWebhook(
+			NewTodoGQLClient(ctx),
+			ctx, int32(whID),
+		)
+	}
+
+	return &proj, nil
+}
+
+// LinkMailingList is the resolver for the linkMailingList field.
+func (r *mutationResolver) LinkMailingList(ctx context.Context, projectID coremodel.RID, listID coremodel.RID) (*model.MailingList, error) {
+	if !Features().Lists {
+		return nil, gerrors.ErrUnsupported
+	}
+
+	projectRow, err := r.Query().Project(ctx, projectID)
+	if err != nil || projectRow == nil {
+		return nil, gerrors.ErrNotFound
+	}
+
+	if projectRow.OwnerID != auth.ForContext(ctx).UserID {
+		return nil, gerrors.ErrAccessDenied
+	}
+
+	resourceRow, err := r.Project().Resource(ctx, projectRow, listID)
+	if err == nil && resourceRow != nil {
+		// The list is already linked to the project
+		return resourceRow.(*model.MailingList), nil
+	}
+
+	gqlList, err := listsclient.GetList(NewListsGQLClient(ctx), ctx, listID.String())
+	if err != nil {
+		return nil, err
+	} else if gqlList == nil {
+		return nil, gerrors.ErrNotFound
+	}
+
+	var ml model.MailingList
+	if err := database.WithTx(ctx, nil, func(tx *sql.Tx) error {
+		row := tx.QueryRowContext(ctx, `
+			INSERT INTO mailing_list (
+				remote_id, remote_rid, created, updated,
+				project_id, owner_id, name, description,
+				visibility, webhook_id, webhook_version
+			) VALUES (
+				$1, $2,
+				NOW() at time zone 'utc',
+				NOW() at time zone 'utc',
+				$3, $4, $5, $6,
+				$7, -1, 0
+			) RETURNING
+				id, remote_rid,
+				created, updated, name,
+				description, visibility;
+			`,
+			gqlList.Id, gqlList.Rid,
+			projectRow.ID, auth.ForContext(ctx).UserID,
+			gqlList.Name, gqlList.Description,
+			gqlList.Visibility)
+		if err := row.Scan(&ml.ID, &ml.RID, &ml.Linked, &ml.Updated,
+			&ml.Name, &ml.Description, &ml.Visibility); err != nil {
+			return err
+		}
+
+		if err := SetupUserWebhook(ctx, tx,
+			MailingList, CreateListUserWebhook); err != nil {
+			return err
+		}
+
+		sub, err := listsclient.CreateListWebhook(
+			NewListsGQLClient(ctx),
+			ctx, gqlList.Id,
+			GetWebhookURL(ctx, MailingList, ml.ID),
+			listsclient.EventWebhookQuery,
+		)
+		if err != nil {
+			return err
+		}
+
+		_, err = tx.ExecContext(ctx, `
+			UPDATE mailing_list
+			SET webhook_id = $1, webhook_version = $2
+			WHERE id = $3;
+		`, sub.Id, LISTS_WEBHOOK_VERSION, ml.ID)
+		if err != nil {
+			// We will rollback, so need to delete the new webhook.
+			listsclient.DeleteListWebhook(
+				NewListsGQLClient(ctx),
+				ctx, sub.Id,
+			)
+			return err
+		}
+
+		return addResourceEvent(ctx, tx, projectRow.ID,
+			MailingList, ml.ID, auth.ForContext(ctx).UserID)
+	}); err != nil {
+		return nil, err
+	}
+
+	return &ml, err
+}
+
+// UnlinkMailingList is the resolver for the unlinkMailingList field.
+func (r *mutationResolver) UnlinkMailingList(ctx context.Context, projectID coremodel.RID, listID coremodel.RID) (*model.MailingList, error) {
+	var ml *model.MailingList
+	err := database.WithTx(ctx, nil, func(tx *sql.Tx) error {
+		res, err := UnlinkResource(r, ctx, tx, projectID, listID)
+		if err != nil {
+			return err
+		}
+		ml = res.(*model.MailingList)
+
+		_, err = listsclient.DeleteListWebhook(
+			NewListsGQLClient(ctx),
+			ctx, int32(ml.WebhookID),
+		)
+		return err
+	})
+	return ml, err
+}
+
+// LinkSource is the resolver for the linkSource field.
+func (r *mutationResolver) LinkSource(ctx context.Context, projectID coremodel.RID, sourceRepoID coremodel.RID) (*model.SourceRepo, error) {
+	projectRow, err := r.Query().Project(ctx, projectID)
+	if err != nil || projectRow == nil {
+		return nil, gerrors.ErrNotFound
+	}
+
+	if projectRow.OwnerID != auth.ForContext(ctx).UserID {
+		return nil, gerrors.ErrAccessDenied
+	}
+
+	resourceRow, err := r.Project().Resource(ctx, projectRow, sourceRepoID)
+	if err == nil && resourceRow != nil {
+		// The list is already linked to the project
+		return resourceRow.(*model.SourceRepo), nil
+	}
+
+	var (
+		gitRepo *gitclient.Repository
+		hgRepo  *hgclient.Repository
+	)
+	if Features().Git {
+		gitRepo, _ = gitclient.GetRepo(NewGitGQLClient(ctx), ctx, sourceRepoID.String())
+	}
+	if gitRepo == nil && Features().Hg {
+		hgRepo, _ = hgclient.GetRepo(NewHgGQLClient(ctx), ctx, sourceRepoID.String())
+	}
+	if gitRepo == nil && hgRepo == nil {
+		return nil, gerrors.ErrNotFound
+	}
+	repoWrapper, err := NewRepoWrapper(gitRepo, hgRepo)
+	if err != nil {
+		panic(err)
+	}
+
+	var rep model.SourceRepo
+	if err := database.WithTx(ctx, nil, func(tx *sql.Tx) error {
+		row := tx.QueryRowContext(ctx, `
+			INSERT INTO source_repo (
+				remote_id, remote_rid, repo_type,
+				created, updated,
+				project_id, owner_id, name, description,
+				visibility, webhook_id, webhook_version
+			) VALUES (
+				$1, $2, $3,
+				NOW() at time zone 'utc',
+				NOW() at time zone 'utc',
+				$4, $5, $6, $7,
+				$8, 0, -1
+			) RETURNING
+				id, remote_rid, repo_type,
+				created, updated, name,
+				description, visibility;
+			`,
+			repoWrapper.ID(), repoWrapper.RID(), repoWrapper.RepoType(),
+			projectRow.ID, auth.ForContext(ctx).UserID,
+			repoWrapper.Name(), repoWrapper.Description(),
+			repoWrapper.Visibility())
+		if err := row.Scan(&rep.ID, &rep.RID, &rep.RepoType,
+			&rep.Linked, &rep.Updated,
+			&rep.Name, &rep.Description, &rep.Visibility); err != nil {
+			return err
+		}
+
+		if gitRepo != nil {
+			if err := SetupUserWebhook(ctx, tx,
+				GitRepository, CreateGitUserWebhook); err != nil {
+				return err
+			}
+
+			sub, err := gitclient.CreateRepoWebhook(
+				NewGitGQLClient(ctx),
+				ctx, repoWrapper.ID(),
+				gitclient.EventWebhookQuery,
+				GetWebhookURL(ctx, GitRepository, rep.ID),
+			)
+			if err != nil {
+				return err
+			}
+
+			_, err = tx.ExecContext(ctx, `
+				UPDATE source_repo
+				SET webhook_id = $1, webhook_version = $2
+				WHERE id = $3;
+			`, sub.Id, GIT_WEBHOOK_VERSION, rep.ID)
+			if err != nil {
+				// We will rollback, so need to delete the new
+				// webhook.
+				gitclient.DeleteRepoWebhook(
+					NewGitGQLClient(ctx),
+					ctx, sub.Id,
+				)
+				return err
+			}
+
+			return addResourceEvent(ctx, tx, projectRow.ID,
+				GitRepository, rep.ID, auth.ForContext(ctx).UserID)
+		} else {
+			// hg.sr.ht only supports user webhooks, not repo webhooks.
+			err = SetupUserWebhook(ctx, tx,
+				HgRepository, CreateHgUserWebhook)
+			if err != nil {
+				return err
+			}
+			return addResourceEvent(ctx, tx, projectRow.ID,
+				HgRepository, rep.ID, auth.ForContext(ctx).UserID)
+		}
+	}); err != nil {
+		return nil, err
+	}
+
+	return &rep, err
+}
+
+// UnlinkSource is the resolver for the unlinkSource field.
+func (r *mutationResolver) UnlinkSource(ctx context.Context, projectID coremodel.RID, sourceRepoID coremodel.RID) (*model.SourceRepo, error) {
+	var rep *model.SourceRepo
+	err := database.WithTx(ctx, nil, func(tx *sql.Tx) error {
+		res, err := UnlinkResource(r, ctx, tx, projectID, sourceRepoID)
+		if err != nil {
+			return err
+		}
+		rep = res.(*model.SourceRepo)
+		// Repository webhooks are only supported by git.sr.ht.
+		if rep.RepoType == "GIT" {
+			_, err = gitclient.DeleteRepoWebhook(
+				NewGitGQLClient(ctx),
+				ctx, int32(rep.WebhookID),
+			)
+		}
+		return err
+	})
+	return rep, err
+}
+
+// LinkTracker is the resolver for the linkTracker field.
+func (r *mutationResolver) LinkTracker(ctx context.Context, projectID coremodel.RID, trackerID coremodel.RID) (*model.Tracker, error) {
+	if !Features().Todo {
+		return nil, gerrors.ErrUnsupported
+	}
+
+	projectRow, err := r.Query().Project(ctx, projectID)
+	if err != nil || projectRow == nil {
+		return nil, gerrors.ErrNotFound
+	}
+
+	if projectRow.OwnerID != auth.ForContext(ctx).UserID {
+		return nil, gerrors.ErrAccessDenied
+	}
+
+	resourceRow, err := r.Project().Resource(ctx, projectRow, trackerID)
+	if err == nil && resourceRow != nil {
+		// The tracker is already linked to the project
+		return resourceRow.(*model.Tracker), nil
+	}
+
+	gqlTracker, err := todoclient.GetTracker(NewTodoGQLClient(ctx), ctx, trackerID.String())
+	if err != nil {
+		return nil, err
+	} else if gqlTracker == nil {
+		return nil, gerrors.ErrNotFound
+	}
+
+	var trackerRow model.Tracker
+	if err := database.WithTx(ctx, nil, func(tx *sql.Tx) error {
+		row := tx.QueryRowContext(ctx, `
+			INSERT INTO tracker (
+				remote_id, remote_rid, created, updated,
+				project_id, owner_id, name, description,
+				visibility, webhook_id, webhook_version
+			) VALUES (
+				$1, $2,
+				NOW() at time zone 'utc',
+				NOW() at time zone 'utc',
+				$3, $4, $5, $6,
+				$7, 0, -1
+			) RETURNING
+				id, remote_rid,
+				created, updated, name,
+				description, visibility;
+			`,
+			gqlTracker.Id, gqlTracker.Rid,
+			projectRow.ID, auth.ForContext(ctx).UserID,
+			gqlTracker.Name, gqlTracker.Description,
+			gqlTracker.Visibility)
+		if err := row.Scan(&trackerRow.ID, &trackerRow.RID, &trackerRow.Linked, &trackerRow.Updated,
+			&trackerRow.Name, &trackerRow.Description, &trackerRow.Visibility); err != nil {
+			return err
+		}
+
+		if err := SetupUserWebhook(ctx, tx,
+			Tracker, CreateTrackerUserWebhook); err != nil {
+			return err
+		}
+
+		sub, err := todoclient.CreateTrackerWebhook(
+			NewTodoGQLClient(ctx),
+			ctx, gqlTracker.Id,
+			todoclient.EventWebhookQuery,
+			GetWebhookURL(ctx, Tracker, trackerRow.ID),
+		)
+		if err != nil {
+			return err
+		}
+
+		_, err = tx.ExecContext(ctx, `
+			UPDATE tracker
+			SET webhook_id = $1, webhook_version = $2
+			WHERE id = $3;
+		`, sub.Id, TODO_WEBHOOK_VERSION, trackerRow.ID)
+		if err != nil {
+			// We will rollback, so need to delete the new webhook.
+			todoclient.DeleteTrackerWebhook(
+				NewTodoGQLClient(ctx),
+				ctx, sub.Id,
+			)
+			return err
+		}
+		return addResourceEvent(ctx, tx, projectRow.ID,
+			Tracker, trackerRow.ID, auth.ForContext(ctx).UserID)
+	}); err != nil {
+		return nil, err
+	}
+
+	return &trackerRow, err
+}
+
+// UnlinkTracker is the resolver for the unlinkTracker field.
+func (r *mutationResolver) UnlinkTracker(ctx context.Context, projectID coremodel.RID, trackerID coremodel.RID) (*model.Tracker, error) {
+	var t *model.Tracker
+	err := database.WithTx(ctx, nil, func(tx *sql.Tx) error {
+		res, err := UnlinkResource(r, ctx, tx, projectID, trackerID)
+		if err != nil {
+			return err
+		}
+		t = res.(*model.Tracker)
+
+		_, err = todoclient.DeleteTrackerWebhook(
+			NewTodoGQLClient(ctx),
+			ctx, int32(t.WebhookID),
+		)
+		return err
+	})
+
+	return t, err
 }
 
 // DeleteUser is the resolver for the deleteUser field.
@@ -309,7 +876,7 @@ func (r *projectResolver) Tracker(ctx context.Context, obj *model.Project, name 
 
 // Version is the resolver for the version field.
 func (r *queryResolver) Version(ctx context.Context) (*model.Version, error) {
-	conf := config.ForContext(ctx)
+	features := Features()
 	return &model.Version{
 		Major:           0,
 		Minor:           0,
@@ -318,12 +885,7 @@ func (r *queryResolver) Version(ctx context.Context) (*model.Version, error) {
 		BuildDate:       server.BuildDate,
 		DeprecationDate: nil,
 
-		Features: &model.Features{
-			Lists: len(config.GetOrigin(conf, "lists.sr.ht", true)) > 0,
-			Git:   len(config.GetOrigin(conf, "git.sr.ht", true)) > 0,
-			Hg:    len(config.GetOrigin(conf, "hg.sr.ht", true)) > 0,
-			Todo:  len(config.GetOrigin(conf, "todo.sr.ht", true)) > 0,
-		},
+		Features: &features,
 	}, nil
 }
 

@@ -1,15 +1,14 @@
 import json
 from flask import Blueprint, render_template, request, redirect, url_for, abort
 from hubsrht.projects import ProjectAccess, get_project, get_project_or_redir
+from hubsrht.services.hub import HubClient
 from hubsrht.services.lists import ListsClient, Visibility as ListVisibility
-from hubsrht.types import Event, EventType
 from hubsrht.types import MailingList, Visibility
-from hubsrht.types.eventprojectassoc import EventProjectAssociation
-from hubsrht.webhooks import get_user_webhooks
 from srht.app import paginate_query
 from srht.config import get_origin
 from srht.database import db
 from srht.oauth import current_user, loginrequired
+from srht.rid import to_rid
 from srht.search import search_by
 from srht.validation import Validation
 
@@ -73,48 +72,7 @@ def new_GET(owner, project_name):
             owner=owner, project=project, lists=lists, existing=existing)
 
 def finalize_add_list(client, owner, project, mailing_list):
-    ml = MailingList()
-    ml.remote_id = mailing_list.id
-    ml.remote_rid = mailing_list.rid
-    ml.project_id = project.id
-    ml.owner_id = project.owner_id
-    ml.name = mailing_list.name
-    ml.webhook_id = -1
-    ml.webhook_version = LIST_WEBHOOK_VERSION
-    ml.description = mailing_list.description
-    ml.visibility = Visibility(mailing_list.visibility.value)
-    db.session.add(ml)
-    db.session.flush()
-
-    webhook_url = (get_origin("hub.sr.ht", external=False) +
-           url_for("webhooks.project_mailing_list", list_id=ml.id))
-    ml.webhook_id = client.create_list_webhook(
-            list_id=ml.remote_id,
-            payload=ListsClient.event_webhook_query,
-            url=webhook_url).webhook.id
-
-    uwh = get_user_webhooks(owner)
-    if uwh.lists_webhook_id is None:
-        user_webhook_url = (get_origin("hub.sr.ht", external=False) +
-               url_for("webhooks.mailing_list_user", user_id=owner.id))
-        uwh.lists_webhook_id = client.create_user_webhook(
-                payload=ListsClient.event_webhook_query,
-                url=user_webhook_url).webhook.id
-        uwh.lists_webhook_version = LIST_WEBHOOK_VERSION
-
-    event = Event()
-    event.event_type = EventType.mailing_list_added 
-    event.mailing_list_id = ml.id
-    event.user_id = project.owner_id
-    db.session.add(event)
-    db.session.flush()
-
-    assoc = EventProjectAssociation()
-    assoc.event_id = event.id
-    assoc.project_id = project.id
-    db.session.add(assoc)
-
-    db.session.commit()
+    HubClient().link_mailing_list(to_rid(project.rid), mailing_list.rid)
 
 def lists_from_template(owner, project, template):
     project_url = url_for("projects.summary_GET",
@@ -278,18 +236,12 @@ def delete_POST(owner, project_name, list_id):
     if not mailing_list:
         abort(404)
 
-    list_id = mailing_list.remote_id
-    hook_id = mailing_list.webhook_id
-    db.session.delete(mailing_list)
-    db.session.commit()
-
-    client = ListsClient()
-    client.delete_list_webhook(hook_id)
+    HubClient().unlink_mailing_list(to_rid(project.rid), mailing_list.remote_rid)
 
     valid = Validation(request)
     delete_remote = valid.optional("delete-remote") == "on"
     if delete_remote:
-        client.delete_list(list_id)
+        ListsClient().delete_list(mailing_list.remote_id)
 
     return redirect(url_for("projects.summary_GET",
         owner=owner.canonical_name, project_name=project.name))

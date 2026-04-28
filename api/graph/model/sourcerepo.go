@@ -24,6 +24,9 @@ type SourceRepo struct {
 
 	OwnerID int
 
+	WebhookID      int
+	WebhookVersion int
+
 	alias  string
 	fields *database.ModelFields
 }
@@ -54,12 +57,14 @@ func (r *SourceRepo) Fields() *database.ModelFields {
 			{SQL: "name", GQL: "name", Ptr: &r.Name},
 			{SQL: "description", GQL: "description", Ptr: &r.Description},
 			{SQL: "visibility", GQL: "visibility", Ptr: &r.Visibility},
-			{SQL: "repo_type", GQL: "repoType", Ptr: &r.RepoType},
 
 			// Always fetch:
 			{SQL: "id", GQL: "", Ptr: &r.ID},
 			{SQL: "remote_rid", GQL: "rid", Ptr: &r.RID},
 			{SQL: "owner_id", GQL: "", Ptr: &r.OwnerID},
+			{SQL: "repo_type", GQL: "", Ptr: &r.RepoType},
+			{SQL: "webhook_id", GQL: "", Ptr: &r.WebhookID},
+			{SQL: "webhook_version", GQL: "", Ptr: &r.WebhookVersion},
 		},
 	}
 	return r.fields

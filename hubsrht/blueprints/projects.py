@@ -6,11 +6,9 @@ from hubsrht.decorators import adminrequired
 from hubsrht.projects import ProjectAccess, get_project, get_project_or_redir
 from hubsrht.services.git import GitClient
 from hubsrht.services.hg import HgClient
-from hubsrht.services.lists import ListsClient
-from hubsrht.services.todo import TodoClient
+from hubsrht.services.hub import HubClient, ProjectInput
 from hubsrht.types import Feature, Event, EventType
 from hubsrht.types import Project, RepoType, Visibility
-from hubsrht.types import Redirect
 from hubsrht.types import SourceRepo, MailingList, Tracker
 from hubsrht.types.eventprojectassoc import EventProjectAssociation
 from markupsafe import Markup, escape
@@ -20,8 +18,9 @@ from srht.app import csrf_bypass, paginate_query
 from srht.config import cfg, get_origin
 from srht.database import db
 from srht.graphql import InternalAuth
-from srht.markdown import markdown, sanitize
 from srht.oauth import current_user, loginrequired
+from srht.markdown import markdown, sanitize
+from srht.rid import to_rid
 from srht.validation import Validation, valid_url
 
 projects = Blueprint("projects", __name__)
@@ -211,8 +210,8 @@ def dismiss_checklist_POST(owner, project_name):
     owner, project = get_project(owner, project_name, ProjectAccess.write)
     if project is None:
         abort(404)
-    project.checklist_complete = True
-    db.session.commit()
+    HubClient().update_project(to_rid(project.rid),
+                               ProjectInput(checklist_complete=True))
     return redirect(url_for("projects.summary_GET",
         owner=current_user.canonical_name,
         project_name=project.name))
@@ -267,14 +266,9 @@ def create_POST():
         kwargs.pop("tags")
         return render_template("project-create.html", **kwargs, tags=tags)
 
-    project = Project()
-    project.name = name
-    project.description = description
-    project.tags = tags
-    project.visibility = visibility
-    project.owner_id = current_user.id
-    db.session.add(project)
-    db.session.commit()
+    project = HubClient().create_project(name, visibility, description, tags).project
+    if project == None:
+        return render_template("project-create.html", **kwargs, tags=tags)
 
     return redirect(url_for("projects.summary_GET",
         owner=current_user.canonical_name,
@@ -305,11 +299,9 @@ def config_POST(owner, project_name):
         return render_template("project-config.html", view="add more",
                 owner=owner, project=project, **valid.kwargs)
 
-    project.description = description
-    project.tags = tags
-    project.website = website
-    project.visibility = visibility
-    db.session.commit()
+    project_input = ProjectInput(description=description, tags=tags,
+                                 website=website, visibility=visibility)
+    HubClient().update_project(to_rid(project.rid), project_input)
 
     return redirect(url_for("projects.summary_GET",
         owner=current_user.canonical_name,
@@ -337,14 +329,8 @@ def settings_rename_POST(owner, project_name):
         return render_template("project-rename.html", owner=owner, project=project,
                 **valid.kwargs)
 
-    project.name = name
-    redir = Redirect()
-    redir.owner_id = project.owner_id
-    redir.name = project_name
-    redir.new_project_id = project.id
-    db.session.add(redir)
-    db.session.commit()
-
+    project_input = ProjectInput(name=name)
+    HubClient().update_project(to_rid(project.rid), project_input)
     return redirect(url_for("projects.summary_GET", owner=owner, project_name=project.name))
 
 
@@ -363,41 +349,7 @@ def delete_POST(owner, project_name):
         abort(404)
     session["notice"] = f"{project.name} has been deleted."
 
-    git_client = GitClient()
-    lists_client = ListsClient()
-    todo_client = TodoClient()
-
-    # Any mailing list, repository or tracker associated to the project will
-    # be deleted via the foreign key it has on project.id; we need to clean-up
-    # remote resources associated to it.
-    associated_lists = (MailingList.query
-        .filter(MailingList.project_id == project.id))
-    for i in associated_lists:
-        try:
-            lists_client.delete_list_webhook(i.webhook_id)
-        except:
-            pass # Resource likely removed by user
-
-    associated_repos = (SourceRepo.query
-        .filter(SourceRepo.project_id == project.id)
-        .filter(SourceRepo.repo_type == RepoType.git))
-    for r in associated_repos:
-        try:
-            git_client.delete_repo_webhook(r.webhook_id)
-        except:
-            pass # Resource likely removed by user
-
-    associated_trackers = (Tracker.query
-        .filter(Tracker.project_id == project.id))
-    for t in associated_trackers:
-        try:
-            todo_client.delete_tracker_webhook(t.webhook_id)
-        except:
-            pass # Resource likely removed by user
-
-    with db.engine.connect() as conn:
-        conn.execute(text(f"DELETE FROM project WHERE id = {project.id}"))
-        conn.commit()
+    HubClient().delete_project(to_rid(project.rid))
     return redirect(url_for("public.index"))
 
 @projects.route("/<owner>/<project_name>/feature", methods=["POST"])

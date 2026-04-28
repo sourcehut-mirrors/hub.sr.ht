@@ -1,35 +1,12 @@
-query GetTrackers($cursor: Cursor) {
-  me {
-    trackers(cursor: $cursor) {
-      results {
-        ... trackerDetails
-      }
-      cursor
-    }
-  }
-}
-
 query GetTracker($rid: ID!) {
   tracker(rid: $rid) {
-    ... trackerDetails
-  }
-}
-
-mutation CreateTracker(
-  $name: String!,
-  $description: String!,
-  $visibility: Visibility!,
-) {
-  tracker: createTracker(
-    name: $name,
-    description: $description,
-    visibility: $visibility,
-  ) {
+    __typename
     ... trackerDetails
   }
 }
 
 fragment trackerDetails on Tracker {
+  id
   rid
   name
   description
@@ -46,53 +23,48 @@ fragment trackerDetails on Tracker {
   }
 }
 
-mutation DeleteTracker($trackerId: Int!) {
-  deleteTracker(id: $trackerId) { id }
-}
-
-query GetTicketComments(
-  $username: String!,
-  $tracker: String!,
-  $ticketId: Int!,
+mutation CreateUserWebhook(
+  $payload: String!
+  $url: String!,
 ) {
-  user(username: $username) {
-    tracker(name: $tracker) {
-      id
-      rid
-
-      ticket(id: $ticketId) {
-        id
-
-        events {
-          results {
-            changes {
-              ... on Comment {
-                text
-              }
-            }
-          }
-        }
-      }
-    }
-  }
+  webhook: createUserWebhook(config: {
+    url: $url,
+    events: [
+      TRACKER_UPDATE
+      TRACKER_DELETED
+    ],
+    query: $payload
+  }) { id }
 }
 
-mutation SubmitComment(
+mutation DeleteUserWebhook($id: Int!) {
+  deleteUserWebhook(id: $id) { id }
+}
+
+mutation CreateTrackerWebhook(
   $trackerId: Int!,
-  $ticketId: Int!,
-  $comment: SubmitCommentInput!
+  $payload: String!,
+  $url: String!,
 ) {
-  submitComment(
-    trackerId: $trackerId,
-    ticketId: $ticketId,
-    input: $comment,
-  ) { id }
+  webhook: createTrackerWebhook(trackerId: $trackerId, config: {
+    url: $url,
+    events: [
+      TICKET_CREATED,
+      EVENT_CREATED,
+    ],
+    query: $payload,
+  }) { id }
+}
+
+mutation DeleteTrackerWebhook($id: Int!) {
+  deleteTrackerWebhook(id: $id) { id }
 }
 
 # Versioned, see TODO_WEBHOOK_VERSION in hubsrht/blueprints/trackers.py and
 # contrib/ensure-webhooks
 query EventWebhook {
   webhook {
+    __typename
     uuid
     event
     date
@@ -117,6 +89,7 @@ query EventWebhook {
         }
 
         submitter {
+          __typename
           canonicalName
 
           ... on User {
@@ -148,10 +121,12 @@ query EventWebhook {
         }
 
         changes {
+          __typename
           eventType
 
           ... on Comment {
             author {
+              __typename
               canonicalName
 
               ... on User {

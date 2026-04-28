@@ -24,8 +24,9 @@ type Project struct {
 	Tags              []string   `json:"tags"`
 	Website           *string    `json:"website"`
 	ChecklistComplete bool       `json:"checklist_complete"`
+	SummaryRepoID     *int       `json:"summary_repo_id"`
 
-	OwnerID int
+	OwnerID int `json:"owner_id"`
 
 	alias  string
 	fields *database.ModelFields
@@ -57,10 +58,11 @@ func (p *Project) Fields() *database.ModelFields {
 			{SQL: "tags", GQL: "tags", Ptr: pq.Array(&p.Tags)},
 			{SQL: "website", GQL: "website", Ptr: &p.Website},
 			{SQL: "checklist_complete", GQL: "checklistComplete", Ptr: &p.ChecklistComplete},
-			{SQL: "rid", GQL: "rid", Ptr: &p.RID},
+			{SQL: "summary_repo_id", GQL: "summaryRepoId", Ptr: &p.SummaryRepoID},
 
 			// Always fetch:
 			{SQL: "id", GQL: "", Ptr: &p.ID},
+			{SQL: "rid", GQL: "", Ptr: &p.RID},
 			{SQL: "owner_id", GQL: "", Ptr: &p.OwnerID},
 			{SQL: "name", GQL: "", Ptr: &p.Name},
 		},

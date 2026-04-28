@@ -5,8 +5,8 @@ import (
 )
 
 type User struct {
-	ID       int       `json:"id"`
-	Username string    `json:"username"`
+	ID       int    `json:"id"`
+	Username string `json:"username"`
 
 	alias  string
 	fields *database.ModelFields

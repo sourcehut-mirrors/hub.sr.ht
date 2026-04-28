@@ -16,9 +16,11 @@ build
 hub.sr.ht-api
 *_gen.go
 api/graph/api/generated.go
+api/services/*/gql.go
 ariadne/*.toml
 hubsrht/services/builds/*.py
 hubsrht/services/git/*.py
 hubsrht/services/hg/*.py
+hubsrht/services/hub/*.py
 hubsrht/services/lists/*.py
 hubsrht/services/todo/*.py
