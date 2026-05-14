@@ -933,6 +933,31 @@ func (r *queryResolver) Project(ctx context.Context, rid coremodel.RID) (*model.
 	return proj, nil
 }
 
+// Projects is the resolver for the projects field.
+func (r *queryResolver) Projects(ctx context.Context, cursor *coremodel.Cursor) (*model.ProjectCursor, error) {
+	if cursor == nil {
+		cursor = coremodel.NewCursor(nil)
+	}
+
+	var projects []*model.Project
+	if err := database.WithTx(ctx, &sql.TxOptions{
+		Isolation: 0,
+		ReadOnly:  true,
+	}, func(tx *sql.Tx) error {
+		project := (&model.Project{}).As(`project`)
+		query := database.
+			Select(ctx, project).
+			From(`project`).
+			Where(sq.Expr(`project.visibility = 'PUBLIC'`))
+		projects, cursor = project.QueryWithCursor(ctx, tx, query, cursor)
+		return nil
+	}); err != nil {
+		return nil, err
+	}
+
+	return &model.ProjectCursor{Results: projects, Cursor: cursor}, nil
+}
+
 // Resource is the resolver for the resource field.
 func (r *queryResolver) Resource(ctx context.Context, rid coremodel.RID) (model.ProjectResource, error) {
 	if list, err := r.MailingList(ctx, rid); err == nil && list != nil {

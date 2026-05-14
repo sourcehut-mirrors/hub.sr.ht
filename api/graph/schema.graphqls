@@ -190,6 +190,9 @@ type Query {
   "Looks up a specific project"
   project(rid: ID!): Project @access(scope: PROJECTS, kind: RO)
 
+  "List all public projects"
+  projects(cursor: Cursor): ProjectCursor! @access(scope: PROJECTS, kind: RO)
+
   "Looks up a specific resource"
   resource(rid: ID!): ProjectResource @access(scope: PROJECTS, kind: RO)
 
