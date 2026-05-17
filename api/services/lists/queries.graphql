@@ -13,6 +13,9 @@ fragment listDetails on MailingList {
   defaultACL {
     browse
   }
+  owner {
+    canonicalName
+  }
 }
 
 mutation CreateUserWebhook(

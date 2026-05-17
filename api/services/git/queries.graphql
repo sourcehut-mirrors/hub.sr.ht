@@ -5,8 +5,12 @@ query GetRepo($rid: ID!) {
     name
     description
     visibility
+    owner {
+      canonicalName
+    }
   }
 }
+
 mutation CreateUserWebhook(
   $payload: String!
   $url: String!,

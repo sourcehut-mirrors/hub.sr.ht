@@ -5,6 +5,9 @@ query GetRepo($rid: ID!) {
     name
     description
     visibility
+    owner {
+      canonicalName
+    }
   }
 }
 

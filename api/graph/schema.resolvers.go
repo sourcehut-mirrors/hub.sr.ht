@@ -260,6 +260,10 @@ func (r *mutationResolver) LinkMailingList(ctx context.Context, projectID coremo
 	} else if gqlList == nil {
 		return nil, gerrors.ErrNotFound
 	}
+	listOwner, err := loaders.ForContext(ctx).UsersByName.Load(gqlList.Owner.CanonicalName[1:])
+	if err != nil {
+		return nil, err
+	}
 
 	var ml model.MailingList
 	if err := database.WithTx(ctx, nil, func(tx *sql.Tx) error {
@@ -280,7 +284,7 @@ func (r *mutationResolver) LinkMailingList(ctx context.Context, projectID coremo
 				description, visibility;
 			`,
 			gqlList.Id, gqlList.Rid,
-			projectRow.ID, auth.ForContext(ctx).UserID,
+			projectRow.ID, listOwner.ID,
 			gqlList.Name, gqlList.Description,
 			gqlList.Visibility)
 		if err := row.Scan(&ml.ID, &ml.RID, &ml.Linked, &ml.Updated,
@@ -365,12 +369,27 @@ func (r *mutationResolver) LinkSource(ctx context.Context, projectID coremodel.R
 	var (
 		gitRepo *gitclient.Repository
 		hgRepo  *hgclient.Repository
+		repoOwner *model.User
 	)
 	if Features().Git {
 		gitRepo, _ = gitclient.GetRepo(NewGitGQLClient(ctx), ctx, sourceRepoID.String())
+		if gitRepo != nil {
+			repoOwner, err = loaders.ForContext(ctx).
+				UsersByName.Load(gitRepo.Owner.CanonicalName[1:])
+			if err != nil {
+				return nil, err
+			}
+		}
 	}
 	if gitRepo == nil && Features().Hg {
 		hgRepo, _ = hgclient.GetRepo(NewHgGQLClient(ctx), ctx, sourceRepoID.String())
+		if hgRepo != nil {
+			repoOwner, err = loaders.ForContext(ctx).
+				UsersByName.Load(hgRepo.Owner.CanonicalName[1:])
+			if err != nil {
+				return nil, err
+			}
+		}
 	}
 	if gitRepo == nil && hgRepo == nil {
 		return nil, gerrors.ErrNotFound
@@ -400,7 +419,7 @@ func (r *mutationResolver) LinkSource(ctx context.Context, projectID coremodel.R
 				description, visibility;
 			`,
 			repoWrapper.ID(), repoWrapper.RID(), repoWrapper.RepoType(),
-			projectRow.ID, auth.ForContext(ctx).UserID,
+			projectRow.ID, repoOwner.ID,
 			repoWrapper.Name(), repoWrapper.Description(),
 			repoWrapper.Visibility())
 		if err := row.Scan(&rep.ID, &rep.RID, &rep.RepoType,
@@ -507,6 +526,10 @@ func (r *mutationResolver) LinkTracker(ctx context.Context, projectID coremodel.
 	} else if gqlTracker == nil {
 		return nil, gerrors.ErrNotFound
 	}
+	trackerOwner, err := loaders.ForContext(ctx).UsersByName.Load(gqlTracker.Owner.CanonicalName[1:])
+	if err != nil {
+		return nil, err
+	}
 
 	var trackerRow model.Tracker
 	if err := database.WithTx(ctx, nil, func(tx *sql.Tx) error {
@@ -527,7 +550,7 @@ func (r *mutationResolver) LinkTracker(ctx context.Context, projectID coremodel.
 				description, visibility;
 			`,
 			gqlTracker.Id, gqlTracker.Rid,
-			projectRow.ID, auth.ForContext(ctx).UserID,
+			projectRow.ID, trackerOwner.ID,
 			gqlTracker.Name, gqlTracker.Description,
 			gqlTracker.Visibility)
 		if err := row.Scan(&trackerRow.ID, &trackerRow.RID, &trackerRow.Linked, &trackerRow.Updated,
