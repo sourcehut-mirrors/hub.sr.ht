@@ -52,7 +52,7 @@ func (r *SourceRepo) Fields() *database.ModelFields {
 	}
 	r.fields = &database.ModelFields{
 		Fields: []*database.FieldMap{
-			{SQL: "created", GQL: "linked", Ptr: &r.Linked},
+			{SQL: "linked", GQL: "linked", Ptr: &r.Linked},
 			{SQL: "updated", GQL: "updated", Ptr: &r.Updated},
 			{SQL: "name", GQL: "name", Ptr: &r.Name},
 			{SQL: "description", GQL: "description", Ptr: &r.Description},

@@ -51,7 +51,7 @@ func (t *Tracker) Fields() *database.ModelFields {
 	}
 	t.fields = &database.ModelFields{
 		Fields: []*database.FieldMap{
-			{SQL: "created", GQL: "linked", Ptr: &t.Linked},
+			{SQL: "linked", GQL: "linked", Ptr: &t.Linked},
 			{SQL: "updated", GQL: "updated", Ptr: &t.Updated},
 			{SQL: "name", GQL: "name", Ptr: &t.Name},
 			{SQL: "description", GQL: "description", Ptr: &t.Description},

@@ -269,7 +269,7 @@ func (r *mutationResolver) LinkMailingList(ctx context.Context, projectID coremo
 	if err := database.WithTx(ctx, nil, func(tx *sql.Tx) error {
 		row := tx.QueryRowContext(ctx, `
 			INSERT INTO mailing_list (
-				remote_id, remote_rid, created, updated,
+				remote_id, remote_rid, linked, updated,
 				project_id, owner_id, name, description,
 				visibility, webhook_id, webhook_version
 			) VALUES (
@@ -280,7 +280,7 @@ func (r *mutationResolver) LinkMailingList(ctx context.Context, projectID coremo
 				$7, -1, 0
 			) RETURNING
 				id, remote_rid,
-				created, updated, name,
+				linked, updated, name,
 				description, visibility;
 			`,
 			gqlList.Id, gqlList.Rid,
@@ -404,7 +404,7 @@ func (r *mutationResolver) LinkSource(ctx context.Context, projectID coremodel.R
 		row := tx.QueryRowContext(ctx, `
 			INSERT INTO source_repo (
 				remote_id, remote_rid, repo_type,
-				created, updated,
+				linked, updated,
 				project_id, owner_id, name, description,
 				visibility, webhook_id, webhook_version
 			) VALUES (
@@ -415,7 +415,7 @@ func (r *mutationResolver) LinkSource(ctx context.Context, projectID coremodel.R
 				$8, 0, -1
 			) RETURNING
 				id, remote_rid, repo_type,
-				created, updated, name,
+				linked, updated, name,
 				description, visibility;
 			`,
 			repoWrapper.ID(), repoWrapper.RID(), repoWrapper.RepoType(),
@@ -535,7 +535,7 @@ func (r *mutationResolver) LinkTracker(ctx context.Context, projectID coremodel.
 	if err := database.WithTx(ctx, nil, func(tx *sql.Tx) error {
 		row := tx.QueryRowContext(ctx, `
 			INSERT INTO tracker (
-				remote_id, remote_rid, created, updated,
+				remote_id, remote_rid, linked, updated,
 				project_id, owner_id, name, description,
 				visibility, webhook_id, webhook_version
 			) VALUES (
@@ -546,7 +546,7 @@ func (r *mutationResolver) LinkTracker(ctx context.Context, projectID coremodel.
 				$7, 0, -1
 			) RETURNING
 				id, remote_rid,
-				created, updated, name,
+				linked, updated, name,
 				description, visibility;
 			`,
 			gqlTracker.Id, gqlTracker.Rid,

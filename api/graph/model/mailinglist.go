@@ -51,7 +51,7 @@ func (list *MailingList) Fields() *database.ModelFields {
 	}
 	list.fields = &database.ModelFields{
 		Fields: []*database.FieldMap{
-			{SQL: "created", GQL: "linked", Ptr: &list.Linked},
+			{SQL: "linked", GQL: "linked", Ptr: &list.Linked},
 			{SQL: "updated", GQL: "updated", Ptr: &list.Updated},
 			{SQL: "name", GQL: "name", Ptr: &list.Name},
 			{SQL: "description", GQL: "description", Ptr: &list.Description},

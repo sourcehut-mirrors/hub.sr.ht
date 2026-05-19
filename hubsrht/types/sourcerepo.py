@@ -24,7 +24,7 @@ class SourceRepo(Base):
     id = sa.Column(sa.Integer, primary_key=True)
     remote_id = sa.Column(sa.Integer, nullable=False)
     remote_rid = sa.Column(sa.String, nullable=True)
-    created = sa.Column(sa.DateTime, nullable=False)
+    linked = sa.Column(sa.DateTime, nullable=False)
     updated = sa.Column(sa.DateTime, nullable=False)
 
     project_id = sa.Column(sa.Integer,
