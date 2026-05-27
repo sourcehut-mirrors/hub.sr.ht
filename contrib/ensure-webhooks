@@ -42,7 +42,7 @@ app.config['SERVER_NAME'] = external_origin
 def up_to_date(have, want):
     if have is None:
         return False
-    return have >= want
+    return have == want
 
 def update_resource_hook(res, url, target_version, delete, create):
     if up_to_date(res.webhook_version, target_version):
