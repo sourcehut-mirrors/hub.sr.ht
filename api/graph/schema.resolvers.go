@@ -73,16 +73,17 @@ func (r *mutationResolver) CreateProject(ctx context.Context, name string, visib
 
 // UpdateProject is the resolver for the updateProject field.
 func (r *mutationResolver) UpdateProject(ctx context.Context, rid coremodel.RID, input map[string]interface{}) (*model.Project, error) {
-	projectRow, err := r.Query().Project(ctx, rid)
+	project, err := r.Query().Project(ctx, rid)
 	if err != nil {
 		return nil, err
-	} else if projectRow == nil {
+	} else if project == nil {
 		return nil, gerrors.ErrNotFound
 	}
 
 	var (
-		proj    model.Project
-		newName string
+		proj      model.Project
+		newName   string
+		readmeRID *string
 	)
 	query := sq.Update(proj.Table()).PlaceholderFormat(sq.Dollar)
 
@@ -111,6 +112,15 @@ func (r *mutationResolver) UpdateProject(ctx context.Context, rid coremodel.RID,
 	validation.OptionalBool("checklistComplete", func(b bool) {
 		query = query.Set(`checklist_complete`, b)
 	})
+	validation.Optional("readme", func(readme interface{}) {
+		switch readme := readme.(type) {
+		case *coremodel.RID:
+			val := readme.String()
+			readmeRID = &val
+		default:
+			validation.Error(fmt.Sprintf("Invalid type: %T", readme))
+		}
+	})
 	validation.Optional("tags", func(tags interface{}) {
 		switch tags := tags.(type) {
 		case []string:
@@ -127,7 +137,7 @@ func (r *mutationResolver) UpdateProject(ctx context.Context, rid coremodel.RID,
 	}
 
 	if err := database.WithTx(ctx, nil, func(tx *sql.Tx) error {
-		if len(newName) > 0 && newName != projectRow.Name {
+		if len(newName) > 0 && newName != project.Name {
 			_, err = tx.ExecContext(ctx, `
 				INSERT INTO redirect(
 					created, name, owner_id, new_project_id
@@ -136,9 +146,27 @@ func (r *mutationResolver) UpdateProject(ctx context.Context, rid coremodel.RID,
 					NOW() at time zone 'utc',
 					$1, $2, $3
 				);
-			`, projectRow.Name, projectRow.OwnerID, projectRow.ID)
+			`, project.Name, project.OwnerID, project.ID)
 			if err != nil {
 				return err
+			}
+		}
+		if readmeRID != nil {
+			if len(*readmeRID) > 0 {
+				var sourceRepoID int
+				repo := tx.QueryRowContext(ctx, `
+					SELECT id FROM source_repo
+					WHERE remote_rid = $1 and project_id = $2`,
+					readmeRID, project.ID)
+				if err := repo.Scan(&sourceRepoID); err != nil {
+					if err == sql.ErrNoRows {
+						return gerrors.ErrNotFound
+					}
+					return err
+				}
+				query = query.Set(`summary_repo_id`, sourceRepoID)
+			} else {
+				query = query.Set(`summary_repo_id`, nil)
 			}
 		}
 		query = query.
@@ -367,8 +395,8 @@ func (r *mutationResolver) LinkSource(ctx context.Context, projectID coremodel.R
 	}
 
 	var (
-		gitRepo *gitclient.Repository
-		hgRepo  *hgclient.Repository
+		gitRepo   *gitclient.Repository
+		hgRepo    *hgclient.Repository
 		repoOwner *model.User
 	)
 	if Features().Git {
@@ -724,6 +752,33 @@ func (r *projectResolver) Trackers(ctx context.Context, obj *model.Project, curs
 	}
 
 	return &model.TrackerCursor{Results: trackers, Cursor: cursor}, nil
+}
+
+// Readme is the resolver for the readme field.
+func (r *projectResolver) Readme(ctx context.Context, obj *model.Project) (*model.SourceRepo, error) {
+	sourceRepo := (&model.SourceRepo{}).As(`source_repo`)
+	if err := database.WithTx(ctx, &sql.TxOptions{
+		Isolation: 0,
+		ReadOnly:  true,
+	}, func(tx *sql.Tx) error {
+		row := database.
+			Select(ctx, sourceRepo).
+			From(`source_repo source_repo`).
+			Join(`project ON source_repo.project_id = project.id`).
+			Where(sq.And{
+				sq.Expr(`source_repo.id = project.summary_repo_id`),
+				sq.Expr(`project.id = ?`, obj.ID),
+			}).
+			RunWith(tx).
+			QueryRowContext(ctx)
+		return row.Scan(database.Scan(ctx, sourceRepo)...)
+	}); err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return sourceRepo, nil
 }
 
 // Resource is the resolver for the resource field.

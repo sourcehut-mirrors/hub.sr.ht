@@ -110,6 +110,8 @@ type Project {
   sources(cursor: Cursor): SourceRepoCursor! @access(scope: SOURCES, kind: RO)
   trackers(cursor: Cursor): TrackerCursor! @access(scope: TRACKERS, kind: RO)
 
+  readme: SourceRepo @access(scope: SOURCES, kind: RO)
+
   resource(rid: ID!): ProjectResource @access(scope: LISTS, kind: RO)
   mailingList(name: String!): MailingList @access(scope: LISTS, kind: RO)
   source(name: String!): SourceRepo @access(scope: SOURCES, kind: RO)
@@ -212,6 +214,7 @@ input ProjectInput {
   description: String
   website: String
   checklistComplete: Boolean
+  readme: ID
   tags: [String!]
 }
 
