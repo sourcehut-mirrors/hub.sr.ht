@@ -126,7 +126,7 @@ CREATE TABLE source_repo (
 );
 
 ALTER TABLE project
-	ADD CONSTRAINT project_summary_repo_id_fkey FOREIGN KEY (summary_repo_id) REFERENCES source_repo(id) ON DELETE CASCADE;
+	ADD CONSTRAINT project_summary_repo_id_fkey FOREIGN KEY (summary_repo_id) REFERENCES source_repo(id) ON DELETE SET NULL;
 
 CREATE TABLE tracker (
 	id serial PRIMARY KEY,
