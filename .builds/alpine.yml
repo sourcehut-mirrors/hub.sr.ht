@@ -17,6 +17,7 @@ sources:
   - https://git.sr.ht/~sircmpwn/hub.sr.ht
   - https://git.sr.ht/~sircmpwn/sr.ht-apkbuilds
 environment:
+  PREFIX: /usr
   project: hub.sr.ht
   remote: deploy@mirror.sr.ht
   remote_path: /var/www/mirror.sr.ht/alpine

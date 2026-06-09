@@ -125,7 +125,7 @@ api/graph/api/generated.go: api/graph/schema.graphqls api/graph/generate.go go.s
 	cd api && go generate ./graph
 
 api/services/%/gql.go: api/services/%/queries.graphql
-	cd api && go generate ./services
+	cd api && env ASSETS=$(ASSETS) go generate ./services
 
 $(SERVICE)-api: $(GO_CLIENTS) api/graph/api/generated.go
 	go build -o $@ $(GO_LDFLAGS) ./api
