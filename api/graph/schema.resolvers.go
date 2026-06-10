@@ -34,6 +34,39 @@ func (r *mailingListResolver) Owner(ctx context.Context, obj *model.MailingList)
 	return loaders.ForContext(ctx).UsersByID.Load(obj.OwnerID)
 }
 
+// Projects is the resolver for the projects field.
+func (r *mailingListResolver) Projects(ctx context.Context, obj *model.MailingList, cursor *coremodel.Cursor) (*model.ProjectCursor, error) {
+	if cursor == nil {
+		cursor = coremodel.NewCursor(nil)
+	}
+
+	var projects []*model.Project
+	if err := database.WithTx(ctx, &sql.TxOptions{
+		Isolation: 0,
+		ReadOnly:  true,
+	}, func(tx *sql.Tx) error {
+		project := (&model.Project{}).As(`project`)
+		user := auth.ForContext(ctx)
+		query := database.
+			Select(ctx, project).
+			From(`project`).
+			Join(`mailing_list ON mailing_list.project_id = project.id`).
+			Where(sq.And{
+				sq.Expr(`mailing_list.remote_rid = ?`, obj.RID.String()),
+				sq.Or{
+					sq.Expr(`project.owner_id = ?`, user.UserID),
+					sq.Expr(`project.visibility = 'PUBLIC'`),
+				},
+			})
+		projects, cursor = project.QueryWithCursor(ctx, tx, query, cursor)
+		return nil
+	}); err != nil {
+		return nil, err
+	}
+
+	return &model.ProjectCursor{Results: projects, Cursor: cursor}, nil
+}
+
 // CreateProject is the resolver for the createProject field.
 func (r *mutationResolver) CreateProject(ctx context.Context, name string, visibility model.Visibility, description *string, tags []string) (*model.Project, error) {
 	if len(tags) > 3 {
@@ -1097,9 +1130,75 @@ func (r *sourceRepoResolver) Owner(ctx context.Context, obj *model.SourceRepo) (
 	return loaders.ForContext(ctx).UsersByID.Load(obj.OwnerID)
 }
 
+// Projects is the resolver for the projects field.
+func (r *sourceRepoResolver) Projects(ctx context.Context, obj *model.SourceRepo, cursor *coremodel.Cursor) (*model.ProjectCursor, error) {
+	if cursor == nil {
+		cursor = coremodel.NewCursor(nil)
+	}
+
+	var projects []*model.Project
+	if err := database.WithTx(ctx, &sql.TxOptions{
+		Isolation: 0,
+		ReadOnly:  true,
+	}, func(tx *sql.Tx) error {
+		project := (&model.Project{}).As(`project`)
+		user := auth.ForContext(ctx)
+		query := database.
+			Select(ctx, project).
+			From(`project`).
+			Join(`source_repo ON source_repo.project_id = project.id`).
+			Where(sq.And{
+				sq.Expr(`source_repo.remote_rid = ?`, obj.RID.String()),
+				sq.Or{
+					sq.Expr(`project.owner_id = ?`, user.UserID),
+					sq.Expr(`project.visibility = 'PUBLIC'`),
+				},
+			})
+		projects, cursor = project.QueryWithCursor(ctx, tx, query, cursor)
+		return nil
+	}); err != nil {
+		return nil, err
+	}
+
+	return &model.ProjectCursor{Results: projects, Cursor: cursor}, nil
+}
+
 // Owner is the resolver for the owner field.
 func (r *trackerResolver) Owner(ctx context.Context, obj *model.Tracker) (model.Entity, error) {
 	return loaders.ForContext(ctx).UsersByID.Load(obj.OwnerID)
+}
+
+// Projects is the resolver for the projects field.
+func (r *trackerResolver) Projects(ctx context.Context, obj *model.Tracker, cursor *coremodel.Cursor) (*model.ProjectCursor, error) {
+	if cursor == nil {
+		cursor = coremodel.NewCursor(nil)
+	}
+
+	var projects []*model.Project
+	if err := database.WithTx(ctx, &sql.TxOptions{
+		Isolation: 0,
+		ReadOnly:  true,
+	}, func(tx *sql.Tx) error {
+		project := (&model.Project{}).As(`project`)
+		user := auth.ForContext(ctx)
+		query := database.
+			Select(ctx, project).
+			From(`project`).
+			Join(`tracker ON tracker.project_id = project.id`).
+			Where(sq.And{
+				sq.Expr(`tracker.remote_rid = ?`, obj.RID.String()),
+				sq.Or{
+					sq.Expr(`project.owner_id = ?`, user.UserID),
+					sq.Expr(`project.visibility = 'PUBLIC'`),
+				},
+			})
+		projects, cursor = project.QueryWithCursor(ctx, tx, query, cursor)
+		return nil
+	}); err != nil {
+		return nil, err
+	}
+
+	return &model.ProjectCursor{Results: projects, Cursor: cursor}, nil
 }
 
 // Project is the resolver for the project field.

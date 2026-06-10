@@ -131,6 +131,8 @@ interface ProjectResource {
   name: String!
   description: String
   visibility: Visibility!
+
+  projects(cursor: Cursor): ProjectCursor!
 }
 
 type MailingList implements ProjectResource {
@@ -141,6 +143,8 @@ type MailingList implements ProjectResource {
   name: String!
   description: String
   visibility: Visibility!
+
+  projects(cursor: Cursor): ProjectCursor!
 }
 
 type MailingListCursor {
@@ -157,6 +161,8 @@ type SourceRepo implements ProjectResource {
   description: String
   repoType: RepoType!
   visibility: Visibility!
+
+  projects(cursor: Cursor): ProjectCursor!
 }
 
 type SourceRepoCursor {
@@ -172,6 +178,8 @@ type Tracker implements ProjectResource {
   name: String!
   description: String
   visibility: Visibility!
+
+  projects(cursor: Cursor): ProjectCursor!
 }
 
 type TrackerCursor {
