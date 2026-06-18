@@ -22,7 +22,8 @@ GO_LDFLAGS += -ldflags " \
               -X git.sr.ht/~sircmpwn/core-go/server.BuildDate=$(shell sourcehut-builddate)"
 
 GO_CLIENTS = api/services/lists/gql.go api/services/git/gql.go \
-	     api/services/hg/gql.go api/services/todo/gql.go
+	     api/services/hg/gql.go api/services/todo/gql.go \
+	     api/services/builds/gql.go
 
 all: all-bin all-share all-python
 
