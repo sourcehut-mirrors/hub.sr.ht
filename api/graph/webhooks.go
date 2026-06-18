@@ -29,10 +29,10 @@ const (
 	HG_SERVICE     = "hg.sr.ht"
 	TODO_SERVICE   = "todo.sr.ht"
 
-	GIT_WEBHOOK_VERSION   = 3
-	HG_WEBHOOK_VERSION    = 2
-	LISTS_WEBHOOK_VERSION = 6
-	TODO_WEBHOOK_VERSION  = 2
+	GIT_WEBHOOK_VERSION   = 4
+	HG_WEBHOOK_VERSION    = 3
+	LISTS_WEBHOOK_VERSION = 7
+	TODO_WEBHOOK_VERSION  = 3
 )
 
 func getTypeForWebhook(resType ResourceType) string {
@@ -66,8 +66,8 @@ func getTypeForUserWebhook(resType ResourceType) string {
 }
 
 func GetWebhookURL(ctx context.Context, resType ResourceType, id int) string {
-	return fmt.Sprintf("%s/webhooks/gql/%s/%d",
-		config.GetOrigin(config.ForContext(ctx),
+	return fmt.Sprintf("%s/query/%s/%d",
+		config.GetAPI(config.ForContext(ctx),
 			"hub.sr.ht",
 			false,
 		),
@@ -76,8 +76,8 @@ func GetWebhookURL(ctx context.Context, resType ResourceType, id int) string {
 }
 
 func getUserWebhookURL(ctx context.Context, resType ResourceType) string {
-	return fmt.Sprintf("%s/webhooks/gql/%s/%d",
-		config.GetOrigin(config.ForContext(ctx),
+	return fmt.Sprintf("%s/query/%s/%d",
+		config.GetAPI(config.ForContext(ctx),
 			"hub.sr.ht",
 			false,
 		),

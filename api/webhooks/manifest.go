@@ -83,7 +83,7 @@ func (manifest *Manifest) UpdateForPatchset(ctx context.Context,
 
 	details := crypto.Encrypt([]byte(webhookDoc))
 	hubOrigin := config.GetAPI(config.ForContext(ctx), "hub.sr.ht", false)
-	detailsUrl := fmt.Sprintf("%s/webhooks/build-complete/%s",
+	detailsUrl := fmt.Sprintf("%s/query/build-complete/%s",
 		hubOrigin, details)
 	manifest.Triggers = append(
 		manifest.Triggers,

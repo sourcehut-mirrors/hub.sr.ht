@@ -58,8 +58,41 @@ mutation DeleteListWebhook($id: Int!) {
   deleteMailingListWebhook(id: $id) { id }
 }
 
-# Versioned, see LIST_WEBHOOK_VERSION in hubsrht/blueprints/mailing_lists.py
-# and contrib/ensure-webhooks
+mutation CreateTool(
+  $patchsetID: Int!,
+  $details: String!,
+  $icon: ToolIcon!,
+) {
+  createTool(patchsetID: $patchsetID, details: $details, icon: $icon) {
+    id
+  }
+}
+
+mutation UpdateTool(
+  $toolID: Int!,
+  $details: String!,
+  $icon: ToolIcon!,
+) {
+  updateTool(id: $toolID, details: $details, icon: $icon) {
+    id
+  }
+}
+
+query GetPatchset($id: Int!) {
+  patchset(id: $id) {
+    id
+    subject
+    prefix
+    list {
+      name
+      owner {
+        canonicalName
+      }
+    }
+  }
+}
+
+# Versioned, see LISTS_WEBHOOK_VERSION in api/graph/webhooks.go
 query EventWebhook {
   webhook {
     __typename
@@ -68,7 +101,7 @@ query EventWebhook {
     date
 
     ... on MailingListEvent {
-      mailingList: list {
+      list {
         id
         rid
         name
@@ -80,7 +113,7 @@ query EventWebhook {
     ... on EmailEvent {
       email {
         id
-        mailingList: list { id }
+        list { id, name, owner { canonicalName } }
         messageID
         subject
 
@@ -116,7 +149,7 @@ query EventWebhook {
         subject
         prefix
         version
-        mailingList: list { id }
+        list { id, name, owner { canonicalName } }
 
         thread {
           root {
@@ -160,9 +193,11 @@ query EventWebhook {
 
         submitter {
           __typename
+          canonicalName
+
           ... on User {
-            name: canonicalName
-            address: email
+            username
+            email
           }
 
           ... on Mailbox {
