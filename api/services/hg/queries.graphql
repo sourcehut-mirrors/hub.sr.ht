@@ -29,8 +29,7 @@ mutation DeleteUserWebhook($id: Int!) {
   deleteUserWebhook(id: $id) { id }
 }
 
-# Versioned, see HG_WEBHOOK_VERSION in hubsrht/blueprints/sources.py and
-# contrib/ensure-webhooks
+# Versioned, see HG_WEBHOOK_VERSION in api/graph/webhooks.go
 query EventWebhook {
   webhook {
     __typename

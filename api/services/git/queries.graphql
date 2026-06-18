@@ -11,6 +11,36 @@ query GetRepo($rid: ID!) {
   }
 }
 
+query GetManifests($username: String!, $repo_name: String!) {
+  user(username: $username) {
+    repository(name: $repo_name) {
+      name
+      visibility
+
+      paths(paths:[".build.yml", ".build.yaml", ".builds"]) {
+        object {
+          __typename
+          ... on Tree {
+            entries {
+              results {
+                name
+                object {
+                  __typename
+                  ... on TextBlob { text }
+                }
+              }
+            }
+          }
+          ... on TextBlob {
+            __typename
+            text
+          }
+        }
+      }
+    }
+  }
+}
+
 mutation CreateUserWebhook(
   $payload: String!
   $url: String!,
@@ -46,8 +76,7 @@ mutation DeleteRepoWebhook($id: Int!) {
   deleteGitWebhook(id: $id) { id }
 }
 
-# Versioned, see GIT_WEBHOOK_VERSION in hubsrht/blueprints/sources.py and
-# contrib/ensure-webhooks
+# Versioned, see GIT_WEBHOOK_VERSION in api/graph/webhooks.go
 query EventWebhook {
   webhook {
     __typename
@@ -66,6 +95,12 @@ query EventWebhook {
     }
 
     ... on GitEvent {
+      repository {
+        name
+        owner {
+          canonicalName
+        }
+      }
       pusher {
         __typename
         canonicalName
@@ -100,6 +135,10 @@ query EventWebhook {
             message
             author {
               name
+            }
+            trailers {
+              name
+              value
             }
           }
         }
