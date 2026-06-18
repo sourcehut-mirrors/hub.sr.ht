@@ -66,19 +66,19 @@ func DeleteProject(ctx context.Context, rid coremodel.RID) {
 		// Best-effort clean-up of the associated webhooks.
 		for _, whID := range listWebhookIDs {
 			listsclient.DeleteListWebhook(
-				NewListsGQLClient(ctx),
+				NewListsClient(ctx),
 				ctx, int32(whID),
 			)
 		}
 		for _, whID := range gitWebhookIDs {
 			gitclient.DeleteRepoWebhook(
-				NewGitGQLClient(ctx),
+				NewGitClient(ctx),
 				ctx, int32(whID),
 			)
 		}
 		for _, whID := range todoWebhookIDs {
 			todoclient.DeleteTrackerWebhook(
-				NewTodoGQLClient(ctx),
+				NewTodoClient(ctx),
 				ctx, int32(whID),
 			)
 		}

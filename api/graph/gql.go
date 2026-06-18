@@ -11,14 +11,15 @@ import (
 	"git.sr.ht/~sircmpwn/core-go/client"
 	"git.sr.ht/~sircmpwn/core-go/config"
 	"git.sr.ht/~sircmpwn/core-go/crypto"
-	gqlclient "git.sr.ht/~sircmpwn/gqlclient"
+	gql "git.sr.ht/~sircmpwn/gqlclient"
 	"git.sr.ht/~sircmpwn/hub.sr.ht/api/graph/model"
-	gitclient "git.sr.ht/~sircmpwn/hub.sr.ht/api/services/git"
-	hgclient "git.sr.ht/~sircmpwn/hub.sr.ht/api/services/hg"
+	git "git.sr.ht/~sircmpwn/hub.sr.ht/api/services/git"
+	hg "git.sr.ht/~sircmpwn/hub.sr.ht/api/services/hg"
 )
 
 type httpTransport struct {
-	ctx context.Context
+	ctx  context.Context
+	name string
 }
 
 func (tr *httpTransport) RoundTrip(req *http.Request) (*http.Response, error) {
@@ -26,7 +27,7 @@ func (tr *httpTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 		fmt.Sprintf("%s -- SourceHut project hub (https://git.sr.ht/~sircmpwn/hub.sr.ht)",
 			config.ServiceName(tr.ctx)))
 	auth := client.InternalAuth{
-		Name:     auth.ForContext(tr.ctx).Username,
+		Name:     tr.name,
 		ClientID: config.ServiceName(tr.ctx),
 		NodeID:   "hub.sr.ht",
 	}
@@ -40,14 +41,18 @@ func (tr *httpTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 	return http.DefaultTransport.RoundTrip(req)
 }
 
-func newGQLClient(ctx context.Context, service string) *gqlclient.Client {
+func newGQLClient(ctx context.Context, service string) *gql.Client {
+	return newGQLClientForUser(ctx, service, auth.ForContext(ctx).Username)
+}
+
+func newGQLClientForUser(ctx context.Context, service string, username string) *gql.Client {
 	conf := config.ForContext(ctx)
 
 	apiOrigin := config.GetAPI(conf, service, false)
 
 	var (
 		timeout time.Duration
-		err error
+		err     error
 	)
 	if to, ok := conf.Get(fmt.Sprintf("%s::api", service), "max-duration"); ok {
 		timeout, err = time.ParseDuration(to)
@@ -58,30 +63,47 @@ func newGQLClient(ctx context.Context, service string) *gqlclient.Client {
 		timeout = 3 * time.Second
 	}
 
-	return gqlclient.New(apiOrigin+"/query",
+	return gql.New(apiOrigin+"/query",
 		&http.Client{
 			Transport: &httpTransport{
-				ctx: ctx,
+				ctx:  ctx,
+				name: username,
 			},
 			Timeout: timeout,
 		},
 	)
 }
 
-func NewListsGQLClient(ctx context.Context) *gqlclient.Client {
+func NewBuildsClientForUser(ctx context.Context, userName string) *gql.Client {
+	return newGQLClientForUser(ctx, BUILDS_SERVICE, userName)
+}
+
+func NewListsClient(ctx context.Context) *gql.Client {
 	return newGQLClient(ctx, LISTS_SERVICE)
 }
 
-func NewGitGQLClient(ctx context.Context) *gqlclient.Client {
+func NewListsClientForUser(ctx context.Context, userName string) *gql.Client {
+	return newGQLClientForUser(ctx, LISTS_SERVICE, userName)
+}
+
+func NewGitClient(ctx context.Context) *gql.Client {
 	return newGQLClient(ctx, GIT_SERVICE)
 }
 
-func NewHgGQLClient(ctx context.Context) *gqlclient.Client {
+func NewGitClientForUser(ctx context.Context, userName string) *gql.Client {
+	return newGQLClientForUser(ctx, GIT_SERVICE, userName)
+}
+
+func NewHgClient(ctx context.Context) *gql.Client {
 	return newGQLClient(ctx, HG_SERVICE)
 }
 
-func NewTodoGQLClient(ctx context.Context) *gqlclient.Client {
+func NewTodoClient(ctx context.Context) *gql.Client {
 	return newGQLClient(ctx, TODO_SERVICE)
+}
+
+func NewTodoClientForUser(ctx context.Context, userName string) *gql.Client {
+	return newGQLClientForUser(ctx, TODO_SERVICE, userName)
 }
 
 var features *model.Features
@@ -100,15 +122,15 @@ func Features() model.Features {
 }
 
 type RepoWrapper struct {
-	gitRepo *gitclient.Repository
-	hgRepo  *hgclient.Repository
+	gitRepo *git.Repository
+	hgRepo  *hg.Repository
 }
 
-func NewRepoWrapper(git *gitclient.Repository, hg *hgclient.Repository) (*RepoWrapper, error) {
+func NewRepoWrapper(git *git.Repository, hg *hg.Repository) (*RepoWrapper, error) {
 	if (git == nil && hg == nil) || (git != nil && hg != nil) {
 		return nil, fmt.Errorf("exactly one actual repository required")
 	}
-	return &RepoWrapper {
+	return &RepoWrapper{
 		gitRepo: git,
 		hgRepo:  hg,
 	}, nil

@@ -7,10 +7,10 @@ import (
 
 	"git.sr.ht/~sircmpwn/core-go/auth"
 	"git.sr.ht/~sircmpwn/core-go/config"
-	gitclient "git.sr.ht/~sircmpwn/hub.sr.ht/api/services/git"
-	hgclient "git.sr.ht/~sircmpwn/hub.sr.ht/api/services/hg"
-	listsclient "git.sr.ht/~sircmpwn/hub.sr.ht/api/services/lists"
-	todoclient "git.sr.ht/~sircmpwn/hub.sr.ht/api/services/todo"
+	git "git.sr.ht/~sircmpwn/hub.sr.ht/api/services/git"
+	hg "git.sr.ht/~sircmpwn/hub.sr.ht/api/services/hg"
+	lists "git.sr.ht/~sircmpwn/hub.sr.ht/api/services/lists"
+	todo "git.sr.ht/~sircmpwn/hub.sr.ht/api/services/todo"
 )
 
 type ResourceType int
@@ -23,10 +23,11 @@ const (
 )
 
 const (
-	LISTS_SERVICE = "lists.sr.ht"
-	GIT_SERVICE   = "git.sr.ht"
-	HG_SERVICE    = "hg.sr.ht"
-	TODO_SERVICE  = "todo.sr.ht"
+	BUILDS_SERVICE = "builds.sr.ht"
+	LISTS_SERVICE  = "lists.sr.ht"
+	GIT_SERVICE    = "git.sr.ht"
+	HG_SERVICE     = "hg.sr.ht"
+	TODO_SERVICE   = "todo.sr.ht"
 
 	GIT_WEBHOOK_VERSION   = 3
 	HG_WEBHOOK_VERSION    = 2
@@ -85,9 +86,9 @@ func getUserWebhookURL(ctx context.Context, resType ResourceType) string {
 }
 
 func CreateListUserWebhook(ctx context.Context) (int32, error) {
-	sub, err := listsclient.CreateUserWebhook(
-		NewListsGQLClient(ctx),
-		ctx, listsclient.EventWebhookQuery,
+	sub, err := lists.CreateUserWebhook(
+		NewListsClient(ctx),
+		ctx, lists.EventWebhookQuery,
 		getUserWebhookURL(ctx, MailingList),
 	)
 	if err != nil {
@@ -97,9 +98,9 @@ func CreateListUserWebhook(ctx context.Context) (int32, error) {
 }
 
 func CreateGitUserWebhook(ctx context.Context) (int32, error) {
-	sub, err := gitclient.CreateUserWebhook(
-		NewGitGQLClient(ctx),
-		ctx, gitclient.EventWebhookQuery,
+	sub, err := git.CreateUserWebhook(
+		NewGitClient(ctx),
+		ctx, git.EventWebhookQuery,
 		getUserWebhookURL(ctx, GitRepository),
 	)
 	if err != nil {
@@ -109,9 +110,9 @@ func CreateGitUserWebhook(ctx context.Context) (int32, error) {
 }
 
 func CreateHgUserWebhook(ctx context.Context) (int32, error) {
-	sub, err := hgclient.CreateUserWebhook(
-		NewHgGQLClient(ctx),
-		ctx, hgclient.EventWebhookQuery,
+	sub, err := hg.CreateUserWebhook(
+		NewHgClient(ctx),
+		ctx, hg.EventWebhookQuery,
 		getUserWebhookURL(ctx, HgRepository),
 	)
 	if err != nil {
@@ -121,9 +122,9 @@ func CreateHgUserWebhook(ctx context.Context) (int32, error) {
 }
 
 func CreateTrackerUserWebhook(ctx context.Context) (int32, error) {
-	sub, err := todoclient.CreateUserWebhook(
-		NewTodoGQLClient(ctx),
-		ctx, todoclient.EventWebhookQuery,
+	sub, err := todo.CreateUserWebhook(
+		NewTodoClient(ctx),
+		ctx, todo.EventWebhookQuery,
 		getUserWebhookURL(ctx, Tracker),
 	)
 	if err != nil {

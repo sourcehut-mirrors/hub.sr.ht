@@ -234,7 +234,7 @@ func (r *mutationResolver) LinkMailingList(ctx context.Context, projectID coremo
 		return resourceRow.(*model.MailingList), nil
 	}
 
-	gqlList, err := listsclient.GetList(NewListsGQLClient(ctx), ctx, listID.String())
+	gqlList, err := listsclient.GetList(NewListsClient(ctx), ctx, listID.String())
 	if err != nil {
 		return nil, err
 	} else if gqlList == nil {
@@ -278,7 +278,7 @@ func (r *mutationResolver) LinkMailingList(ctx context.Context, projectID coremo
 		}
 
 		sub, err := listsclient.CreateListWebhook(
-			NewListsGQLClient(ctx),
+			NewListsClient(ctx),
 			ctx, gqlList.Id,
 			GetWebhookURL(ctx, MailingList, ml.ID),
 			listsclient.EventWebhookQuery,
@@ -295,7 +295,7 @@ func (r *mutationResolver) LinkMailingList(ctx context.Context, projectID coremo
 		if err != nil {
 			// We will rollback, so need to delete the new webhook.
 			listsclient.DeleteListWebhook(
-				NewListsGQLClient(ctx),
+				NewListsClient(ctx),
 				ctx, sub.Id,
 			)
 			return err
@@ -321,7 +321,7 @@ func (r *mutationResolver) UnlinkMailingList(ctx context.Context, projectID core
 		ml = res.(*model.MailingList)
 
 		_, err = listsclient.DeleteListWebhook(
-			NewListsGQLClient(ctx),
+			NewListsClient(ctx),
 			ctx, int32(ml.WebhookID),
 		)
 		return err
@@ -352,7 +352,7 @@ func (r *mutationResolver) LinkSource(ctx context.Context, projectID coremodel.R
 		repoOwner *model.User
 	)
 	if Features().Git {
-		gitRepo, _ = gitclient.GetRepo(NewGitGQLClient(ctx), ctx, sourceRepoID.String())
+		gitRepo, _ = gitclient.GetRepo(NewGitClient(ctx), ctx, sourceRepoID.String())
 		if gitRepo != nil {
 			repoOwner, err = loaders.ForContext(ctx).
 				UsersByName.Load(gitRepo.Owner.CanonicalName[1:])
@@ -362,7 +362,7 @@ func (r *mutationResolver) LinkSource(ctx context.Context, projectID coremodel.R
 		}
 	}
 	if gitRepo == nil && Features().Hg {
-		hgRepo, _ = hgclient.GetRepo(NewHgGQLClient(ctx), ctx, sourceRepoID.String())
+		hgRepo, _ = hgclient.GetRepo(NewHgClient(ctx), ctx, sourceRepoID.String())
 		if hgRepo != nil {
 			repoOwner, err = loaders.ForContext(ctx).
 				UsersByName.Load(hgRepo.Owner.CanonicalName[1:])
@@ -415,7 +415,7 @@ func (r *mutationResolver) LinkSource(ctx context.Context, projectID coremodel.R
 			}
 
 			sub, err := gitclient.CreateRepoWebhook(
-				NewGitGQLClient(ctx),
+				NewGitClient(ctx),
 				ctx, repoWrapper.ID(),
 				gitclient.EventWebhookQuery,
 				GetWebhookURL(ctx, GitRepository, rep.ID),
@@ -433,7 +433,7 @@ func (r *mutationResolver) LinkSource(ctx context.Context, projectID coremodel.R
 				// We will rollback, so need to delete the new
 				// webhook.
 				gitclient.DeleteRepoWebhook(
-					NewGitGQLClient(ctx),
+					NewGitClient(ctx),
 					ctx, sub.Id,
 				)
 				return err
@@ -470,7 +470,7 @@ func (r *mutationResolver) UnlinkSource(ctx context.Context, projectID coremodel
 		// Repository webhooks are only supported by git.sr.ht.
 		if rep.RepoType == "GIT" {
 			_, err = gitclient.DeleteRepoWebhook(
-				NewGitGQLClient(ctx),
+				NewGitClient(ctx),
 				ctx, int32(rep.WebhookID),
 			)
 		}
@@ -500,7 +500,7 @@ func (r *mutationResolver) LinkTracker(ctx context.Context, projectID coremodel.
 		return resourceRow.(*model.Tracker), nil
 	}
 
-	gqlTracker, err := todoclient.GetTracker(NewTodoGQLClient(ctx), ctx, trackerID.String())
+	gqlTracker, err := todoclient.GetTracker(NewTodoClient(ctx), ctx, trackerID.String())
 	if err != nil {
 		return nil, err
 	} else if gqlTracker == nil {
@@ -544,7 +544,7 @@ func (r *mutationResolver) LinkTracker(ctx context.Context, projectID coremodel.
 		}
 
 		sub, err := todoclient.CreateTrackerWebhook(
-			NewTodoGQLClient(ctx),
+			NewTodoClient(ctx),
 			ctx, gqlTracker.Id,
 			todoclient.EventWebhookQuery,
 			GetWebhookURL(ctx, Tracker, trackerRow.ID),
@@ -561,7 +561,7 @@ func (r *mutationResolver) LinkTracker(ctx context.Context, projectID coremodel.
 		if err != nil {
 			// We will rollback, so need to delete the new webhook.
 			todoclient.DeleteTrackerWebhook(
-				NewTodoGQLClient(ctx),
+				NewTodoClient(ctx),
 				ctx, sub.Id,
 			)
 			return err
@@ -586,7 +586,7 @@ func (r *mutationResolver) UnlinkTracker(ctx context.Context, projectID coremode
 		t = res.(*model.Tracker)
 
 		_, err = todoclient.DeleteTrackerWebhook(
-			NewTodoGQLClient(ctx),
+			NewTodoClient(ctx),
 			ctx, int32(t.WebhookID),
 		)
 		return err
