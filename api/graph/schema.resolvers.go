@@ -41,7 +41,7 @@ func (r *mutationResolver) CreateProject(ctx context.Context, name string, visib
 	}
 	var proj model.Project
 	if err := database.WithTx(ctx, nil, func(tx *sql.Tx) error {
-		row := tx.QueryRowContext(ctx, `
+		insertQuery := tx.QueryRowContext(ctx, `
 			INSERT INTO project (
 				created, updated, name, description, tags, visibility, owner_id
 			) VALUES (
@@ -54,7 +54,7 @@ func (r *mutationResolver) CreateProject(ctx context.Context, name string, visib
 				description, visibility,
 				tags, owner_id;
 		`, name, description, pq.StringArray(tags), visibility, auth.ForContext(ctx).UserID)
-		if err := row.Scan(&proj.ID, &proj.RID,
+		if err := insertQuery.Scan(&proj.ID, &proj.RID,
 			&proj.Created, &proj.Updated, &proj.Name,
 			&proj.Description, &proj.Visibility,
 			pq.Array(&proj.Tags), &proj.OwnerID); err != nil {
@@ -177,8 +177,8 @@ func (r *mutationResolver) UpdateProject(ctx context.Context, rid coremodel.RID,
 				rid, created, updated, name, description, visibility,
 				tags`)
 
-		row := query.RunWith(tx).QueryRowContext(ctx)
-		if err := row.Scan(&proj.RID, &proj.Created, &proj.Updated,
+		updateQuery := query.RunWith(tx).QueryRowContext(ctx)
+		if err := updateQuery.Scan(&proj.RID, &proj.Created, &proj.Updated,
 			&proj.Name, &proj.Description, &proj.Visibility,
 			pq.Array(&proj.Tags)); err != nil {
 			if err == sql.ErrNoRows {
@@ -219,19 +219,19 @@ func (r *mutationResolver) LinkMailingList(ctx context.Context, projectID coremo
 		return nil, gerrors.ErrUnsupported
 	}
 
-	projectRow, err := r.Query().Project(ctx, projectID)
-	if err != nil || projectRow == nil {
+	project, err := r.Query().Project(ctx, projectID)
+	if err != nil || project == nil {
 		return nil, gerrors.ErrNotFound
 	}
 
-	if projectRow.OwnerID != auth.ForContext(ctx).UserID {
+	if project.OwnerID != auth.ForContext(ctx).UserID {
 		return nil, gerrors.ErrAccessDenied
 	}
 
-	resourceRow, err := r.Project().Resource(ctx, projectRow, listID)
-	if err == nil && resourceRow != nil {
+	resource, err := r.Project().Resource(ctx, project, listID)
+	if err == nil && resource != nil {
 		// The list is already linked to the project
-		return resourceRow.(*model.MailingList), nil
+		return resource.(*model.MailingList), nil
 	}
 
 	gqlList, err := listsclient.GetList(NewListsClient(ctx), ctx, listID.String())
@@ -247,7 +247,7 @@ func (r *mutationResolver) LinkMailingList(ctx context.Context, projectID coremo
 
 	var ml model.MailingList
 	if err := database.WithTx(ctx, nil, func(tx *sql.Tx) error {
-		row := tx.QueryRowContext(ctx, `
+		insertQuery := tx.QueryRowContext(ctx, `
 			INSERT INTO mailing_list (
 				remote_id, remote_rid, linked, updated,
 				project_id, owner_id, name, description,
@@ -264,10 +264,10 @@ func (r *mutationResolver) LinkMailingList(ctx context.Context, projectID coremo
 				description, visibility;
 			`,
 			gqlList.Id, gqlList.Rid,
-			projectRow.ID, listOwner.ID,
+			project.ID, listOwner.ID,
 			gqlList.Name, gqlList.Description,
 			gqlList.Visibility)
-		if err := row.Scan(&ml.ID, &ml.RID, &ml.Linked, &ml.Updated,
+		if err := insertQuery.Scan(&ml.ID, &ml.RID, &ml.Linked, &ml.Updated,
 			&ml.Name, &ml.Description, &ml.Visibility); err != nil {
 			return err
 		}
@@ -301,7 +301,7 @@ func (r *mutationResolver) LinkMailingList(ctx context.Context, projectID coremo
 			return err
 		}
 
-		return addResourceEvent(ctx, tx, projectRow.ID,
+		return addResourceEvent(ctx, tx, project.ID,
 			MailingList, ml.ID, auth.ForContext(ctx).UserID)
 	}); err != nil {
 		return nil, err
@@ -331,19 +331,19 @@ func (r *mutationResolver) UnlinkMailingList(ctx context.Context, projectID core
 
 // LinkSource is the resolver for the linkSource field.
 func (r *mutationResolver) LinkSource(ctx context.Context, projectID coremodel.RID, sourceRepoID coremodel.RID) (*model.SourceRepo, error) {
-	projectRow, err := r.Query().Project(ctx, projectID)
-	if err != nil || projectRow == nil {
+	project, err := r.Query().Project(ctx, projectID)
+	if err != nil || project == nil {
 		return nil, gerrors.ErrNotFound
 	}
 
-	if projectRow.OwnerID != auth.ForContext(ctx).UserID {
+	if project.OwnerID != auth.ForContext(ctx).UserID {
 		return nil, gerrors.ErrAccessDenied
 	}
 
-	resourceRow, err := r.Project().Resource(ctx, projectRow, sourceRepoID)
-	if err == nil && resourceRow != nil {
+	resource, err := r.Project().Resource(ctx, project, sourceRepoID)
+	if err == nil && resource != nil {
 		// The list is already linked to the project
-		return resourceRow.(*model.SourceRepo), nil
+		return resource.(*model.SourceRepo), nil
 	}
 
 	var (
@@ -381,7 +381,7 @@ func (r *mutationResolver) LinkSource(ctx context.Context, projectID coremodel.R
 
 	var rep model.SourceRepo
 	if err := database.WithTx(ctx, nil, func(tx *sql.Tx) error {
-		row := tx.QueryRowContext(ctx, `
+		insertQuery := tx.QueryRowContext(ctx, `
 			INSERT INTO source_repo (
 				remote_id, remote_rid, repo_type,
 				linked, updated,
@@ -399,10 +399,10 @@ func (r *mutationResolver) LinkSource(ctx context.Context, projectID coremodel.R
 				description, visibility;
 			`,
 			repoWrapper.ID(), repoWrapper.RID(), repoWrapper.RepoType(),
-			projectRow.ID, repoOwner.ID,
+			project.ID, repoOwner.ID,
 			repoWrapper.Name(), repoWrapper.Description(),
 			repoWrapper.Visibility())
-		if err := row.Scan(&rep.ID, &rep.RID, &rep.RepoType,
+		if err := insertQuery.Scan(&rep.ID, &rep.RID, &rep.RepoType,
 			&rep.Linked, &rep.Updated,
 			&rep.Name, &rep.Description, &rep.Visibility); err != nil {
 			return err
@@ -439,7 +439,7 @@ func (r *mutationResolver) LinkSource(ctx context.Context, projectID coremodel.R
 				return err
 			}
 
-			return addResourceEvent(ctx, tx, projectRow.ID,
+			return addResourceEvent(ctx, tx, project.ID,
 				GitRepository, rep.ID, auth.ForContext(ctx).UserID)
 		} else {
 			// hg.sr.ht only supports user webhooks, not repo webhooks.
@@ -448,7 +448,7 @@ func (r *mutationResolver) LinkSource(ctx context.Context, projectID coremodel.R
 			if err != nil {
 				return err
 			}
-			return addResourceEvent(ctx, tx, projectRow.ID,
+			return addResourceEvent(ctx, tx, project.ID,
 				HgRepository, rep.ID, auth.ForContext(ctx).UserID)
 		}
 	}); err != nil {
@@ -485,19 +485,19 @@ func (r *mutationResolver) LinkTracker(ctx context.Context, projectID coremodel.
 		return nil, gerrors.ErrUnsupported
 	}
 
-	projectRow, err := r.Query().Project(ctx, projectID)
-	if err != nil || projectRow == nil {
+	project, err := r.Query().Project(ctx, projectID)
+	if err != nil || project == nil {
 		return nil, gerrors.ErrNotFound
 	}
 
-	if projectRow.OwnerID != auth.ForContext(ctx).UserID {
+	if project.OwnerID != auth.ForContext(ctx).UserID {
 		return nil, gerrors.ErrAccessDenied
 	}
 
-	resourceRow, err := r.Project().Resource(ctx, projectRow, trackerID)
-	if err == nil && resourceRow != nil {
+	resource, err := r.Project().Resource(ctx, project, trackerID)
+	if err == nil && resource != nil {
 		// The tracker is already linked to the project
-		return resourceRow.(*model.Tracker), nil
+		return resource.(*model.Tracker), nil
 	}
 
 	gqlTracker, err := todoclient.GetTracker(NewTodoClient(ctx), ctx, trackerID.String())
@@ -511,7 +511,7 @@ func (r *mutationResolver) LinkTracker(ctx context.Context, projectID coremodel.
 		return nil, err
 	}
 
-	var trackerRow model.Tracker
+	var tracker model.Tracker
 	if err := database.WithTx(ctx, nil, func(tx *sql.Tx) error {
 		row := tx.QueryRowContext(ctx, `
 			INSERT INTO tracker (
@@ -530,11 +530,11 @@ func (r *mutationResolver) LinkTracker(ctx context.Context, projectID coremodel.
 				description, visibility;
 			`,
 			gqlTracker.Id, gqlTracker.Rid,
-			projectRow.ID, trackerOwner.ID,
+			project.ID, trackerOwner.ID,
 			gqlTracker.Name, gqlTracker.Description,
 			gqlTracker.Visibility)
-		if err := row.Scan(&trackerRow.ID, &trackerRow.RID, &trackerRow.Linked, &trackerRow.Updated,
-			&trackerRow.Name, &trackerRow.Description, &trackerRow.Visibility); err != nil {
+		if err := row.Scan(&tracker.ID, &tracker.RID, &tracker.Linked, &tracker.Updated,
+			&tracker.Name, &tracker.Description, &tracker.Visibility); err != nil {
 			return err
 		}
 
@@ -547,7 +547,7 @@ func (r *mutationResolver) LinkTracker(ctx context.Context, projectID coremodel.
 			NewTodoClient(ctx),
 			ctx, gqlTracker.Id,
 			todoclient.EventWebhookQuery,
-			GetWebhookURL(ctx, Tracker, trackerRow.ID),
+			GetWebhookURL(ctx, Tracker, tracker.ID),
 		)
 		if err != nil {
 			return err
@@ -557,7 +557,7 @@ func (r *mutationResolver) LinkTracker(ctx context.Context, projectID coremodel.
 			UPDATE tracker
 			SET webhook_id = $1, webhook_version = $2
 			WHERE id = $3;
-		`, sub.Id, TODO_WEBHOOK_VERSION, trackerRow.ID)
+		`, sub.Id, TODO_WEBHOOK_VERSION, tracker.ID)
 		if err != nil {
 			// We will rollback, so need to delete the new webhook.
 			todoclient.DeleteTrackerWebhook(
@@ -566,13 +566,13 @@ func (r *mutationResolver) LinkTracker(ctx context.Context, projectID coremodel.
 			)
 			return err
 		}
-		return addResourceEvent(ctx, tx, projectRow.ID,
-			Tracker, trackerRow.ID, auth.ForContext(ctx).UserID)
+		return addResourceEvent(ctx, tx, project.ID,
+			Tracker, tracker.ID, auth.ForContext(ctx).UserID)
 	}); err != nil {
 		return nil, err
 	}
 
-	return &trackerRow, err
+	return &tracker, err
 }
 
 // UnlinkTracker is the resolver for the unlinkTracker field.
@@ -741,9 +741,9 @@ func (r *projectResolver) Resource(ctx context.Context, obj *model.Project, rid 
 		ReadOnly:  true,
 	}, func(tx *sql.Tx) error {
 		user := auth.ForContext(ctx)
-		list := (&model.MailingList{}).As(`list`)
-		list_row := database.
-			Select(ctx, list).
+		mailingList := (&model.MailingList{}).As(`list`)
+		listQuery := database.
+			Select(ctx, mailingList).
 			From(`mailing_list list`).
 			Join(`project ON list.project_id = project.id`).
 			Where(sq.And{
@@ -756,12 +756,12 @@ func (r *projectResolver) Resource(ctx context.Context, obj *model.Project, rid 
 			}).
 			RunWith(tx).
 			QueryRowContext(ctx)
-		if err := list_row.Scan(database.Scan(ctx, list)...); err == nil {
-			res = list
+		if err := listQuery.Scan(database.Scan(ctx, mailingList)...); err == nil {
+			res = mailingList
 			return nil
 		}
 		sourceRepo := (&model.SourceRepo{}).As(`source_repo`)
-		repo_row := database.
+		repoQuery := database.
 			Select(ctx, sourceRepo).
 			From(`source_repo`).
 			Join(`project ON source_repo.project_id = project.id`).
@@ -775,12 +775,12 @@ func (r *projectResolver) Resource(ctx context.Context, obj *model.Project, rid 
 			}).
 			RunWith(tx).
 			QueryRowContext(ctx)
-		if err := repo_row.Scan(database.Scan(ctx, sourceRepo)...); err == nil {
+		if err := repoQuery.Scan(database.Scan(ctx, sourceRepo)...); err == nil {
 			res = sourceRepo
 			return nil
 		}
 		tracker := (&model.Tracker{}).As(`tracker`)
-		tracker_row := database.
+		trackerQuery := database.
 			Select(ctx, tracker).
 			From(`tracker tracker`).
 			Join(`project ON tracker.project_id = project.id`).
@@ -794,7 +794,7 @@ func (r *projectResolver) Resource(ctx context.Context, obj *model.Project, rid 
 			}).
 			RunWith(tx).
 			QueryRowContext(ctx)
-		if err := tracker_row.Scan(database.Scan(ctx, tracker)...); err == nil {
+		if err := trackerQuery.Scan(database.Scan(ctx, tracker)...); err == nil {
 			res = tracker
 			return nil
 		}
@@ -816,7 +816,7 @@ func (r *projectResolver) MailingList(ctx context.Context, obj *model.Project, n
 		ReadOnly:  true,
 	}, func(tx *sql.Tx) error {
 		user := auth.ForContext(ctx)
-		row := database.
+		listQuery := database.
 			Select(ctx, list).
 			From(`mailing_list list`).
 			Join(`project ON list.project_id = project.id`).
@@ -830,7 +830,7 @@ func (r *projectResolver) MailingList(ctx context.Context, obj *model.Project, n
 			}).
 			RunWith(tx).
 			QueryRowContext(ctx)
-		return row.Scan(database.Scan(ctx, list)...)
+		return listQuery.Scan(database.Scan(ctx, list)...)
 	}); err != nil {
 		if err == sql.ErrNoRows {
 			return nil, nil
@@ -848,7 +848,7 @@ func (r *projectResolver) Source(ctx context.Context, obj *model.Project, name s
 		ReadOnly:  true,
 	}, func(tx *sql.Tx) error {
 		user := auth.ForContext(ctx)
-		row := database.
+		repoQuery := database.
 			Select(ctx, sourceRepo).
 			From(`source_repo`).
 			Join(`project ON source_repo.project_id = project.id`).
@@ -862,7 +862,7 @@ func (r *projectResolver) Source(ctx context.Context, obj *model.Project, name s
 			}).
 			RunWith(tx).
 			QueryRowContext(ctx)
-		return row.Scan(database.Scan(ctx, sourceRepo)...)
+		return repoQuery.Scan(database.Scan(ctx, sourceRepo)...)
 	}); err != nil {
 		if err == sql.ErrNoRows {
 			return nil, nil
@@ -880,7 +880,7 @@ func (r *projectResolver) Tracker(ctx context.Context, obj *model.Project, name 
 		ReadOnly:  true,
 	}, func(tx *sql.Tx) error {
 		user := auth.ForContext(ctx)
-		row := database.
+		trackerQuery := database.
 			Select(ctx, tracker).
 			From(`tracker tracker`).
 			Join(`project ON tracker.project_id = project.id`).
@@ -894,7 +894,7 @@ func (r *projectResolver) Tracker(ctx context.Context, obj *model.Project, name 
 			}).
 			RunWith(tx).
 			QueryRowContext(ctx)
-		return row.Scan(database.Scan(ctx, tracker)...)
+		return trackerQuery.Scan(database.Scan(ctx, tracker)...)
 	}); err != nil {
 		if err == sql.ErrNoRows {
 			return nil, nil
