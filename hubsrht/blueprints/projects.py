@@ -111,6 +111,8 @@ def summary_GET(owner, project_name):
         try:
             summary = get_readme(owner, repo)
         except Exception as ex:
+            print('Error fetching README for {}/{}: {}: {}'.format(
+                owner.canonical_name, project_name, type(ex).__name__, ex))
             summary = None
             summary_error = True
 
