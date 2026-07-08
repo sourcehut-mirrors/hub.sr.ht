@@ -4,7 +4,7 @@ from flask import Blueprint, Response, render_template, request, redirect, url_f
 from flask import session, abort, make_response
 from hubsrht.decorators import adminrequired
 from hubsrht.projects import ProjectAccess, get_project, get_project_or_redir
-from hubsrht.services.git import GitClient
+from hubsrht.services.git import GitClient, TextDataObjectTextBlob
 from hubsrht.services.hg import HgClient
 from hubsrht.services.hub import HubClient, ProjectInput
 from hubsrht.types import Feature, Event, EventType
@@ -49,6 +49,10 @@ To browse all of the available repositories for this project, visit this URL:
       owner=owner.canonical_name, project_name=project.name)}
 """
 
+class ReadmeError(Exception):
+    def __init__(self, details):
+        self.details = details
+
 def get_readme(owner, repo):
     auth = InternalAuth(owner)
     html, plaintext, md = None, None, None
@@ -60,12 +64,16 @@ def get_readme(owner, repo):
         client = GitClient(auth)
         git_repo = client.get_readme(owner.username, repo.name).user.repository
         if not git_repo:
-            raise Exception(f"git.sr.ht returned no repository for {owner.username}/{repo.name}")
+            raise ReadmeError(f"git.sr.ht returned no repository for {owner.username}/{repo.name}")
         html = git_repo.html
         if git_repo.plaintext:
             plaintext = git_repo.plaintext.object.text
         if git_repo.md or git_repo.markdown:
-            md = (git_repo.md or git_repo.markdown).object.text
+            obj = git_repo.md or git_repo.markdown
+            if obj.object.typename__ == "TextBlob":
+                md = obj.object.text
+            else:
+                raise ReadmeError(f"Fetched README is not decodable as UTF-8")
     elif repo.repo_type == RepoType.hg:
         blob_prefix = repo.url() + "/raw/"
         rendered_prefix = repo.url() + "/browse/"
@@ -110,6 +118,9 @@ def summary_GET(owner, project_name):
         repo = project.summary_repo
         try:
             summary = get_readme(owner, repo)
+        except ReadmeError as err:
+            summary = err.details
+            summary_error = True
         except Exception as ex:
             print('Error fetching README for {}/{}: {}: {}'.format(
                 owner.canonical_name, project_name, type(ex).__name__, ex))
