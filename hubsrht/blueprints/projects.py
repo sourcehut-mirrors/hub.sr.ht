@@ -360,7 +360,7 @@ def delete_POST(owner, project_name):
     owner, project = get_project(owner, project_name, ProjectAccess.write)
     if project is None:
         abort(404)
-    session["notice"] = f"{project.name} has been deleted."
+    session["notice"] = f"{project.name} is being deleted."
 
     HubClient().delete_project(to_rid(project.rid))
     return redirect(url_for("public.index"))

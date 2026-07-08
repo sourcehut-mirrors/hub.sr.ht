@@ -33,18 +33,23 @@ func main() {
 		scopes[i] = s.String()
 	}
 
-	queueSize := config.GetInt(appConfig, "hub.sr.ht::api",
+	accountQueueSize := config.GetInt(appConfig, "hub.sr.ht::api",
 		"account-del-queue-size", config.DefaultQueueSize)
-	accountQueue := work.NewQueue("account", queueSize)
+	accountQueue := work.NewQueue("account", accountQueueSize)
+
+	projectQueueSize := config.GetInt(appConfig, "hub.sr.ht::api",
+		"project-del-queue-size", config.DefaultQueueSize)
+	projectQueue := work.NewQueue("project", projectQueueSize)
 
 	gsrv := server.New("hub.sr.ht", ":5114", appConfig, os.Args).
 		WithDefaultMiddleware().
 		WithMiddleware(
 			loaders.Middleware,
 			account.Middleware(accountQueue),
+			graph.ProjectMiddleware(projectQueue),
 		).
 		WithSchema(schema, scopes).
-		WithQueues(accountQueue)
+		WithQueues(accountQueue, projectQueue)
 
 	gsrv.Run()
 }

@@ -197,68 +197,20 @@ func (r *mutationResolver) UpdateProject(ctx context.Context, rid coremodel.RID,
 
 // DeleteProject is the resolver for the deleteProject field.
 func (r *mutationResolver) DeleteProject(ctx context.Context, rid coremodel.RID) (*model.Project, error) {
-	var proj model.Project
-	var listWebhookIDs, gitWebhookIDs, todoWebhookIDs []int
-	if err := database.WithTx(ctx, nil, func(tx *sql.Tx) error {
-		var projectID int
-		project := tx.QueryRowContext(ctx,
-			"SELECT id FROM project WHERE rid = $1", rid)
-		if err := project.Scan(&projectID); err != nil {
-			if err == sql.ErrNoRows {
-				return gerrors.ErrNotFound
-			}
-			return err
-		}
-
-		// Collect the associated resources' webhook IDs for clean-up
-		// if the project deletion succeeds (note that hg does not
-		// support repository webhooks).
-		listWebhookIDs, _ = collectWebhookIDs(ctx, tx, projectID, MailingList)
-		gitWebhookIDs, _ = collectWebhookIDs(ctx, tx, projectID, GitRepository)
-		todoWebhookIDs, _ = collectWebhookIDs(ctx, tx, projectID, Tracker)
-
-		row := tx.QueryRowContext(ctx, `
-			DELETE FROM project
-			WHERE rid = $1 AND owner_id = $2
-			RETURNING
-				id, rid, created, updated, name, description, visibility,
-				tags, website, checklist_complete;
-		`, rid, auth.ForContext(ctx).UserID)
-
-		if err := row.Scan(&proj.ID, &proj.RID, &proj.Created, &proj.Updated,
-			&proj.Name, &proj.Description, &proj.Visibility,
-			pq.Array(&proj.Tags), &proj.Website, &proj.ChecklistComplete); err != nil {
-			if err == sql.ErrNoRows {
-				return gerrors.ErrNotFound
-			}
-			return err
-		}
-		return nil
-	}); err != nil {
+	proj, err := r.Query().Project(ctx, rid)
+	if err != nil {
 		return nil, err
+	} else if proj == nil {
+		return nil, gerrors.ErrNotFound
+	}
+	if proj.OwnerID != auth.ForContext(ctx).UserID {
+		return nil, gerrors.ErrAccessDenied
 	}
 
-	// Best-effort clean-up of the associated webhooks.
-	for _, whID := range listWebhookIDs {
-		listsclient.DeleteListWebhook(
-			NewListsGQLClient(ctx),
-			ctx, int32(whID),
-		)
-	}
-	for _, whID := range gitWebhookIDs {
-		gitclient.DeleteRepoWebhook(
-			NewGitGQLClient(ctx),
-			ctx, int32(whID),
-		)
-	}
-	for _, whID := range todoWebhookIDs {
-		todoclient.DeleteTrackerWebhook(
-			NewTodoGQLClient(ctx),
-			ctx, int32(whID),
-		)
-	}
-
-	return &proj, nil
+	// Process deletion asynchronously (to return in a timely manner while
+	// processing cascades, deletion of remote webhooks, etc)
+	DeleteProject(ctx, rid)
+	return proj, nil
 }
 
 // LinkMailingList is the resolver for the linkMailingList field.
