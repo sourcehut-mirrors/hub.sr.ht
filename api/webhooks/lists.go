@@ -312,7 +312,7 @@ func processPatchsetReceivedEvent(ctx context.Context, listID int,
 		html.EscapeString(sender.Address))
 	buildsClient := graph.NewBuildsClientForUser(ctx, projectOwnerName)
 	type manifestInfo struct {
-		name  string
+		name     string
 		contents string
 	}
 	var allManifests []manifestInfo

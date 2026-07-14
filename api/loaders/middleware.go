@@ -23,8 +23,8 @@ type contextKey struct {
 }
 
 type Loaders struct {
-	UsersByID                    UsersByIDLoader
-	UsersByName                  UsersByNameLoader
+	UsersByID   UsersByIDLoader
+	UsersByName UsersByNameLoader
 }
 
 func fetchUsersByID(ctx context.Context) func(ids []int) ([]*model.User, []error) {

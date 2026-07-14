@@ -12,7 +12,7 @@ func addResourceEvent(
 ) error {
 	var (
 		prefix string
-		err error
+		err    error
 	)
 	switch resType {
 	case MailingList:
