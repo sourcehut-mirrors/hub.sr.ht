@@ -60,7 +60,7 @@ func (r *SourceRepo) Fields() *database.ModelFields {
 
 			// Always fetch:
 			{SQL: "id", GQL: "", Ptr: &r.ID},
-			{SQL: "remote_rid", GQL: "rid", Ptr: &r.RID},
+			{SQL: "remote_rid", GQL: "", Ptr: &r.RID},
 			{SQL: "owner_id", GQL: "", Ptr: &r.OwnerID},
 			{SQL: "repo_type", GQL: "", Ptr: &r.RepoType},
 			{SQL: "webhook_id", GQL: "", Ptr: &r.WebhookID},

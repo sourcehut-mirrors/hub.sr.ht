@@ -59,7 +59,7 @@ func (t *Tracker) Fields() *database.ModelFields {
 
 			// Always fetch:
 			{SQL: "id", GQL: "", Ptr: &t.ID},
-			{SQL: "remote_rid", GQL: "rid", Ptr: &t.RID},
+			{SQL: "remote_rid", GQL: "", Ptr: &t.RID},
 			{SQL: "owner_id", GQL: "", Ptr: &t.OwnerID},
 			{SQL: "webhook_id", GQL: "", Ptr: &t.WebhookID},
 			{SQL: "webhook_version", GQL: "", Ptr: &t.WebhookVersion},

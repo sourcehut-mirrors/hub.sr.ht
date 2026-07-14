@@ -59,7 +59,7 @@ func (list *MailingList) Fields() *database.ModelFields {
 
 			// Always fetch:
 			{SQL: "id", GQL: "", Ptr: &list.ID},
-			{SQL: "remote_rid", GQL: "rid", Ptr: &list.RID},
+			{SQL: "remote_rid", GQL: "", Ptr: &list.RID},
 			{SQL: "owner_id", GQL: "", Ptr: &list.OwnerID},
 			{SQL: "webhook_id", GQL: "", Ptr: &list.WebhookID},
 			{SQL: "webhook_version", GQL: "", Ptr: &list.WebhookVersion},
