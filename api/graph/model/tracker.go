@@ -23,8 +23,8 @@ type Tracker struct {
 
 	OwnerID int
 
-	WebhookID      int
-	WebhookVersion int
+	WebhookID      *int
+	WebhookVersion *int
 
 	alias  string
 	fields *database.ModelFields

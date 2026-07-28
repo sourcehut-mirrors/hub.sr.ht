@@ -353,10 +353,12 @@ func (r *mutationResolver) UnlinkMailingList(ctx context.Context, projectID core
 		}
 		ml = res.(*model.MailingList)
 
-		listsclient.DeleteListWebhook(
-			NewListsClient(ctx),
-			ctx, int32(ml.WebhookID),
-		)
+		if ml.WebhookID != nil {
+			listsclient.DeleteListWebhook(
+				NewListsClient(ctx),
+				ctx, int32(*ml.WebhookID),
+			)
+		}
 		return err
 	})
 	return ml, err
@@ -501,10 +503,10 @@ func (r *mutationResolver) UnlinkSource(ctx context.Context, projectID coremodel
 		}
 		rep = res.(*model.SourceRepo)
 		// Repository webhooks are only supported by git.sr.ht.
-		if rep.RepoType == "GIT" {
+		if rep.RepoType == "GIT" && rep.WebhookID != nil {
 			gitclient.DeleteRepoWebhook(
 				NewGitClient(ctx),
-				ctx, int32(rep.WebhookID),
+				ctx, int32(*rep.WebhookID),
 			)
 		}
 		return err
@@ -618,10 +620,12 @@ func (r *mutationResolver) UnlinkTracker(ctx context.Context, projectID coremode
 		}
 		t = res.(*model.Tracker)
 
-		todoclient.DeleteTrackerWebhook(
-			NewTodoClient(ctx),
-			ctx, int32(t.WebhookID),
-		)
+		if t.WebhookID != nil {
+			todoclient.DeleteTrackerWebhook(
+				NewTodoClient(ctx),
+				ctx, int32(*t.WebhookID),
+			)
+		}
 		return err
 	})
 
