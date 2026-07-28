@@ -6,6 +6,7 @@ import (
 	"database/sql/driver"
 	"errors"
 	"fmt"
+	"log"
 	"net/http"
 	"time"
 
@@ -43,6 +44,7 @@ func fetchUsersByID(ctx context.Context) func(ids []int) ([]*model.User, []error
 				From(`"user" u`).
 				Where(sq.Expr(`u.id = ANY(?)`, pq.Array(ids)))
 			if rows, err = query.RunWith(tx).QueryContext(ctx); err != nil {
+				log.Printf("Error fetching users: %s", err.Error())
 				panic(err)
 			}
 			defer rows.Close()
