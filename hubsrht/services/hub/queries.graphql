@@ -54,3 +54,32 @@ mutation UnlinkTracker($projectID: ID!, $trackerID: ID!) {
     rid
   }
 }
+
+query GetResourceProjects($rid: ID!, $cursor: Cursor) {
+  resource(rid: $rid) {
+    __typename
+    name
+    description
+    owner {
+      canonicalName
+    }
+
+    ... on SourceRepo {
+      repoType
+    }
+
+    projects(cursor: $cursor) {
+      results {
+        name
+        description
+        # TODO: This should be an anonymous resolver eventually
+        visibility
+
+        owner {
+          canonicalName
+        }
+      }
+      cursor
+    }
+  }
+}

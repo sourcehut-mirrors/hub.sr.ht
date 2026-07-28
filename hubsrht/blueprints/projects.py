@@ -320,7 +320,6 @@ def config_POST(owner, project_name):
         owner=current_user.canonical_name,
         project_name=project.name))
 
-
 @projects.route("/<owner>/<project_name>/settings/rename")
 @loginrequired
 def settings_rename(owner, project_name):

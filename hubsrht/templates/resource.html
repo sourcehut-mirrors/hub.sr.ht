@@ -1,0 +1,33 @@
+{% extends "layout.html" %}
+{% block title %}
+<title>{{res.name}} projects - {{cfg("sr.ht", "site-name")}}</title>
+{% endblock %}
+{% block content %}
+<form class="container">
+  <div class="row">
+    <div class="col-md-12">
+      <p>
+        {{kind}}
+        <a href="{{url}}">{{res.owner.canonical_name}}/{{res.name}}</a>
+        is a member of the following projects:
+      </p>
+      <div class="event-list">
+        {% for project in res.projects.results %}
+        <div class="event">
+          <h4>
+            <a
+              href="{{url_for("projects.summary_GET",
+                owner=project.owner.canonical_name,
+                project_name=project.name)}}"
+            >{{project.owner.canonical_name}}/{{project.name}}</a>
+          </h4>
+          {% if project.description %}
+          <p>{{ project.description }}</p>
+          {% endif %}
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+</form>
+{% endblock %}

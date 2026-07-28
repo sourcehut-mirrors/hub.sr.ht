@@ -1,8 +1,11 @@
 from sqlalchemy.sql import operators
-from flask import Blueprint, render_template, request, session
+from flask import Blueprint, render_template, request, session, abort
+from hubsrht.services.hub import HubClient, RepoType
 from hubsrht.types import Project, Feature, Event, EventType, Visibility, User
 from srht.app import paginate_query
+from srht.config import get_origin
 from srht.database import db
+from srht.graphql import InternalAuth
 from srht.oauth import UserType, current_user, loginrequired
 from srht.search import search_by
 
@@ -92,3 +95,30 @@ def featured_projects():
     features, pagination = paginate_query(features)
     return render_template("featured-projects.html",
             features=features, **pagination)
+
+@public.route("/resource/<rid>")
+# TODO: Should not require login, blocked on
+# https://todo.sr.ht/~sircmpwn/sourcehut/30
+@loginrequired
+def resource_GET(rid):
+    client = HubClient(InternalAuth(current_user))
+    res = client.get_resource_projects(rid).resource
+    if not res:
+        abort(404)
+    match res.typename__:
+        case "SourceRepo":
+            if res.repo_type == RepoType.GIT:
+                base = get_origin("git.sr.ht", external=True)
+            elif res.repo_type == RepoType.HG:
+                base = get_origin("hg.sr.ht", external=True)
+            url = f"{base}/{res.owner.canonical_name}/{res.name}"
+            kind = "Repository"
+        case "MailingList":
+            base = get_origin("lists.sr.ht", external=True)
+            url = f"{base}/{res.owner.canonical_name}/{res.name}"
+            kind = "Mailing list"
+        case "Tracker":
+            base = get_origin("todo.sr.ht", external=True)
+            url = f"{base}/{res.owner.canonical_name}/{res.name}"
+            kind = "Bug tracker"
+    return render_template("resource.html", res=res, url=url, kind=kind)
