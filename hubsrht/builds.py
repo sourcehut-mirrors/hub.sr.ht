@@ -135,7 +135,7 @@ def submit_patchset(ml, patchset):
                 icon=ToolIcon.PENDING,
                 details=f"build pending: {key}").create_tool.id
 
-        apply_script = _gen_apply_script(lists_client, ml, patchset)
+        apply_script = _gen_apply_script(lists_client, ml, repo.name, patchset)
         task = Task({
             "_apply_patch": apply_script,
         })
@@ -202,7 +202,7 @@ def submit_patchset(ml, patchset):
         note=build_note)
     return ids
 
-def _gen_apply_script(client, ml, patchset):
+def _gen_apply_script(client, ml, repo_name, patchset):
     # Note: one may be tempted to replace the temporary file by piping curl
     # into git directly. Do not be misled! It is necessary to have two separate
     # commands so that a patch which fails to apply fails the build. pipefail
@@ -230,12 +230,12 @@ git config --global user.email 'builds@sr.ht'
             patchset_mbox = patchset_url + "/mbox"
             script += f"""echo "Applying" {quote(patch.subject)}
 curl -sS {quote(patchset_mbox)} >/tmp/patch
-git -C {quote(patch.prefix)} am -3 /tmp/patch
+git -C {quote(repo_name)} am -3 /tmp/patch
 """
 
     patch_mbox = f"{ml.url()}/patches/{patchset.id}/mbox"
     script += f"""curl -sS {quote(patch_mbox)} >/tmp/patch
-git -C {quote(patchset.prefix)} am -3 /tmp/patch
+git -C {quote(repo_name)} am -3 /tmp/patch
 """
 
     return script

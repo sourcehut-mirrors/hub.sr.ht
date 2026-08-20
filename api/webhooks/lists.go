@@ -458,7 +458,7 @@ func createJobForManifest(ctx context.Context, patchset *lists.Patchset, listID 
 		"name": "%s",
 		"user": "~%s"
 	}`, listID, patchset.Id, tool.Id, manifestName, projectOwnerName)
-	manifest.UpdateForPatchset(ctx, projectOwnerName, patchset, webhookDocument)
+	manifest.UpdateForPatchset(ctx, repoName, projectOwnerName, patchset, webhookDocument)
 
 	newManifest, err := manifest.ToYAML()
 	if err != nil {

@@ -57,7 +57,7 @@ func (manifest Manifest) ToYAML() (string, error) {
 }
 
 func (manifest *Manifest) UpdateForPatchset(ctx context.Context,
-	projectOwner string, patchset *lists.Patchset,
+	repoName, projectOwner string, patchset *lists.Patchset,
 	webhookDoc string,
 ) {
 	if manifest.Environment == nil {
@@ -72,9 +72,9 @@ func (manifest *Manifest) UpdateForPatchset(ctx context.Context,
 	manifest.Environment["PATCHSET_URL"] = fmt.Sprintf("%s/patches/%d",
 		listURL, patchset.Id)
 
-	script := generateApplyCommand(ctx, patchset)
+	script := generateApplyCommand(ctx, repoName, patchset)
 	manifest.Tasks = append(
-		[]builds.Task{builds.Task{
+		[]builds.Task{{
 			Name:   "_apply_patch",
 			Script: script,
 		}},
@@ -108,20 +108,15 @@ func shQuote(s string) string {
 	return "'" + strings.ReplaceAll(s, "'", "'\"'\"'") + "'"
 }
 
-func generateApplyCommand(ctx context.Context, patchset *lists.Patchset) string {
+func generateApplyCommand(ctx context.Context, repoName string, patchset *lists.Patchset) string {
 	listsOrigin := config.GetOrigin(config.ForContext(ctx), "lists.sr.ht", true)
 	listURL := fmt.Sprintf("%s/%s/%s", listsOrigin,
 		patchset.List.Owner.CanonicalName, patchset.List.Name)
-
-	prefix := ""
-	if patchset.Prefix != nil {
-		prefix = *patchset.Prefix
-	}
 
 	patchMbox := fmt.Sprintf("%s/patches/%d/mbox", listURL, patchset.Id)
 	return fmt.Sprintf(`curl -sS '%s' >/tmp/patch
 git -C %s am -3 /tmp/patch
 `,
 		shQuote(patchMbox),
-		shQuote(prefix))
+		shQuote(repoName))
 }
