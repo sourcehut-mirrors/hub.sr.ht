@@ -243,7 +243,7 @@ func processPatchsetReceivedEvent(ctx context.Context, listID int,
 	if patchset.Prefix == nil {
 		return nil
 	}
-	repoName = *patchset.Prefix
+	repoName = strings.ToLower(*patchset.Prefix)
 	if err := database.WithTx(ctx,
 		&sql.TxOptions{
 			Isolation: 0,
@@ -252,18 +252,18 @@ func processPatchsetReceivedEvent(ctx context.Context, listID int,
 		func(tx *sql.Tx) error {
 			repo := tx.QueryRowContext(ctx, `
 					SELECT
-						r.id, u.username, r.repo_type,
+						r.id, r.name, u.username, r.repo_type,
 						r.visibility, r.project_id,
 						o.username
 					FROM
 						source_repo r, "user" u,
 						project p, "user" o
 					WHERE
-						r.name = $1 AND
+						lower(r.name) = $1 AND
 						r.owner_id = u.id AND
 						r.project_id=p.id AND
 						p.owner_id=o.id`, repoName)
-			if err := repo.Scan(&repoID, &repoOwnerName, &repoType,
+			if err := repo.Scan(&repoID, &repoName, &repoOwnerName, &repoType,
 				&repoVisibility, &projectID, &projectOwnerName); err != nil {
 				return err
 			}
