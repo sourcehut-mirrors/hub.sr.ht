@@ -7,6 +7,8 @@ from hubsrht.projects import ProjectAccess, get_project, get_project_or_redir
 from hubsrht.services.git import GitClient, TextDataObjectTextBlob
 from hubsrht.services.hg import HgClient
 from hubsrht.services.hub import HubClient, ProjectInput
+from hubsrht.services.lists import ListsClient
+from hubsrht.services.todo import TodoClient
 from hubsrht.types import Feature, Event, EventType
 from hubsrht.types import Project, RepoType, Visibility
 from hubsrht.types import SourceRepo, MailingList, Tracker
@@ -127,18 +129,7 @@ def summary_GET(owner, project_name):
             summary = None
             summary_error = True
 
-    events = (Event.query
-        .outerjoin(EventProjectAssociation)
-        .filter(EventProjectAssociation.project_id == project.id)
-        .order_by(Event.created.desc()))
-    if not current_user or current_user.id != owner.id:
-        events = (events
-            .outerjoin(SourceRepo)
-            .outerjoin(MailingList)
-            .outerjoin(Tracker)
-            .filter(or_(Event.source_repo == None, SourceRepo.visibility == Visibility.PUBLIC),
-                or_(Event.mailing_list == None, MailingList.visibility == Visibility.PUBLIC),
-                or_(Event.tracker == None, Tracker.visibility == Visibility.PUBLIC)))
+    events = get_events(owner, project.id)
     events = events.limit(2).all()
 
     return render_template("project-summary.html", view="summary",
@@ -171,20 +162,7 @@ def summary_refs(owner, project_name):
 def feed_GET(owner, project_name):
     owner, project = get_project_or_redir(owner, project_name, ProjectAccess.read)
 
-    events = (Event.query
-        .outerjoin(EventProjectAssociation)
-        .filter(EventProjectAssociation.project_id == project.id)
-        .order_by(Event.created.desc()))
-
-    if not current_user or current_user.id != owner.id:
-        events = (events
-            .outerjoin(SourceRepo)
-            .outerjoin(MailingList)
-            .outerjoin(Tracker)
-            .filter(or_(Event.source_repo == None, SourceRepo.visibility == Visibility.PUBLIC),
-                or_(Event.mailing_list == None, MailingList.visibility == Visibility.PUBLIC),
-                or_(Event.tracker == None, Tracker.visibility == Visibility.PUBLIC)))
-
+    events = get_events(owner, project.id)
     events, pagination = paginate_query(events)
 
     return render_template("project-feed.html",
@@ -195,20 +173,7 @@ def feed_GET(owner, project_name):
 def feed_rss_GET(owner, project_name):
     owner, project = get_project_or_redir(owner, project_name, ProjectAccess.read)
 
-    events = (Event.query
-        .outerjoin(EventProjectAssociation)
-        .filter(EventProjectAssociation.project_id == project.id)
-        .order_by(Event.created.desc()))
-
-    if not current_user or current_user.id != owner.id:
-        events = (events
-            .outerjoin(SourceRepo)
-            .outerjoin(MailingList)
-            .outerjoin(Tracker)
-            .filter(or_(Event.source_repo == None, SourceRepo.visibility == Visibility.PUBLIC),
-                or_(Event.mailing_list == None, MailingList.visibility == Visibility.PUBLIC),
-                or_(Event.tracker == None, Tracker.visibility == Visibility.PUBLIC)))
-
+    events = get_events(owner, project.id)
     events, pagination = paginate_query(events)
 
     res = make_response(render_template("project-feed-rss.html",
@@ -380,3 +345,56 @@ def feature_POST(owner, project_name):
     db.session.add(feature)
     db.session.commit()
     return redirect(url_for("public.project_index"))
+
+def get_events(project_owner, project_id):
+    events = (Event.query
+        .outerjoin(EventProjectAssociation)
+        .filter(EventProjectAssociation.project_id == project_id)
+        .order_by(Event.created.desc()))
+    if not current_user or current_user.id != project_owner.id:
+        # We're not the project owner, so need to filter out any event for a
+        # non-public repo/list/tracker...
+        events = (events
+            .outerjoin(SourceRepo)
+            .outerjoin(MailingList)
+            .outerjoin(Tracker)
+            .filter(or_(Event.source_repo == None, SourceRepo.visibility == Visibility.PUBLIC),
+                or_(Event.mailing_list == None, MailingList.visibility == Visibility.PUBLIC),
+                or_(Event.tracker == None, Tracker.visibility == Visibility.PUBLIC)))
+
+        # ... as well as those for a list we are not allowed to browse...
+        list_rids = (db.session.query(MailingList.remote_rid)
+            .join(Event)
+            .outerjoin(EventProjectAssociation)
+            .filter(EventProjectAssociation.project_id == project_id)
+            .distinct())
+        lists_client = ListsClient(InternalAuth(current_user))
+        non_browsable_lists = []
+        for list_rid in list_rids.all():
+            ml = lists_client.get_list(list_rid.remote_rid).mailing_list
+            if ml.access.browse == False:
+                non_browsable_lists.append(ml.name)
+        if non_browsable_lists:
+            listFilter = []
+            for l in non_browsable_lists:
+                listFilter.append(or_(Event.mailing_list == None, MailingList.name != l))
+            events = events.filter(*listFilter)
+
+        # ... and the same for trackers
+        tracker_rids = (db.session.query(Tracker.remote_rid)
+            .join(Event)
+            .outerjoin(EventProjectAssociation)
+            .filter(EventProjectAssociation.project_id == project_id)
+            .distinct())
+        todo_client = TodoClient(InternalAuth(current_user))
+        non_browsable_trackers = []
+        for tracker_rid in tracker_rids.all():
+            tracker = todo_client.get_tracker(tracker_rid.remote_rid).tracker
+            if tracker.acl.browse == False:
+                non_browsable_trackers.append(tracker.name)
+        if non_browsable_trackers:
+            trackerFilter = []
+            for t in non_browsable_trackers:
+                trackerFilter.append(or_(Event.tracker == None, Tracker.name != t))
+            events = events.filter(*trackerFilter)
+    return events
