@@ -14,7 +14,7 @@ import (
 
 type SourceRepo struct {
 	ID          int        `json:"id"`
-	RID         model.RID  `json:"remote_rid"`
+	RID         string     `json:"remote_rid"`
 	Linked      time.Time  `json:"linked"`
 	Updated     time.Time  `json:"updated"`
 	Name        string     `json:"name"`

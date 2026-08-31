@@ -29,6 +29,13 @@ import (
 	"github.com/lib/pq"
 )
 
+// Rid is the resolver for the rid field.
+func (r *mailingListResolver) Rid(ctx context.Context, obj *model.MailingList) (*coremodel.RID, error) {
+	rid := coremodel.NewRID()
+	err := rid.Scan(obj.RID)
+	return &rid, err
+}
+
 // Owner is the resolver for the owner field.
 func (r *mailingListResolver) Owner(ctx context.Context, obj *model.MailingList) (model.Entity, error) {
 	return loaders.ForContext(ctx).UsersByID.Load(obj.OwnerID)
@@ -52,7 +59,7 @@ func (r *mailingListResolver) Projects(ctx context.Context, obj *model.MailingLi
 			From(`project`).
 			Join(`mailing_list ON mailing_list.project_id = project.id`).
 			Where(sq.And{
-				sq.Expr(`mailing_list.remote_rid = ?`, obj.RID.String()),
+				sq.Expr(`mailing_list.remote_rid = ?`, obj.RID),
 				sq.Or{
 					sq.Expr(`project.owner_id = ?`, user.UserID),
 					sq.Expr(`project.visibility = 'PUBLIC'`),
@@ -1129,6 +1136,13 @@ func (r *queryResolver) Tracker(ctx context.Context, rid coremodel.RID) (*model.
 	return tracker, nil
 }
 
+// Rid is the resolver for the rid field.
+func (r *sourceRepoResolver) Rid(ctx context.Context, obj *model.SourceRepo) (*coremodel.RID, error) {
+	rid := coremodel.NewRID()
+	err := rid.Scan(obj.RID)
+	return &rid, err
+}
+
 // Owner is the resolver for the owner field.
 func (r *sourceRepoResolver) Owner(ctx context.Context, obj *model.SourceRepo) (model.Entity, error) {
 	return loaders.ForContext(ctx).UsersByID.Load(obj.OwnerID)
@@ -1152,7 +1166,7 @@ func (r *sourceRepoResolver) Projects(ctx context.Context, obj *model.SourceRepo
 			From(`project`).
 			Join(`source_repo ON source_repo.project_id = project.id`).
 			Where(sq.And{
-				sq.Expr(`source_repo.remote_rid = ?`, obj.RID.String()),
+				sq.Expr(`source_repo.remote_rid = ?`, obj.RID),
 				sq.Or{
 					sq.Expr(`project.owner_id = ?`, user.UserID),
 					sq.Expr(`project.visibility = 'PUBLIC'`),
@@ -1165,6 +1179,13 @@ func (r *sourceRepoResolver) Projects(ctx context.Context, obj *model.SourceRepo
 	}
 
 	return &model.ProjectCursor{Results: projects, Cursor: cursor}, nil
+}
+
+// Rid is the resolver for the rid field.
+func (r *trackerResolver) Rid(ctx context.Context, obj *model.Tracker) (*coremodel.RID, error) {
+	rid := coremodel.NewRID()
+	err := rid.Scan(obj.RID)
+	return &rid, err
 }
 
 // Owner is the resolver for the owner field.
@@ -1190,7 +1211,7 @@ func (r *trackerResolver) Projects(ctx context.Context, obj *model.Tracker, curs
 			From(`project`).
 			Join(`tracker ON tracker.project_id = project.id`).
 			Where(sq.And{
-				sq.Expr(`tracker.remote_rid = ?`, obj.RID.String()),
+				sq.Expr(`tracker.remote_rid = ?`, obj.RID),
 				sq.Or{
 					sq.Expr(`project.owner_id = ?`, user.UserID),
 					sq.Expr(`project.visibility = 'PUBLIC'`),
