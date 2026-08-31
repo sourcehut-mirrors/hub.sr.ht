@@ -120,7 +120,7 @@ func generateApplyCommand(ctx context.Context, patchset *lists.Patchset) string 
 
 	patchMbox := fmt.Sprintf("%s/patches/%d/mbox", listURL, patchset.Id)
 	return fmt.Sprintf(`curl -sS '%s' >/tmp/patch
-git -C %s am -3 /tmp.patch
+git -C %s am -3 /tmp/patch
 `,
 		shQuote(patchMbox),
 		shQuote(prefix))
