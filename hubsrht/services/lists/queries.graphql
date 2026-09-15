@@ -37,10 +37,6 @@ fragment listDetails on MailingList {
   defaultACL {
     browse
   }
-  access {
-    __typename
-    browse
-  }
 }
 
 query GetPatchset($id: Int!) {

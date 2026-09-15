@@ -40,11 +40,6 @@ fragment trackerDetails on Tracker {
     browse
   }
 
-  acl {
-    __typename
-    browse
-  }
-
   owner {
     __typename
     canonicalName
