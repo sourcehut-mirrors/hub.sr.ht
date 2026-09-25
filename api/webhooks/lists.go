@@ -316,6 +316,14 @@ func processPatchsetReceivedEvent(ctx context.Context, listID int,
 		contents string
 	}
 	var allManifests []manifestInfo
+	appendManifest := func(name string, contents string) {
+		if len(contents) != 0 {
+			allManifests = append(allManifests, manifestInfo{
+				name:     name,
+				contents: contents,
+			})
+		}
+	}
 	for i := range manifests.Repository.Paths {
 		var contents, manifestName string
 		switch i {
@@ -324,12 +332,14 @@ func processPatchsetReceivedEvent(ctx context.Context, listID int,
 			if manifests.Repository.Paths[i] != nil {
 				contents = manifests.Repository.Paths[i].Object.Value.(*git.TextBlob).Text
 			}
+			appendManifest(manifestName, contents)
 		case 1: // .build.yaml
 			manifestName = ".build.yaml"
 			if manifests.Repository.Paths[i] != nil {
 				contents = manifests.Repository.Paths[i].Object.Value.(*git.TextBlob).Text
 			}
-		default: // .builds.*
+			appendManifest(manifestName, contents)
+		default: // .builds/*
 			if manifests.Repository.Paths[i] != nil {
 				tree := manifests.Repository.Paths[i].Object.Value.(*git.Tree)
 				for _, entry := range tree.Entries.Results {
@@ -341,22 +351,14 @@ func processPatchsetReceivedEvent(ctx context.Context, listID int,
 					}
 					manifestName = name
 					contents = entry.Object.Value.(*git.TextBlob).Text
+					appendManifest(manifestName, contents)
 				}
 			}
 		}
-
-		if len(contents) == 0 {
-			continue
-		}
-		allManifests = append(allManifests, manifestInfo{
-			name:     manifestName,
-			contents: contents,
-		})
 	}
 
 	// Shuffle manifests to ensure a good distribution of coverage over
-	// time time on repositories with more than the maximum number of
-	// manifests.
+	// time on repositories with more than the maximum number of manifests.
 	rand.Shuffle(len(allManifests), func(i, j int) {
 		allManifests[i], allManifests[j] = allManifests[j], allManifests[i]
 	})
