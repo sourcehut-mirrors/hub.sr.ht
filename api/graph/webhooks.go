@@ -245,5 +245,5 @@ func collectWebhookIDs(ctx context.Context, tx *sql.Tx, projectID int, resType R
 		}
 		ret = append(ret, whID)
 	}
-	return ret, nil
+	return ret, lists.Err()
 }
