@@ -42,10 +42,10 @@ func ProcessTrackerUserWebhook(ctx context.Context, userID int, webhookPayload [
                                                description = $2,
                                                visibility = $3,
                                                updated = NOW() at time zone 'utc'
-                                       WHERE remote_rid = $4
+                                       WHERE remote_id = $4
                                        RETURNING project_id;`,
 					tracker.Name, tracker.Description,
-					tracker.Visibility, tracker.Rid)
+					tracker.Visibility, tracker.Id)
 				if err != nil {
 					return err
 				}
@@ -60,9 +60,9 @@ func ProcessTrackerUserWebhook(ctx context.Context, userID int, webhookPayload [
 			}, func(tx *sql.Tx) error {
 				projects, err := tx.QueryContext(ctx, `
                                        DELETE FROM tracker
-                                       WHERE remote_rid = $1
+                                       WHERE remote_id = $1
                                        RETURNING project_id;
-                               `, tracker.Rid)
+                               `, tracker.Id)
 				if err != nil {
 					return err
 				}

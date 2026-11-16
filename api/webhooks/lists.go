@@ -45,9 +45,9 @@ func ProcessListsUserWebhook(ctx context.Context, userID int, webhookPayload []b
 						description = $2,
 						visibility = $3,
 						updated = NOW() at time zone 'utc'
-					WHERE remote_rid = $4
+					WHERE remote_id = $4
 					RETURNING project_id;
-				`, list.Name, list.Description, list.Visibility, list.Rid)
+				`, list.Name, list.Description, list.Visibility, list.Id)
 				if err != nil {
 					return err
 				}
@@ -62,9 +62,9 @@ func ProcessListsUserWebhook(ctx context.Context, userID int, webhookPayload []b
 			}, func(tx *sql.Tx) error {
 				projects, err := tx.QueryContext(ctx, `
 					DELETE FROM mailing_list
-					WHERE remote_rid = $1
+					WHERE remote_id = $1
 					RETURNING project_id;
-				`, list.Rid)
+				`, list.Id)
 				if err != nil {
 					return err
 				}

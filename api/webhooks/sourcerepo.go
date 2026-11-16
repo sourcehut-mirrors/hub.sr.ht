@@ -32,10 +32,10 @@ func ProcessSourceRepoUserWebhook(ctx context.Context, userID int,
 		repo := body.Data.Webhook.Repository
 		switch body.Data.Webhook.Event {
 		case git.WebhookEventRepoUpdate:
-			return updateRepository(ctx, repo.Rid, repo.Name,
+			return updateRepository(ctx, repo.Id, repo.Name,
 				repoType, repo.Visibility, repo.Description)
 		case git.WebhookEventRepoDeleted:
-			return deleteRepository(ctx, repo.Rid, repoType)
+			return deleteRepository(ctx, repo.Id, repoType)
 		}
 	case "HG":
 		var body struct {
@@ -50,10 +50,10 @@ func ProcessSourceRepoUserWebhook(ctx context.Context, userID int,
 		repo := body.Data.Webhook.Repository
 		switch body.Data.Webhook.Event {
 		case hg.WebhookEventRepoUpdate:
-			return updateRepository(ctx, repo.Rid, repo.Name,
+			return updateRepository(ctx, repo.Id, repo.Name,
 				repoType, repo.Visibility, repo.Description)
 		case hg.WebhookEventRepoDeleted:
-			return deleteRepository(ctx, repo.Rid, repoType)
+			return deleteRepository(ctx, repo.Id, repoType)
 		}
 	}
 
@@ -61,7 +61,7 @@ func ProcessSourceRepoUserWebhook(ctx context.Context, userID int,
 }
 
 func updateRepository(ctx context.Context,
-	repoRID string, repoName string, repoType string,
+	repoID int32, repoName string, repoType string,
 	repoVisibility any, repoDescription *string,
 ) error {
 	return database.WithTx(ctx,
@@ -77,10 +77,10 @@ func updateRepository(ctx context.Context,
                                        description = $2,
                                        visibility = $3,
                                        updated = NOW() at time zone 'utc'
-                               WHERE remote_rid = $4 AND repo_type = $5
+                               WHERE remote_id = $4 AND repo_type = $5
                                RETURNING project_id;`,
 				repoName, repoDescription,
-				repoVisibility, repoRID, repoType)
+				repoVisibility, repoID, repoType)
 			if err != nil {
 				return err
 			}
@@ -89,7 +89,7 @@ func updateRepository(ctx context.Context,
 	)
 }
 
-func deleteRepository(ctx context.Context, repoRID string, repoType string) error {
+func deleteRepository(ctx context.Context, repoID int32, repoType string) error {
 	return database.WithTx(ctx,
 		&sql.TxOptions{
 			Isolation: 0,
@@ -97,9 +97,9 @@ func deleteRepository(ctx context.Context, repoRID string, repoType string) erro
 		}, func(tx *sql.Tx) error {
 			projects, err := tx.QueryContext(ctx, `
                                DELETE FROM source_repo
-                               WHERE remote_rid = $1 AND repo_type = $2
+                               WHERE remote_id = $1 AND repo_type = $2
                                RETURNING project_id;
-                       `, repoRID, repoType)
+                       `, repoID, repoType)
 			if err != nil {
 				return err
 			}
