@@ -4,6 +4,7 @@ import re
 from datetime import datetime
 from flask import Blueprint, request, current_app
 from hubsrht.builds import submit_patchset
+from hubsrht.decorators import internalwebhook
 from hubsrht.services.hg import EventWebhook as HgEventWebhook
 from hubsrht.services.hg import WebhookEvent as HgWebhookEvent
 from hubsrht.services.todo import TodoClient, SubmitCommentInput
@@ -49,6 +50,7 @@ _ticket_url_re = re.compile(
 
 @csrf_bypass
 @webhooks.route("/webhooks/gql/git-user/<int:user_id>", methods=["POST"])
+@internalwebhook
 def git_user(user_id):
     payload = verify_request_signature(request)
     payload = json.loads(payload.decode('utf-8'))["data"]
@@ -85,6 +87,7 @@ def git_user(user_id):
 
 @csrf_bypass
 @webhooks.route("/webhooks/gql/git-repo/<int:repo_id>", methods=["POST"])
+@internalwebhook
 def git_repo(repo_id):
     payload = verify_request_signature(request)
     payload = json.loads(payload.decode('utf-8'))["data"]
@@ -153,6 +156,7 @@ def git_repo(repo_id):
 
 @csrf_bypass
 @webhooks.route("/webhooks/gql/hg-user/<int:user_id>", methods=["POST"])
+@internalwebhook
 def hg_user(user_id):
     payload = verify_request_signature(request)
     payload = json.loads(payload.decode('utf-8'))["data"]
@@ -189,6 +193,7 @@ def hg_user(user_id):
 
 @csrf_bypass
 @webhooks.route("/webhooks/gql/mailing-list-user/<int:user_id>", methods=["POST"])
+@internalwebhook
 def mailing_list_user(user_id):
     payload = verify_request_signature(request)
     payload = json.loads(payload.decode('utf-8'))["data"]
@@ -217,6 +222,7 @@ def mailing_list_user(user_id):
 
 @csrf_bypass
 @webhooks.route("/webhooks/gql/mailing-list/<int:list_id>", methods=["POST"])
+@internalwebhook
 def project_mailing_list(list_id):
     event = request.headers.get("X-Webhook-Event")
     payload = verify_request_signature(request)
@@ -297,6 +303,7 @@ def project_mailing_list(list_id):
 
 @csrf_bypass
 @webhooks.route("/webhooks/gql/todo-user/<int:user_id>", methods=["POST"])
+@internalwebhook
 def todo_user(user_id):
     payload = verify_request_signature(request)
     payload = json.loads(payload.decode('utf-8'))["data"]
@@ -325,6 +332,7 @@ def todo_user(user_id):
 
 @csrf_bypass
 @webhooks.route("/webhooks/gql/todo-tracker/<int:tracker_id>", methods=["POST"])
+@internalwebhook
 def todo_tracker(tracker_id):
     payload = verify_request_signature(request)
     payload = json.loads(payload.decode('utf-8'))["data"]
@@ -429,6 +437,7 @@ def todo_tracker(tracker_id):
 
 @csrf_bypass
 @webhooks.route("/webhooks/build-complete/<details>", methods=["POST"])
+@internalwebhook
 def build_complete(details):
     payload = verify_request_signature(request)
     payload = json.loads(payload.decode('utf-8'))
