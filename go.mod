@@ -6,8 +6,8 @@ toolchain go1.24.0
 
 require (
 	git.sr.ht/~sircmpwn/builds.sr.ht v0.0.0-20260708112959-f797fecc8e18
-	git.sr.ht/~sircmpwn/core-go v0.0.0-20260708091830-71b27871dc30
-	git.sr.ht/~sircmpwn/dowork v0.0.0-20241216125407-2b00aa42322c
+	git.sr.ht/~sircmpwn/core-go v0.0.0-20261118094441-c18474be6d84
+	git.sr.ht/~sircmpwn/dowork v0.0.0-20260608121917-b429c14b2130
 	git.sr.ht/~sircmpwn/gqlclient v0.0.0-20260311150237-708bc60b772a
 	github.com/99designs/gqlgen v0.17.64
 	github.com/Masterminds/squirrel v1.5.4
@@ -24,7 +24,7 @@ require (
 	github.com/ProtonMail/go-crypto v1.3.0 // indirect
 	github.com/agnivade/levenshtein v1.2.1 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
-	github.com/cespare/xxhash/v2 v2.2.0 // indirect
+	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/cloudflare/circl v1.6.0 // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.6 // indirect
 	github.com/dave/jennifer v1.7.0 // indirect
@@ -41,13 +41,15 @@ require (
 	github.com/gorilla/websocket v1.5.1 // indirect
 	github.com/hashicorp/golang-lru/v2 v2.0.7 // indirect
 	github.com/kavu/go_reuseport v1.5.0 // indirect
+	github.com/klauspost/compress v1.17.9 // indirect
 	github.com/lann/builder v0.0.0-20180802200727-47ae307949d0 // indirect
 	github.com/lann/ps v0.0.0-20150810152359-62de8c46ede0 // indirect
+	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
-	github.com/prometheus/client_golang v1.18.0 // indirect
-	github.com/prometheus/client_model v0.5.0 // indirect
-	github.com/prometheus/common v0.46.0 // indirect
-	github.com/prometheus/procfs v0.12.0 // indirect
+	github.com/prometheus/client_golang v1.20.5 // indirect
+	github.com/prometheus/client_model v0.6.1 // indirect
+	github.com/prometheus/common v0.55.0 // indirect
+	github.com/prometheus/procfs v0.15.1 // indirect
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
 	github.com/sosodev/duration v1.3.1 // indirect
 	github.com/urfave/cli/v2 v2.27.5 // indirect
