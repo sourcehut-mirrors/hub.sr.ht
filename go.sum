@@ -1,7 +1,7 @@
 git.sr.ht/~sircmpwn/builds.sr.ht v0.0.0-20260708112959-f797fecc8e18 h1:peV5atGXHbHud5dbtC++VNB/4UfAGqwd2STYv/Ck3GU=
 git.sr.ht/~sircmpwn/builds.sr.ht v0.0.0-20260708112959-f797fecc8e18/go.mod h1:a/r2xof5B0IS1tHpl/Bnyo1Q0MZ4jmJ+ZmBXnXcATiA=
-git.sr.ht/~sircmpwn/core-go v0.0.0-20261119161157-1622f5cbb262 h1:RB5nVK09JbCgQmhH2J8i4M53KDV1Sb2GgTWyBlrzBRI=
-git.sr.ht/~sircmpwn/core-go v0.0.0-20261119161157-1622f5cbb262/go.mod h1:RnTGLfDEt1Vt/kdKVi46GMSyqbKBI5xaGJrRoOo1LpE=
+git.sr.ht/~sircmpwn/core-go v0.0.0-20261119162141-8dbbdb4c3bdd h1:4cBXPSPgyMQsRyrOqvisDk3AKu9KDwCmNgxjfUNoY2E=
+git.sr.ht/~sircmpwn/core-go v0.0.0-20261119162141-8dbbdb4c3bdd/go.mod h1:RnTGLfDEt1Vt/kdKVi46GMSyqbKBI5xaGJrRoOo1LpE=
 git.sr.ht/~sircmpwn/dowork v0.0.0-20261118140754-67c284e823eb h1:BELe1Hyb17J0HrM+4Lxf0+4/L0y3mEj/omkK+ExWILY=
 git.sr.ht/~sircmpwn/dowork v0.0.0-20261118140754-67c284e823eb/go.mod h1:8neHEO3503w/rNtttnR0JFpQgM/GFhaafVwvkPsFIDw=
 git.sr.ht/~sircmpwn/getopt v0.0.0-20191230200459-23622cc906b3/go.mod h1:wMEGFFFNuPos7vHmWXfszqImLppbc0wEhh6JBfJIUgw=
