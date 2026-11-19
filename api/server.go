@@ -153,7 +153,9 @@ func main() {
 		}
 	})
 
-	gsrv.WebhookRouter().Post(
+	// These can be unauthenticated, and need to be as they are sent by regular
+	// triggers added to build manifests.
+	gsrv.UnauthenticatedWebhookRouter().Post(
 		"/query/build-complete/{details}",
 		webhooks.ProcessBuildCompleteWebhook,
 	)

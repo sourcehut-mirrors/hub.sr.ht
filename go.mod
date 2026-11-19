@@ -6,8 +6,8 @@ toolchain go1.24.0
 
 require (
 	git.sr.ht/~sircmpwn/builds.sr.ht v0.0.0-20260708112959-f797fecc8e18
-	git.sr.ht/~sircmpwn/core-go v0.0.0-20261118094441-c18474be6d84
-	git.sr.ht/~sircmpwn/dowork v0.0.0-20260608121917-b429c14b2130
+	git.sr.ht/~sircmpwn/core-go v0.0.0-20261119130948-23ccdbfc4759
+	git.sr.ht/~sircmpwn/dowork v0.0.0-20261118140754-67c284e823eb
 	git.sr.ht/~sircmpwn/gqlclient v0.0.0-20260311150237-708bc60b772a
 	github.com/99designs/gqlgen v0.17.64
 	github.com/Masterminds/squirrel v1.5.4
