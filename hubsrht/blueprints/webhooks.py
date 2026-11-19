@@ -437,7 +437,6 @@ def todo_tracker(tracker_id):
 
 @csrf_bypass
 @webhooks.route("/webhooks/build-complete/<details>", methods=["POST"])
-@internalwebhook
 def build_complete(details):
     payload = verify_request_signature(request)
     payload = json.loads(payload.decode('utf-8'))
